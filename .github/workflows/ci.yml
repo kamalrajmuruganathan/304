@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Dépendances
+        run: flutter pub get
+      - name: Analyse statique
+        run: flutter analyze --no-fatal-infos
+      - name: Tests du moteur
+        run: flutter test
+
+  prototype-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test d'interface du prototype (parties jouées automatiquement)
+        working-directory: tools/ui-test
+        run: |
+          npm install
+          DEALS=40 node run.js
+      - name: Trace de référence du test différentiel à jour
+        run: node tools/diff-test/trace.js --check

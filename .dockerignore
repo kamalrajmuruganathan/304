@@ -1,0 +1,10 @@
+.git
+.github
+build
+.dart_tool
+prototype
+tools
+docs
+assets
+test
+*.zip

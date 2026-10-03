@@ -1,0 +1,40 @@
+{
+  "@@locale": "en",
+  "appTitle": "304",
+  "@appTitle": { "description": "App name shown on the home screen" },
+
+  "playAsGuest": "Play as Guest",
+  "quickPlay": "Quick Play vs Bots",
+  "privateTable": "Private Table",
+  "learn304": "Learn 304",
+
+  "newDeal": "Deal",
+  "yourTurn": "Your turn",
+  "bid": "Bid",
+  "pass": "Pass",
+  "partnerCloseCaps": "Partner Close Caps",
+
+  "trumpHidden": "Trump: hidden",
+  "trumpClosed": "Closed game",
+  "trumpOpen": "Open game",
+  "chooseTrump": "Choose your trump card",
+
+  "seatYou": "You (South)",
+  "seatEast": "East",
+  "seatNorth": "North (partner)",
+  "seatWest": "West",
+
+  "trickMaker": "declarer",
+  "solo": "solo",
+  "satOut": "sat out",
+
+  "us": "Us",
+  "them": "Them",
+  "tokens": "Tokens",
+  "dealWon": "Deal won",
+  "dealLost": "Deal lost",
+  "gameWon": "Game won!",
+  "gameLost": "Game lost.",
+  "nextDeal": "Next deal",
+  "playAgain": "Play again"
+}

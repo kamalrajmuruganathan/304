@@ -1,0 +1,38 @@
+{
+  "@@locale": "fr",
+  "appTitle": "304",
+  "playAsGuest": "Jouer en invité",
+  "quickPlay": "Partie rapide contre les bots",
+  "privateTable": "Table privée",
+  "learn304": "Apprendre le 304",
+
+  "newDeal": "Distribuer",
+  "yourTurn": "À vous",
+  "bid": "Enchérir",
+  "pass": "Passe",
+  "partnerCloseCaps": "Partner Close Caps",
+
+  "trumpHidden": "Atout : caché",
+  "trumpClosed": "Jeu fermé",
+  "trumpOpen": "Jeu ouvert",
+  "chooseTrump": "Choisissez votre carte d'atout",
+
+  "seatYou": "Vous (Sud)",
+  "seatEast": "Est",
+  "seatNorth": "Nord (partenaire)",
+  "seatWest": "Ouest",
+
+  "trickMaker": "preneur",
+  "solo": "solo",
+  "satOut": "écarté",
+
+  "us": "Nous",
+  "them": "Eux",
+  "tokens": "Jetons",
+  "dealWon": "Donne gagnée",
+  "dealLost": "Donne perdue",
+  "gameWon": "Partie gagnée !",
+  "gameLost": "Partie perdue.",
+  "nextDeal": "Donne suivante",
+  "playAgain": "Rejouer"
+}
