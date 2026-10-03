@@ -46,6 +46,8 @@ class GameView {
   final int trickWinsEW;
   final List<SeatHand> hands;
   final List<TrickCardView> currentTrick;
+  final List<TrickCardView>? lastTrick; // dernier pli terminé (null au début)
+  final int? lastTrickWinner;
   final List<int> legalBids;
   final bool canPCC;
   final String? code;
@@ -70,12 +72,17 @@ class GameView {
     required this.trickWinsEW,
     required this.hands,
     required this.currentTrick,
+    required this.lastTrick,
+    required this.lastTrickWinner,
     required this.legalBids,
     required this.canPCC,
     required this.code,
     required this.started,
     required this.players,
   });
+
+  bool get gameOver =>
+      phase == 'scored' && (tokens['NS']! <= 0 || tokens['EW']! <= 0);
 
   factory GameView.fromJson(Map j, int you) {
     final hands = (j['hands'] as List).map<SeatHand>((h) {
@@ -86,23 +93,26 @@ class GameView {
       return SeatHand.hidden((h as Map)['count'] as int);
     }).toList();
 
-    final trick = (j['currentTrick'] as List).map<TrickCardView>((p) {
-      final m = p as Map;
-      final c = m['card'];
-      return TrickCardView(
-        m['seat'] as int,
-        m['faceDown'] as bool,
-        c == null ? null : Engine.cardFromJson(c as Map),
-      );
-    }).toList();
+    List<TrickCardView> plays(List l) => l.map<TrickCardView>((p) {
+          final m = p as Map;
+          final c = m['card'];
+          return TrickCardView(
+            m['seat'] as int,
+            m['faceDown'] as bool,
+            c == null ? null : Engine.cardFromJson(c as Map),
+          );
+        }).toList();
+
+    final trick = plays(j['currentTrick'] as List);
+    final last = j['lastTrick'] as Map?;
 
     return GameView._(
       you: you,
       phase: j['phase'] as String,
       turn: (j['turn'] as int?) ?? 0,
       yourTurn: (j['yourTurn'] as bool?) ?? false,
-      tokens: (j['tokens'] as Map)
-          .map((k, v) => MapEntry(k as String, v as int)),
+      tokens:
+          (j['tokens'] as Map).map((k, v) => MapEntry(k as String, v as int)),
       bid: j['bid'] as int?,
       trumpMaker: j['trumpMaker'] as int?,
       pcc: (j['pcc'] as bool?) ?? false,
@@ -115,6 +125,8 @@ class GameView {
       trickWinsEW: (j['trickWinsEW'] as int?) ?? 0,
       hands: hands,
       currentTrick: trick,
+      lastTrick: last == null ? null : plays(last['cards'] as List),
+      lastTrickWinner: last?['winner'] as int?,
       legalBids: (j['legalBids'] as List).map((e) => e as int).toList(),
       canPCC: (j['canPCC'] as bool?) ?? false,
       code: j['code'] as String?,
@@ -140,7 +152,8 @@ class GameClient {
   final _states = StreamController<GameView>.broadcast();
   final _events = StreamController<Map>.broadcast();
   Stream<GameView> get states => _states.stream;
-  Stream<Map> get events => _events.stream; // joined / error / chat / handResult
+  Stream<Map> get events =>
+      _events.stream; // joined / error / chat / handResult
 
   GameClient(this.url);
 
@@ -180,15 +193,20 @@ class GameClient {
   // ---- actions de jeu ----
   void bid(int? value) => _action({'type': 'bid', 'value': value});
   void pass() => bid(null);
-  void chooseTrump1(Card c) => _action({'type': 'chooseTrump1', 'card': Engine.cardJson(c)});
-  void bid2(Object? value) => _action({'type': 'bid2', 'value': value}); // int | 'PCC' | null
+  void chooseTrump1(Card c) =>
+      _action({'type': 'chooseTrump1', 'card': Engine.cardJson(c)});
+  void bid2(Object? value) =>
+      _action({'type': 'bid2', 'value': value}); // int | 'PCC' | null
   void partnerCloseCaps() => bid2('PCC');
-  void chooseTrump2(Card c) => _action({'type': 'chooseTrump2', 'card': Engine.cardJson(c)});
-  void chooseTrumpPCC(Card c) => _action({'type': 'chooseTrumpPCC', 'card': Engine.cardJson(c)});
+  void chooseTrump2(Card c) =>
+      _action({'type': 'chooseTrump2', 'card': Engine.cardJson(c)});
+  void chooseTrumpPCC(Card c) =>
+      _action({'type': 'chooseTrumpPCC', 'card': Engine.cardJson(c)});
   void setOpen(bool open) => _action({'type': 'open', 'open': open});
   void play(Card c) => _action({'type': 'play', 'card': Engine.cardJson(c)});
   void playIndicator() => _action({'type': 'play', 'indicator': true});
-  void redeal({required bool keep}) => _action({'type': 'redeal', 'keep': keep});
+  void redeal({required bool keep}) =>
+      _action({'type': 'redeal', 'keep': keep});
 
   void _action(Map a) => _send({'t': 'action', 'action': a});
   void _send(Map m) => _ch?.sink.add(jsonEncode(m));

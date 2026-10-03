@@ -115,9 +115,11 @@ void main() {
       final noClamp = beforeNS >= 5 && beforeNS <= 17; // marge pour ±5
       if (noClamp) {
         expect(deltaNS == 4 || deltaNS == 5, isTrue,
-            reason: 'transfert PCC doit être 4 (réussi) ou 5 (raté), vu: $deltaNS');
+            reason:
+                'transfert PCC doit être 4 (réussi) ou 5 (raté), vu: $deltaNS');
       }
-      before; beforeEW; // (évite warnings unused)
+      before;
+      beforeEW; // (évite warnings unused)
     }
     expect(pccPlayed, greaterThan(0), reason: 'au moins une donne PCC jouée');
   });

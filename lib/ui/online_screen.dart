@@ -9,8 +9,8 @@ import 'package:flutter/material.dart' hide Card;
 import '../engine/engine.dart';
 import '../net/client.dart';
 
-const String kServerUrl =
-    String.fromEnvironment('SERVER_URL', defaultValue: 'ws://localhost:8080/ws');
+const String kServerUrl = String.fromEnvironment('SERVER_URL',
+    defaultValue: 'ws://localhost:8080/ws');
 
 const _gold = Color(0xFFE3C565);
 const _goldD = Color(0xFFA5822F);
@@ -132,6 +132,8 @@ class OnlineGameScreen extends StatefulWidget {
 
 class _OnlineGameScreenState extends State<OnlineGameScreen> {
   GameView? v;
+  bool _waiting = false; // action envoyée, réponse du serveur attendue
+  Timer? _unlock;
   late final StreamSubscription<GameView> _s1;
   late final StreamSubscription<Map> _s2;
 
@@ -142,16 +144,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     super.initState();
     v = c.last;
     _s1 = c.states.listen((view) {
-      if (mounted) setState(() => v = view);
+      if (mounted) {
+        setState(() {
+          v = view;
+          _waiting = false;
+        });
+      }
     });
     _s2 = c.events.listen((m) {
       if (!mounted) return;
       if (m['t'] == 'error') {
+        setState(() => _waiting = false);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('${m['msg']}')));
       } else if (m['t'] == 'disconnected') {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Connexion perdue.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Connexion perdue.')));
       }
     });
   }
@@ -160,6 +168,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   void dispose() {
     _s1.cancel();
     _s2.cancel();
+    _unlock?.cancel();
     c.dispose();
     super.dispose();
   }
@@ -183,6 +192,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   bool _playable(Card card) {
     final g = v!;
+    if (_waiting) return false;
     if (_choosingTrump) return true;
     if (!g.yourTurn || g.phase != 'play') return false;
     if (g.currentTrick.isEmpty) return true;
@@ -190,7 +200,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     return !canFollow || card.suit == g.ledSuit; // le serveur revalide tout
   }
 
-  void _tapCard(Card card) {
+  /// Envoie une action et bloque l'interface jusqu'à la réponse du serveur
+  /// (nouvel état ou erreur) : un double appui n'envoie pas deux coups.
+  void _send(void Function() action) {
+    if (_waiting) return;
+    setState(() => _waiting = true);
+    action();
+    _unlock?.cancel();
+    _unlock = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _waiting = false); // sécurité réseau
+    });
+  }
+
+  void _tapCard(Card card) => _send(() => _sendCard(card));
+
+  void _sendCard(Card card) {
     final g = v!;
     switch (g.phase) {
       case 'chooseTrump1':
@@ -215,6 +239,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           ? 'Partagez le code ${g.code ?? ''} puis démarrez.'
           : 'En attente du démarrage par l\'hôte…';
     }
+    if (g.gameOver) {
+      final weWon = g.tokens[g.you % 2 == 0 ? 'NS' : 'EW']! > 0;
+      return '${weWon ? 'Partie gagnée !' : 'Partie perdue.'} '
+          '${g.you == 0 ? 'Relancez quand vous voulez.' : 'L\'hôte peut relancer.'}';
+    }
     if (g.phase == 'scored') return 'Donne terminée — la suivante arrive…';
     if (!g.yourTurn) return 'Au tour des autres joueurs…';
     switch (g.phase) {
@@ -238,10 +267,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   List<Widget> _actions() {
     final g = v!;
+    if (_waiting) return const [];
     if (!g.started) {
       return [
         if (g.you == 0)
-          FilledButton(onPressed: c.start, child: const Text('Démarrer')),
+          FilledButton(
+              onPressed: () => _send(c.start), child: const Text('Démarrer')),
+      ];
+    }
+    if (g.gameOver) {
+      return [
+        if (g.you == 0)
+          FilledButton(
+              onPressed: () => _send(c.start),
+              child: const Text('Nouvelle partie')),
       ];
     }
     if (!g.yourTurn) return const [];
@@ -249,38 +288,43 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       case 'redeal':
         return [
           FilledButton(
-              onPressed: () => c.redeal(keep: false),
+              onPressed: () => _send(() => c.redeal(keep: false)),
               child: const Text('Redistribuer')),
           OutlinedButton(
-              onPressed: () => c.redeal(keep: true), child: const Text('Garder')),
+              onPressed: () => _send(() => c.redeal(keep: true)),
+              child: const Text('Garder')),
         ];
       case 'bid1':
         return [
           for (final b in g.legalBids)
-            OutlinedButton(onPressed: () => c.bid(b), child: Text('$b')),
-          OutlinedButton(onPressed: c.pass, child: const Text('Passe')),
+            OutlinedButton(
+                onPressed: () => _send(() => c.bid(b)), child: Text('$b')),
+          OutlinedButton(
+              onPressed: () => _send(c.pass), child: const Text('Passe')),
         ];
       case 'bid2':
         return [
           for (final b in g.legalBids.take(5))
-            OutlinedButton(onPressed: () => c.bid2(b), child: Text('$b')),
+            OutlinedButton(
+                onPressed: () => _send(() => c.bid2(b)), child: Text('$b')),
           if (g.canPCC)
             FilledButton(
                 style: FilledButton.styleFrom(
                     backgroundColor: _gold,
                     foregroundColor: const Color(0xFF2A1C06)),
-                onPressed: c.partnerCloseCaps,
+                onPressed: () => _send(c.partnerCloseCaps),
                 child: const Text('Partner Close Caps')),
           OutlinedButton(
-              onPressed: () => c.bid2(null), child: const Text('Passe')),
+              onPressed: () => _send(() => c.bid2(null)),
+              child: const Text('Passe')),
         ];
       case 'preplay':
         return [
           FilledButton(
-              onPressed: () => c.setOpen(false),
+              onPressed: () => _send(() => c.setOpen(false)),
               child: const Text('Jeu fermé')),
           OutlinedButton(
-              onPressed: () => c.setOpen(true),
+              onPressed: () => _send(() => c.setOpen(true)),
               child: const Text('Jeu ouvert')),
         ];
     }
@@ -308,7 +352,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               height: 1.1)),
     );
     return playable
-        ? GestureDetector(onTap: () => _tapCard(card), child: w)
+        ? GestureDetector(
+            key: ValueKey('play-${card.key}'),
+            onTap: () => _tapCard(card),
+            child: w)
         : w;
   }
 
@@ -326,7 +373,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final g = v!;
     final active = g.started &&
         g.phase != 'scored' &&
-        ((g.phase == 'play' && g.turn == seat) || (g.yourTurn && seat == g.you));
+        ((g.phase == 'play' && g.turn == seat) ||
+            (g.yourTurn && seat == g.you));
     final cnt = g.hands[seat].count;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -403,8 +451,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                   child: SizedBox(
                     width: 180,
                     height: 170,
+                    // pli en cours ; s'il est vide, le dernier pli terminé
+                    // reste visible jusqu'à l'entame suivante
                     child: Stack(children: [
-                      for (final p in g.currentTrick)
+                      for (final p in g.currentTrick.isEmpty
+                          ? (g.lastTrick ?? const <TrickCardView>[])
+                          : g.currentTrick)
                         Align(
                           alignment: _align(_rel(p.seat)),
                           child: p.card == null ? _back() : _card(p.card!),

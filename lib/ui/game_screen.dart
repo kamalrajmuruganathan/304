@@ -28,6 +28,10 @@ class _GameScreenState extends State<GameScreen> {
   final Engine e = Engine();
   String msg = '';
   List<Widget> actions = [];
+
+  /// Pli terminé, affiché pendant la pause de fin de pli. Tant qu'il est non
+  /// nul, aucune carte n'est jouable (sinon un 2e déroulé démarre en parallèle).
+  List<TrickPlay>? _doneTrick;
   static const int human = 0;
 
   @override
@@ -37,7 +41,6 @@ class _GameScreenState extends State<GameScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _startHand());
   }
 
-  void _refresh() => setState(() {});
   void _bots(void Function() f) =>
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) setState(f);
@@ -59,14 +62,19 @@ class _GameScreenState extends State<GameScreen> {
       setState(() {
         msg = 'Main faible (${e.handPoints(human)} pts, < 15). Redistribuer ?';
         actions = [
-          _btn('Redistribuer', () => setState(() {
-                e.redeal();
-                _handleRedeal(safety + 1);
-              }), primary: true),
-          _btn('Garder', () => setState(() {
-                e.startBidding1();
-                _stepBid();
-              })),
+          _btn(
+              'Redistribuer',
+              () => setState(() {
+                    e.redeal();
+                    _handleRedeal(safety + 1);
+                  }),
+              primary: true),
+          _btn(
+              'Garder',
+              () => setState(() {
+                    e.startBidding1();
+                    _stepBid();
+                  })),
         ];
       });
     } else {
@@ -140,7 +148,8 @@ class _GameScreenState extends State<GameScreen> {
     final tm = e.trumpMaker1!;
     if (tm == human) {
       setState(() {
-        msg = 'Vous gagnez le 1er tour ! Touchez une carte : elle devient l\'atout (caché).';
+        msg =
+            'Vous gagnez le 1er tour ! Touchez une carte : elle devient l\'atout (caché).';
         actions = [];
       });
     } else {
@@ -260,7 +269,8 @@ class _GameScreenState extends State<GameScreen> {
             e.startPlayOpen();
             if (e.phase == 'spoilt') {
               setState(() {
-                msg = 'Atout gâché — aucun adversaire n\'a d\'atout. Redistribution.';
+                msg =
+                    'Atout gâché — aucun adversaire n\'a d\'atout. Redistribution.';
                 actions = [];
               });
               _bots(_startHand);
@@ -315,10 +325,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _afterPlay(Map<String, dynamic> r) {
-    _refresh();
     if (r['trickDone'] == true) {
+      setState(() => _doneTrick = r['cards'] as List<TrickPlay>);
       Future.delayed(const Duration(milliseconds: 950), () {
         if (!mounted) return;
+        setState(() => _doneTrick = null);
         if (r['handDone'] == true) {
           _showResult(r);
         } else {
@@ -331,6 +342,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onHumanCard(Card c) {
+    if (!_canPlay(c)) return;
     if (e.phase == 'chooseTrumpPCC') {
       e.chooseTrumpPCC(c);
       _stepPlay();
@@ -341,8 +353,7 @@ class _GameScreenState extends State<GameScreen> {
       _preplay();
       return;
     }
-    if (e.phase == 'chooseTrump1' ||
-        (e.phase == 'bid2' && e.trumpMaker1 == human && e.indicator == null)) {
+    if (e.phase == 'chooseTrump1') {
       e.chooseTrump1(c);
       _stepBid2();
       return;
@@ -353,12 +364,15 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   bool _canPlay(Card c) {
-    final choosing = e.phase == 'chooseTrump1' ||
-        e.phase == 'chooseTrump2' ||
-        e.phase == 'chooseTrumpPCC' ||
-        (e.phase == 'bid2' && e.trumpMaker1 == human && e.indicator == null);
-    if (choosing) return true;
-    if (e.phase != 'play' || e.turn != human) return false;
+    // choix d'atout : seulement quand c'est le joueur qui choisit (pas pendant
+    // qu'un bot pose le sien)
+    if (e.phase == 'chooseTrump1') return e.trumpMaker1 == human;
+    if (e.phase == 'chooseTrump2' || e.phase == 'chooseTrumpPCC') {
+      return e.trumpMaker == human;
+    }
+    if (e.phase != 'play' || e.turn != human || _doneTrick != null) {
+      return false;
+    }
     final facedown = e.currentTrick.isNotEmpty &&
         !e.trumpOpen &&
         !e.hands[human].any((x) => x.suit == e.ledSuit);
@@ -382,11 +396,7 @@ class _GameScreenState extends State<GameScreen> {
         title: Text(nsWon ? 'Donne gagnée' : 'Donne perdue',
             style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
         content: Text(
-          '${s['pcc'] == true
-                  ? 'Partner Close Caps · ${s['tricks']}/8 plis — ${s['success'] == true ? 'réussie' : 'ratée'}'
-                  : 'Enchère ${s['bid']} · ${s['tmPoints']} pts — ${s['success'] == true ? 'réussie' : 'chutée'}${s['caps'] == true ? ' · Caps !' : ''}'}\nJetons — Nous ${e.tokens['NS']} · Eux ${e.tokens['EW']}${over
-                  ? '\n\n${r['gameWinner'] == 'NS' ? '🏆 Partie gagnée !' : 'Partie perdue.'}'
-                  : ''}',
+          '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 plis — ${s['success'] == true ? 'réussie' : 'ratée'}' : 'Enchère ${s['bid']} · ${s['tmPoints']} pts — ${s['success'] == true ? 'réussie' : 'chutée'}${s['caps'] == true ? ' · Caps !' : ''}'}\nJetons — Nous ${e.tokens['NS']} · Eux ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? '🏆 Partie gagnée !' : 'Partie perdue.'}' : ''}',
           style: const TextStyle(color: _dim),
         ),
         actions: [
@@ -423,7 +433,10 @@ class _GameScreenState extends State<GameScreen> {
       (e.phase == 'play' && e.turn == s);
 
   Widget _cardWidget(Card c,
-      {bool big = false, bool playable = false, VoidCallback? onTap}) {
+      {Key? key,
+      bool big = false,
+      bool playable = false,
+      VoidCallback? onTap}) {
     final red = c.suit == 'D' || c.suit == 'H';
     final w = big ? 52.0 : 46.0, h = big ? 74.0 : 66.0;
     final card = Container(
@@ -454,7 +467,9 @@ class _GameScreenState extends State<GameScreen> {
                 color: red ? _red : _ink, fontSize: big ? 17 : 15, height: 1)),
       ]),
     );
-    return onTap != null ? GestureDetector(onTap: onTap, child: card) : card;
+    return onTap != null
+        ? GestureDetector(key: key, onTap: onTap, child: card)
+        : KeyedSubtree(key: key, child: card);
   }
 
   Widget _facedown({bool big = true}) => Container(
@@ -549,7 +564,7 @@ class _GameScreenState extends State<GameScreen> {
       height: 168,
       child: Stack(
         children: [
-          for (final p in e.currentTrick)
+          for (final p in _doneTrick ?? e.currentTrick)
             Align(
               alignment: _seatAlign(p.seat),
               child: (p.faceDown && !e.trumpOpen)
@@ -584,6 +599,8 @@ class _GameScreenState extends State<GameScreen> {
                   angle: (i - mid) * 0.06,
                   child: _cardWidget(
                     h[i],
+                    key: ValueKey(
+                        '${_canPlay(h[i]) ? 'play' : 'hand'}-${h[i].key}'),
                     big: true,
                     playable: _canPlay(h[i]),
                     onTap: _canPlay(h[i]) ? () => _onHumanCard(h[i]) : null,
@@ -598,7 +615,8 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _trumpChip() {
     final t = e.trumpSuit;
-    final txt = (t != null && e.trumpOpen) ? 'atout ${kSuitSym[t]}' : 'atout caché';
+    final txt =
+        (t != null && e.trumpOpen) ? 'atout ${kSuitSym[t]}' : 'atout caché';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -686,20 +704,32 @@ class _GameScreenState extends State<GameScreen> {
         Row(children: [
           _teamPanel('Nous', e.tokens['NS']!, _gold),
           Expanded(
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              _stat('Enchère', e.pcc ? 'PCC' : (e.bid?.toString() ?? '—')),
-              _stat('Atout', trumpTxt, color: trumpColor),
-              _stat('Plis', '${e.trickWinsNS}–${e.trickWinsEW}'),
-            ]),
+            // réduit l'ensemble sur les écrans étroits au lieu de déborder
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                _stat('Enchère', e.pcc ? 'PCC' : (e.bid?.toString() ?? '—')),
+                _stat('Atout', trumpTxt, color: trumpColor),
+                _stat('Plis', '${e.trickWinsNS}–${e.trickWinsEW}'),
+              ]),
+            ),
           ),
           _teamPanel('Eux', e.tokens['EW']!, const Color(0xFFE0C07A)),
         ]),
         const SizedBox(height: 4),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Notre objectif $tgtUs',
-              style: const TextStyle(color: _dim, fontSize: 11)),
-          Text('Objectif adverse $tgtThem',
-              style: const TextStyle(color: _dim, fontSize: 11)),
+          Flexible(
+            child: Text('Notre objectif $tgtUs',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _dim, fontSize: 11)),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text('Objectif adverse $tgtThem',
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: const TextStyle(color: _dim, fontSize: 11)),
+          ),
         ]),
       ]),
     );
@@ -711,11 +741,14 @@ class _GameScreenState extends State<GameScreen> {
       child: Container(
         decoration: BoxDecoration(
           gradient: const RadialGradient(
-              center: Alignment(0, -0.1), radius: 0.95, colors: [_feltA, _feltB]),
+              center: Alignment(0, -0.1),
+              radius: 0.95,
+              colors: [_feltA, _feltB]),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: _goldD, width: 2),
           boxShadow: const [
-            BoxShadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, 8))
+            BoxShadow(
+                color: Colors.black54, blurRadius: 16, offset: Offset(0, 8))
           ],
         ),
         child: Stack(

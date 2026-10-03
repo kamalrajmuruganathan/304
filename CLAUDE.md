@@ -50,6 +50,8 @@ bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise e
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
 test/fixtures/prototype_trace.json.gz trace de référence produite par tools/diff-test/trace.js
+test/ui_solo_test.dart     test d'interface Flutter : donnes jouées via les boutons/cartes (3 tailles d'écran)
+test/ui_online_test.dart   test d'interface en ligne contre le vrai serveur (lancé par le test)
 tools/diff-test/trace.js   génère / vérifie (--check) la trace de référence du prototype
 android/ ios/ web/         générés par `flutter create` (org com.kjtech)
 prototype/304.html         PROTOTYPE WEB VALIDÉ — référence des règles, de l'IA et du design
@@ -167,11 +169,12 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 27/27 (régression 300 parties, PCC, 24 parties différentielles) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 31/31 (régression 300 parties, PCC, 24 parties différentielles, 4 tests d'interface) ; `flutter analyze` : 0 remarque |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
-| UI Flutter (game_screen, online_screen, main) | ⚠️ **Compile** (`flutter build web` OK) mais **jamais lancée ni testée à l'écran** (pas de navigateur interactif dans la session Claude Code) |
+| UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). ⚠️ Rendu visuel jamais regardé par un humain (`flutter run -d chrome`) |
+| UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. ⚠️ Salon (créer/rejoindre) non testé à l'écran |
 | Dockerfile, scripts deploy | ⚠️ Syntaxe vérifiée (`bash -n`), jamais exécutés |
-| CI GitHub | ⚠️ Écrite, jamais lancée (YAML valide) |
+| CI GitHub | ✅ Verte sur la PR #1 (jobs `test` et `prototype-ui`) |
 
 Validation faite le 03/10/2026 (session Claude Code, branche `claude/game304-dart-compile-kj2ik4`).
 Commandes : `flutter analyze`, `flutter test`, `flutter build web`, `dart compile exe bin/server.dart`,
@@ -196,7 +199,8 @@ Après toute modification des règles ou de l'IA : modifier les deux côtés, re
    ```
    Corriger toutes les erreurs/avertissements. Vérifier que le comportement Dart = prototype
    → fait : test différentiel (§6).
-2. Lancer en local : `flutter run -d chrome` (solo), puis `dart run bin/server.dart` +
+2. ✅ **En grande partie FAIT (03/10/2026)** par tests automatiques (§6) ; reste à **regarder le rendu** :
+   `flutter run -d chrome` (solo), puis `dart run bin/server.dart` +
    `flutter run -d chrome --dart-define=SERVER_URL=ws://localhost:8080/ws` dans 2 onglets
    pour tester une table privée (créer → code → rejoindre → démarrer → jouer une donne).
 3. Pousser sur GitHub (`PUSH.md`), vérifier la CI, activer **Settings → Pages → GitHub Actions**.
@@ -234,6 +238,8 @@ JS, blocage, ou texte non traduit après bascule de langue.
   accueil avec stats, animations de distribution/ramassage, réglages (tous présents dans le prototype).
 - **Écran en ligne** : pas d'écran de fin de donne détaillé (le serveur repasse en donne suivante
   après 1,2 s), pas de chat, pas de voice chat (prévu : WebRTC via signaling serveur).
+- Personne (solo comme en ligne) ne peut couper avec l'atout posé (`playIndicatorToCut`) depuis
+  l'UI — seuls les bots le font. Identique au prototype ; à décider.
 - Serveur : tables jamais nettoyées (fuite mémoire si beaucoup de tables) ; une seule instance.
 - `docs/privacy.html` : remplacer `[DATE]` et `[EMAIL DE CONTACT]`.
 - Icônes PNG à générer depuis `assets/icon.svg` (ex. `flutter_launcher_icons`).
@@ -275,6 +281,22 @@ JS, blocage, ou texte non traduit après bascule de langue.
   conditions de `playIndicatorToCut`), vérifié par le test WebSocket.
 - Journal Dart : 2 messages (PCC, révélation ≥ 250) formulés autrement que dans le prototype →
   alignés (détecté par le test différentiel).
+- UI solo : pendant qu'un **bot** posait son atout, les cartes du joueur restaient jouables → toucher
+  une carte appelait `chooseTrump1` avec la carte du joueur pour le bot (« carte absente »). Corrigé
+  (`_canPlay` vérifie que c'est le joueur qui choisit). Trouvé par `ui_solo_test`.
+- UI solo : pendant la pause de fin de pli (0,95 s), le gagnant pouvait déjà jouer → 2 déroulés en
+  parallèle, bots jouant deux fois, tour du joueur sauté, plantage en fin de donne. Corrigé
+  (`_doneTrick` : pli terminé affiché pendant la pause, aucune carte jouable). La 4e carte d'un pli
+  n'était jamais visible : elle l'est maintenant (le moteur renvoie `cards` comme le prototype).
+- UI solo : tableau des scores qui débordait sur écran de 390 px → `FittedBox`/`Flexible`.
+- En ligne : fin de partie = table bloquée (le serveur s'arrêtait, `start` ignoré). Corrigé : l'hôte
+  voit « Nouvelle partie » (`room.restart()`).
+- En ligne : 4e carte jamais visible → `lastTrick` dans la vue + pause serveur de 1 s après chaque pli.
+- En ligne : double appui = 2 actions envoyées (« Ce n'est pas votre tour »). Corrigé : l'UI se
+  bloque après chaque action jusqu'au nouvel état (ou erreur, ou 4 s).
+- Nom de classe `Thuru304App` dans `main.dart` → renommé `Game304App`.
+- Tests d'interface : `flutter_test` bloque le réseau (`HttpOverrides`) → `HttpOverrides.global =
+  null` dans le test en ligne ; les écouteurs de flux ne tournent qu'aux `pump()`.
 
 ## 12. Prototype — repères dans `prototype/304.html`
 

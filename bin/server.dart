@@ -82,6 +82,22 @@ class Room {
     loop();
   }
 
+  // partie finie ET boucle arrêtée (évite une double donne pendant la pause)
+  bool get gameOver =>
+      !_looping &&
+      engine.phase == 'scored' &&
+      (engine.tokens['NS']! <= 0 || engine.tokens['EW']! <= 0);
+
+  void restart() {
+    engine.tokens = {'NS': 11, 'EW': 11};
+    engine.newHand();
+    loop();
+  }
+
+  /// Nombre de plis déjà montrés : après chaque pli terminé, courte pause
+  /// pour que les joueurs voient les 4 cartes avant l'entame suivante.
+  int _shownTricks = 0;
+
   /// Fait avancer la partie tant qu'aucune décision HUMAINE n'est requise.
   Future<void> loop() async {
     if (_looping) return;
@@ -109,6 +125,16 @@ class Room {
           }
           engine.newHand();
           continue;
+        }
+
+        if (phase == 'play') {
+          if (engine.tricks.length > _shownTricks) {
+            _shownTricks = engine.tricks.length;
+            await Future.delayed(const Duration(milliseconds: 1000));
+            continue;
+          }
+        } else {
+          _shownTricks = 0;
         }
 
         final actor = _actorSeat();
@@ -237,7 +263,8 @@ class Room {
             e.playIndicatorToCut(seat);
           } else {
             final c = card();
-            if (!e.playableCards(seat)
+            if (!e
+                .playableCards(seat)
                 .any((x) => x.suit == c.suit && x.rank == c.rank)) {
               throw StateError('carte non jouable');
             }
@@ -283,7 +310,12 @@ void handleMessage(WebSocket ws, String data) {
       ..name = (msg['name'] as String?) ?? 'Joueur'
       ..socket = ws
       ..token = '$code:$seat:${_rng.nextInt(1 << 31)}';
-    ws.add(jsonEncode({'t': 'joined', 'code': code, 'seat': seat, 'token': room.seats[seat].token}));
+    ws.add(jsonEncode({
+      't': 'joined',
+      'code': code,
+      'seat': seat,
+      'token': room.seats[seat].token
+    }));
     room.broadcast();
     return;
   }
@@ -305,7 +337,12 @@ void handleMessage(WebSocket ws, String data) {
       ..name = (msg['name'] as String?) ?? 'Joueur'
       ..socket = ws
       ..token = '$code:$seat:${_rng.nextInt(1 << 31)}';
-    ws.add(jsonEncode({'t': 'joined', 'code': code, 'seat': seat, 'token': room.seats[seat].token}));
+    ws.add(jsonEncode({
+      't': 'joined',
+      'code': code,
+      'seat': seat,
+      'token': room.seats[seat].token
+    }));
     room.broadcast();
     return;
   }
@@ -316,7 +353,8 @@ void handleMessage(WebSocket ws, String data) {
       for (var i = 0; i < 4; i++) {
         if (room.seats[i].token == token) {
           room.seats[i].socket = ws;
-          ws.add(jsonEncode({'t': 'joined', 'code': room.code, 'seat': i, 'token': token}));
+          ws.add(jsonEncode(
+              {'t': 'joined', 'code': room.code, 'seat': i, 'token': token}));
           room.broadcast();
           return;
         }
@@ -343,7 +381,11 @@ void handleMessage(WebSocket ws, String data) {
   }
 
   if (t == 'start') {
-    if (!room.started) room.begin();
+    if (!room.started) {
+      room.begin();
+    } else if (seat == 0 && room.gameOver) {
+      room.restart(); // l'hôte relance une partie après la fin
+    }
     return;
   }
   if (t == 'action') {
@@ -353,7 +395,10 @@ void handleMessage(WebSocket ws, String data) {
   if (t == 'chat') {
     for (var i = 0; i < 4; i++) {
       final s = room.seats[i];
-      if (s.connected) s.socket!.add(jsonEncode({'t': 'chat', 'seat': seat, 'text': msg['text']}));
+      if (s.connected) {
+        s.socket!
+            .add(jsonEncode({'t': 'chat', 'seat': seat, 'text': msg['text']}));
+      }
     }
     return;
   }

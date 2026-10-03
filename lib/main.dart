@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
 
-void main() => runApp(const Thuru304App());
+void main() => runApp(const Game304App());
 
-class Thuru304App extends StatelessWidget {
-  const Thuru304App({super.key});
+class Game304App extends StatelessWidget {
+  const Game304App({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +57,8 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               OutlinedButton(
-                onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const OnlineLobbyScreen())),
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const OnlineLobbyScreen())),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 6),
                   child: Text('Table privée entre amis'),

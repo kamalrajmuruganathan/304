@@ -527,6 +527,7 @@ class Engine {
       'winner': win.seat,
       'points': pts,
       'revealed': reveal,
+      'cards': List<TrickPlay>.of(t), // comme le prototype (cards: t.slice())
       'ledSuit': ledSuit,
     };
     for (final x in t) {
@@ -661,7 +662,7 @@ class Engine {
         handInfo.add({'count': hands[i].length});
       }
     }
-    final trick = currentTrick.map((p) {
+    Map<String, dynamic> playJson(TrickPlay p) {
       final hide =
           p.faceDown && !open && !(forSeat != null && p.seat == forSeat);
       return {
@@ -669,7 +670,19 @@ class Engine {
         'faceDown': p.faceDown,
         'card': hide ? null : cardJson(p.card),
       };
-    }).toList();
+    }
+
+    final trick = currentTrick.map(playJson).toList();
+    // dernier pli terminé (affiché par les clients tant que le suivant n'a
+    // pas commencé) — mêmes règles de masquage que le pli en cours
+    final lastTrick = tricks.isEmpty
+        ? null
+        : {
+            'winner': tricks.last['winner'],
+            'cards': (tricks.last['cards'] as List<TrickPlay>)
+                .map(playJson)
+                .toList(),
+          };
     final showTrump = forSeat == null || open || forSeat == trumpMaker;
     return {
       'phase': phase,
@@ -700,6 +713,7 @@ class Engine {
       'tricksPlayed': tricks.length,
       'hands': handInfo,
       'currentTrick': trick,
+      'lastTrick': lastTrick,
       'legalBids': phase == 'bid1'
           ? legalBids()
           : (phase == 'bid2' ? legalBids2() : <int>[]),

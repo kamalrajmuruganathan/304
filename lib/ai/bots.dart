@@ -15,7 +15,8 @@ double est4(List<Card> h) {
   String? best;
   var bs = -1;
   for (final en in bySuit.entries) {
-    final sc = en.value.fold<int>(0, (a, c) => a + c.points) + en.value.length * 2;
+    final sc =
+        en.value.fold<int>(0, (a, c) => a + c.points) + en.value.length * 2;
     if (sc > bs) {
       bs = sc;
       best = en.key;
@@ -77,7 +78,11 @@ Object? botBid2(Engine e, int seat) {
   final has9 = tr.any((c) => c.rank == '9');
   final pts = h.fold(0, (a, c) => a + c.points);
   if (canPcc && bestLen >= 7 && hasJ && has9 && pts >= 200) return 'PCC';
-  if (legal.isNotEmpty && bestLen >= 5 && hasJ && has9 && pts >= 150 &&
+  if (legal.isNotEmpty &&
+      bestLen >= 5 &&
+      hasJ &&
+      has9 &&
+      pts >= 150 &&
       legal.contains(250)) {
     return 250;
   }
@@ -189,7 +194,8 @@ Object botPlay(Engine e, int seat) {
           teamOf(e.trumpMaker!) != teamOf(seat) &&
           !last;
       if (partnerSafe && !riskyClosed) {
-        return (List.of(follow)..sort(_ptsDesc)).first; // on charge le partenaire
+        return (List.of(follow)..sort(_ptsDesc))
+            .first; // on charge le partenaire
       }
       return follow.first;
     }
