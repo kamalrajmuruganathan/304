@@ -1,0 +1,188 @@
+{
+  "@@locale": "en",
+  "appTitle": "304",
+  "quickPlay": "Quick Play vs Bots",
+  "privateTable": "Private Table",
+  "us": "Us",
+  "them": "Them",
+  "bid": "Bid",
+  "trump": "Trump",
+  "tricks": "Tricks",
+  "tgtUs": "Our target",
+  "tgtThem": "Opponent target",
+  "seatYou": "You",
+  "seatEast": "East",
+  "seatNorth": "North",
+  "seatWest": "West",
+  "mSud": "South",
+  "mPartner": "partner",
+  "mAI": "AI",
+  "mMaker": "declarer",
+  "mSolo": "solo",
+  "mOut": "sat out",
+  "pass": "Pass",
+  "closedGame": "Closed game",
+  "openGame": "Open game",
+  "redeal": "Redeal",
+  "keep": "Keep",
+  "nextDeal": "Next deal",
+  "playAgain": "Play again",
+  "dealWon": "Deal won",
+  "dealLost": "Deal lost",
+  "gameWon": "🏆 Game won!",
+  "gameLost": "Game lost.",
+  "trumpHidden": "trump hidden",
+  "closed": "closed",
+  "def": "defence",
+  "eightTricks": "8 tricks",
+  "tokens": "Tokens",
+  "succeeded": "made",
+  "failedPcc": "failed",
+  "failedBid": "went down",
+  "caps": "Caps!",
+  "spoilt": "Spoilt trump — redeal (opponents hold no trumps).",
+  "weakHand": "Weak hand: your 4 cards are worth {n} pts (under 15). You may demand a redeal.",
+  "@weakHand": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "botRedeals": "{p} has a weak hand and redeals…",
+  "@botRedeals": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "allPass": "Everyone passed. New deal.",
+  "bid1You": "Round 1 — your bid (on your first 4 cards, {n} pts).",
+  "@bid1You": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "thinking": "{p} is thinking…",
+  "@thinking": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "youWinR1": "You win round 1! Place a card as trump (face down) — its suit becomes trump.",
+  "botSetsTrump": "{p} sets the trump, then everyone gets 8 cards…",
+  "@botSetsTrump": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "mustPass2": "Round 2: you must pass (your partner leads).",
+  "bid2You": "Round 2 bidding (your 8 cards, {n} pts). Raise to 250 or more (and set a new trump), call Partner Close Caps, or pass.",
+  "@bid2You": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "pccYou": "Partner Close Caps! You play alone. Choose your trump from your 8 cards (face down).",
+  "botPcc": "{p} calls Partner Close Caps and chooses a trump…",
+  "@botPcc": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "youTakeR2": "You take it in round 2! Choose a new trump from your 8 cards (face down).",
+  "botNewTrump": "{p} chooses a new trump…",
+  "@botNewTrump": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "botRound2": "{p} (round 2)…",
+  "@botRound2": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "openOrClosed": "Declarer: closed game (trump hidden from opponents) or open (trump revealed)?",
+  "lastTrickTM": "Last trick: the declarer plays the trump card.",
+  "youLead": "Your turn. You lead the trick.",
+  "youFacedown": "Your turn. You can't follow suit: play a card face down (try to cut if you can guess the trump!).",
+  "youFollow": "Your turn. Follow the led suit if you can.",
+  "botPlays": "{p} is playing…",
+  "@botPlays": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "language": "Language",
+  "privateTableFriends": "Private table with friends",
+  "yourName": "Your name",
+  "defaultPlayer": "Player",
+  "createTable": "Create a table",
+  "tableCodeLabel": "Table code",
+  "join": "Join",
+  "serverUnreachable": "Cannot reach the server ({url}).",
+  "@serverUnreachable": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "lobbyInfo": "Empty seats are played by bots, so the game starts even with two players. The second player becomes your partner.",
+  "tableTitle": "Table {code}",
+  "@tableTitle": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "shareCode": "Share the code {code}, then start.",
+  "@shareCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "waitingHost": "Waiting for the host to start…",
+  "youCanRestart": "Start again whenever you like.",
+  "hostCanRestart": "The host can start a new game.",
+  "dealOverNext": "Deal over — the next one is coming…",
+  "othersTurn": "Other players' turn…",
+  "weakHandAsk": "Weak hand: redeal?",
+  "bid1Short": "Round 1 — your bid.",
+  "tapTrump": "Tap the card that becomes trump (face down).",
+  "bid2Short": "Round 2 — 250 or more, Partner Close Caps, or pass.",
+  "yourTurnPlay": "Your turn to play.",
+  "start": "Start",
+  "newGame": "New game",
+  "connectionLost": "Connection lost.",
+  "onlyYou": "(you only)",
+  "pointsN": "{n} pts",
+  "@pointsN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
+}

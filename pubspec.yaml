@@ -1,0 +1,35 @@
+name: game304
+description: "304 — jeu de cartes de plis sri-lankais/sud-indien. Cross-platform (Android, iOS, web), multilingue."
+publish_to: "none"
+version: 0.3.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  shared_preferences: ^2.5.5
+  web_socket_channel: ^3.0.0   # client réseau (mobile + web)
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true   # génère les classes de localisation depuis lib/l10n/*.arb
+  assets:
+    - assets/
+  fonts:
+    # ♠ ♣ ♦ ♥ (sous-ensemble de Noto Sans Symbols 2, licence OFL :
+    # assets/fonts/OFL-NotoSansSymbols2.txt) — évite de dépendre du
+    # téléchargement de polices de secours (web) et uniformise le rendu
+    - family: Suits
+      fonts:
+        - asset: assets/fonts/Suits.ttf

@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>304 — three-nought-four</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Playfair+Display:wght@600&display=swap');
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --wood-a:#3a1c14; --wood-b:#1c0d09;
+  --felt-a:#0f5a3c; --felt-b:#063421;
+  --gold:#e3c565; --gold-d:#a5822f;
+  --cream:#f6f1e2; --ink:#1a160f; --red:#b12b2b;
+  --txt:#f3ead6; --dim:#c9b48a; --line:#5a3d2e;
+  --serif:'Playfair Display',Georgia,serif;
+  --display:'Cinzel',Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:inherit}
+html,body{margin:0;height:100%}
+body{
+  background:linear-gradient(160deg,var(--wood-a),var(--wood-b));
+  color:var(--txt); font-family:var(--sans);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+/* ---------- tableau de score ---------- */
+#scorebar{
+  display:flex; align-items:stretch; gap:8px; padding:8px 10px;
+  background:linear-gradient(180deg,#241009,#160a06);
+  border-bottom:1px solid var(--line); flex-shrink:0;
+}
+.team{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:2px;
+  background:rgba(0,0,0,.25); border:1px solid var(--line); border-radius:10px; padding:5px 6px;}
+.team .tlabel{font-family:var(--serif); font-size:11px; color:var(--dim); letter-spacing:.5px}
+.team .tcount{font-family:var(--display); font-weight:800; font-size:22px; line-height:1; color:var(--gold)}
+.team.ew .tcount{color:#e0c07a}
+.tbar{width:100%; height:5px; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden}
+.tbar span{display:block; height:100%; width:50%; background:linear-gradient(90deg,var(--gold-d),var(--gold)); border-radius:3px; transition:width .5s}
+.center{display:flex; gap:10px; align-items:center; justify-content:center; padding:0 4px}
+.center .stat{text-align:center; min-width:44px}
+.center .k{font-family:var(--serif); font-size:9px; letter-spacing:.6px; color:var(--dim); text-transform:uppercase}
+.center .v{font-family:var(--display); font-weight:800; font-size:17px; color:var(--txt); line-height:1.1}
+#targets{display:flex; justify-content:space-between; padding:4px 14px; font-size:11px; color:var(--dim);
+  background:#160a06; border-bottom:1px solid var(--line); flex-shrink:0}
+#targets b{color:var(--gold); font-family:var(--display)}
+/* ---------- table ---------- */
+#table{
+  position:relative; flex:1; min-height:0; margin:8px; border-radius:20px;
+  background:radial-gradient(ellipse 120% 90% at 50% 45%,var(--felt-a),var(--felt-b) 78%);
+  box-shadow:inset 0 0 0 3px var(--gold-d), inset 0 0 0 10px #0a3a26, inset 0 0 40px rgba(0,0,0,.55),
+             0 8px 24px rgba(0,0,0,.5);
+  overflow:hidden;
+}
+#table::before{content:""; position:absolute; inset:16px; border-radius:50%/40%;
+  border:1px solid rgba(227,197,101,.18); pointer-events:none}
+#trumpBadge{position:absolute; top:10px; left:12px; z-index:6; font-size:12px; color:var(--txt);
+  background:rgba(0,0,0,.4); border:1px solid var(--gold-d); border-radius:20px; padding:4px 10px; font-family:var(--serif)}
+#trumpBadge .hidden{color:var(--dim)}
+/* ---------- pods joueurs ---------- */
+.seat{position:absolute; display:flex; flex-direction:column; align-items:center; gap:4px; transition:opacity .2s}
+.pod{display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.32); border:1px solid var(--line);
+  border-radius:22px; padding:3px 9px 3px 3px}
+.avatar{width:30px; height:30px; border-radius:50%; flex-shrink:0;
+  background:radial-gradient(circle at 35% 30%,#2a3a52,#141b28); border:2px solid var(--gold-d);
+  display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:800; font-size:14px; color:var(--gold)}
+.who{display:flex; flex-direction:column; line-height:1.05}
+.who .name{font-family:var(--serif); font-size:12px; color:var(--txt)}
+.who .meta{font-size:9px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px}
+.who .meta.tm{color:var(--gold); font-weight:700}
+.who .meta.out{color:#e0866a}
+.seat.active .avatar{border-color:var(--gold); box-shadow:0 0 0 2px rgba(227,197,101,.5), 0 0 16px rgba(227,197,101,.5); animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px rgba(227,197,101,.4),0 0 10px rgba(227,197,101,.35)}50%{box-shadow:0 0 0 3px rgba(227,197,101,.7),0 0 20px rgba(227,197,101,.65)}}
+#seat-N{top:6px; left:50%; transform:translateX(-50%)}
+#seat-E{right:6px; top:46%; transform:translateY(-50%)}
+#seat-W{left:6px; top:46%; transform:translateY(-50%)}
+#seat-S{bottom:2px; left:0; width:100%}
+#seat-S .pod{position:absolute; left:10px; bottom:6px}
+.handrow{display:flex; justify-content:center; align-items:flex-end}
+#seat-N .handrow{margin-top:2px}
+#seat-E .handrow,#seat-W .handrow{flex-direction:column; align-items:center}
+#seat-S .handrow{padding-bottom:6px; min-height:86px}
+/* ---------- cartes ---------- */
+.card{width:46px; height:66px; border-radius:7px; background:linear-gradient(160deg,#fff,var(--cream));
+  color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.45); position:relative; user-select:none; border:1px solid rgba(0,0,0,.12);
+  font-family:Georgia,serif;}
+.card .r{font-size:17px; line-height:1; font-weight:700}
+.card .s{font-size:15px; line-height:1}
+.card.big{width:52px; height:74px}
+.card.big .r{font-size:19px}.card.big .s{font-size:17px}
+.card.mini{width:24px; height:34px; border-radius:5px}
+.card.red{color:var(--red)}
+.card.back,.card.facedown{color:transparent}
+.card.back{background:
+  repeating-linear-gradient(45deg,#7a1f1f,#7a1f1f 4px,#5e1414 4px,#5e1414 8px); border:1px solid #3a0d0d;
+  box-shadow:inset 0 0 0 3px rgba(227,197,101,.35),0 2px 5px rgba(0,0,0,.4)}
+.card.facedown{background:repeating-linear-gradient(45deg,#8a6a2e,#8a6a2e 4px,#6b5122 4px,#6b5122 8px);
+  border:1px solid #4a370f; box-shadow:inset 0 0 0 2px rgba(227,197,101,.4),0 2px 6px rgba(0,0,0,.45)}
+.card.play{cursor:pointer; transition:transform .12s, box-shadow .12s}
+.card.play:hover,.card.play:active{transform:translateY(-14px) scale(1.04)!important; box-shadow:0 10px 18px rgba(0,0,0,.5); z-index:99!important}
+.card.disabled{filter:grayscale(.5) brightness(.82)}
+.card.enter{animation:pop .28s ease-out}
+@keyframes pop{from{transform:scale(.7); opacity:0}to{transform:scale(1); opacity:1}}
+/* ---------- pli central ---------- */
+#trick{position:absolute; top:50%; left:50%; transform:translate(-50%,-52%); width:170px; height:150px}
+#trick .slot{position:absolute; width:52px; height:74px}
+#trick .slot.S{bottom:0; left:50%; transform:translateX(-50%)}
+#trick .slot.N{top:0; left:50%; transform:translateX(-50%)}
+#trick .slot.E{right:0; top:50%; transform:translateY(-50%)}
+#trick .slot.W{left:0; top:50%; transform:translateY(-50%)}
+/* ---------- panneau bas ---------- */
+#panel{background:linear-gradient(180deg,#1c0f09,#140a06); border-top:1px solid var(--line);
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); flex-shrink:0; max-height:40vh; overflow-y:auto}
+#msg{font-size:13px; color:var(--dim); margin-bottom:8px; min-height:18px; line-height:1.45}
+#msg b{color:var(--txt)}
+.btnrow{display:flex; gap:8px; flex-wrap:wrap}
+button{font-family:var(--sans); font-size:14px; font-weight:600; border-radius:9px; padding:9px 15px;
+  border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--txt); cursor:pointer; transition:.12s}
+button:hover{border-color:var(--gold-d)}
+button.primary{background:linear-gradient(180deg,#2f8f5e,#1f6e46); border-color:#2f8f5e; color:#fff}
+button.gold{background:linear-gradient(180deg,var(--gold),var(--gold-d)); border-color:var(--gold); color:#2a1c06; font-weight:800}
+button.pass{background:transparent}
+button:disabled{opacity:.4; cursor:default}
+.hint{font-size:11px; color:var(--dim); margin-top:8px; line-height:1.4}
+#log{margin-top:8px; font-size:11px; color:#9a8a6a; max-height:64px; overflow-y:auto; line-height:1.5}
+/* ---------- modale ---------- */
+.overlay{position:absolute; inset:0; background:rgba(0,0,0,.74); display:flex; align-items:center; justify-content:center; z-index:30; padding:20px}
+.modal{background:linear-gradient(180deg,#241309,#170c06); border:1px solid var(--gold-d); border-radius:16px; padding:24px; max-width:340px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.modal h2{margin:0 0 8px; font-family:var(--display); font-size:22px; color:var(--gold)}
+.modal p{color:var(--dim); font-size:14px; line-height:1.55; margin:6px 0 16px}
+.modal .score{font-size:15px; margin:10px 0; font-weight:600; color:var(--txt)}
+.win{color:#5fd08a}.lose{color:#e0866a}
+/* ---------- paysage : plus d'air ---------- */
+@media (orientation:landscape) and (max-height:520px){
+  #targets{display:none}
+  .center .v{font-size:15px}
+  #panel{max-height:46vh}
+}
+.langsel{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.langsel button{padding:5px 10px;font-size:12px;border-radius:16px;background:transparent;color:var(--dim);border:1px solid var(--line);font-weight:600}
+.langsel button.on{border-color:var(--gold);color:var(--gold);background:rgba(227,197,101,.12)}
+/* ---------- cosmétiques ---------- */
+body[data-back="classic"] .card.back{background:repeating-linear-gradient(45deg,#1f6feb,#1f6feb 5px,#144fb0 5px,#144fb0 10px);border:1px solid #0d1117;box-shadow:inset 0 0 0 3px rgba(255,255,255,.14),0 2px 5px rgba(0,0,0,.4)}
+body[data-back="dark"] .card.back{background:repeating-linear-gradient(45deg,#2b2b33,#2b2b33 5px,#17171c 5px,#17171c 10px);border:1px solid #000;box-shadow:inset 0 0 0 3px rgba(227,197,101,.25),0 2px 5px rgba(0,0,0,.4)}
+body[data-felt="blue"]{--felt-a:#155a7a;--felt-b:#082a3d}
+body[data-felt="violet"]{--felt-a:#4a2a6a;--felt-b:#241338}
+#btnMenu{position:absolute;top:8px;right:10px;z-index:7;width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.4);border:1px solid var(--gold-d);color:var(--gold);font-size:16px;cursor:pointer;padding:0}
+.fs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:50;padding:18px}
+.sheet{background:linear-gradient(180deg,#241309,#160b06);border:1px solid var(--gold-d);border-radius:16px;
+  padding:20px;max-width:360px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.sheet h2{font-family:var(--display);color:var(--gold);margin:0 0 12px;font-size:20px}
+.sheet h3{font-family:var(--serif);color:var(--txt);margin:16px 0 6px;font-size:14px}
+.sheet p,.sheet li{color:var(--dim);font-size:13px;line-height:1.5}
+.sheet .opt{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.sheet .lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:10px}
+.sheet .opt button.on{border-color:var(--gold);color:var(--gold);background:rgba(227,197,101,.12)}
+/* ---------- animations ---------- */
+#trick .card{transition:transform .45s ease-in, opacity .45s ease-in}
+#trick.to-N .card{transform:translateY(-150px) scale(.5)!important;opacity:0}
+#trick.to-S .card{transform:translateY(160px) scale(.5)!important;opacity:0}
+#trick.to-E .card{transform:translateX(170px) scale(.5)!important;opacity:0}
+#trick.to-W .card{transform:translateX(-170px) scale(.5)!important;opacity:0}
+.card.dealt{animation:dealIn .38s ease-out both}
+@keyframes dealIn{from{translate:0 -150px;opacity:0}to{translate:0 0;opacity:1}}
+#trickToast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;
+  font-family:var(--display);font-weight:800;font-size:22px;color:var(--gold);text-shadow:0 2px 10px rgba(0,0,0,.8);
+  opacity:0;transition:opacity .2s}
+#trickToast.show{opacity:1}
+.card.hinted{box-shadow:0 0 0 3px var(--gold),0 0 18px rgba(227,197,101,.9)!important;translate:0 -12px;z-index:98!important}
+</style>
+</head>
+<body>
+<header id="scorebar">
+  <div class="team ns"><div class="tlabel" id="lblUs">Nous</div><div class="tcount" id="tokNS">11</div><div class="tbar"><span id="barNS"></span></div></div>
+  <div class="center">
+    <div class="stat"><div class="k" id="lblBid">Enchère</div><div class="v" id="sbBid">—</div></div>
+    <div class="stat"><div class="k" id="lblTrump">Atout</div><div class="v" id="sbTrump">—</div></div>
+    <div class="stat"><div class="k" id="lblTricks">Plis</div><div class="v" id="sbTricks">0–0</div></div>
+  </div>
+  <div class="team ew"><div class="tlabel" id="lblThem">Eux</div><div class="tcount" id="tokEW">11</div><div class="tbar"><span id="barEW"></span></div></div>
+</header>
+<div id="targets"><span><span id="lblTgtUs">Notre objectif</span> <b id="sbTgtUs">—</b></span><span><span id="lblTgtThem">Objectif adverse</span> <b id="sbTgtThem">—</b></span></div>
+
+<div id="table">
+  <div id="trumpBadge"><span class="hidden">atout caché</span></div>
+  <button id="btnMenu" onclick="openSettings()">⚙</button>
+  <div class="seat" id="seat-N"><div class="pod"><div class="avatar">N</div><div class="who"><div class="name">Nord</div><div class="meta">partenaire</div></div></div><div class="handrow"></div></div>
+  <div class="seat" id="seat-W"><div class="pod"><div class="avatar">O</div><div class="who"><div class="name">Ouest</div><div class="meta">IA</div></div></div><div class="handrow"></div></div>
+  <div class="seat" id="seat-E"><div class="pod"><div class="avatar">E</div><div class="who"><div class="name">Est</div><div class="meta">IA</div></div></div><div class="handrow"></div></div>
+  <div id="trickToast"></div>
+  <div id="trick"><div class="slot N"></div><div class="slot E"></div><div class="slot S"></div><div class="slot W"></div></div>
+  <div class="seat" id="seat-S"><div class="pod"><div class="avatar">S</div><div class="who"><div class="name">Vous</div><div class="meta">Sud</div></div></div><div class="handrow"></div></div>
+</div>
+
+<div id="panel">
+  <div class="langsel">
+    <button data-l="fr" onclick="setLang('fr')">FR</button><button data-l="en" onclick="setLang('en')">EN</button><button data-l="ta" onclick="setLang('ta')">தமிழ்</button><button data-l="si" onclick="setLang('si')">සිංහල</button>
+  </div>
+  <div id="msg"></div>
+  <div class="btnrow" id="controls"></div>
+  <div class="hint" id="hint"></div>
+  <div id="log"></div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   304 — MOTEUR DE RÈGLES (pur, sans DOM). Portable tel quel vers Dart/TS.
+   ----------------------------------------------------------------------------
+   Sièges (ordre de tour ANTI-HORAIRE) : 0=Sud(humain) 1=Est 2=Nord 3=Ouest
+   Partenaires : {0,2}=Nous(NS)   {1,3}=Eux(EW)
+   Rang haut->bas : J 9 A 10 K Q 8 7   |  Valeurs : J30 920 A11 1010 K3 Q2 80 70
+============================================================================ */
+const SUITS = ['S','C','D','H'];               // ♠ ♣ ♦ ♥
+const SUIT_SYM = {S:'♠',C:'♣',D:'♦',H:'♥'};
+const SUIT_NAME = {S:'Pique',C:'Trèfle',D:'Carreau',H:'Cœur'};
+const RANKS = ['7','8','Q','K','10','A','9','J'];     // faible -> fort (index = force)
+const STRENGTH = {}; RANKS.forEach((r,i)=>STRENGTH[r]=i);
+const VALUE = {J:30,'9':20,A:11,'10':10,K:3,Q:2,'8':0,'7':0};
+const SEAT_LETTER = ['S','E','N','W'];
+const SEAT_NAME = ['Sud','Est','Nord','Ouest'];
+// ===== i18n =====  fr + en complets. ta (தமிழ்) / si (සිංහල) : à traduire
+// (repli automatique sur l'anglais). Relecture par locuteur natif requise.
+const AVATAR = ['S','E','N','O'];
+const I18N = {
+  fr:{us:'Nous',them:'Eux',bid:'Enchère',trump:'Atout',tricks:'Plis',tgtUs:'Notre objectif',tgtThem:'Objectif adverse',
+      seatYou:'Vous',seatEast:'Est',seatNorth:'Nord',seatWest:'Ouest',mSud:'Sud',mPartner:'partenaire',mAI:'IA',mMaker:'preneur',mSolo:'solo',mOut:'écarté',
+      pass:'Passe',closedGame:'Jeu fermé',openGame:'Jeu ouvert',redeal:'Redistribuer',keep:'Garder',deal:'Distribuer',nextDeal:'Donne suivante',playAgain:'Rejouer une partie',
+      dealWon:'Donne gagnée',dealLost:'Donne perdue',gameWon:'🏆 Partie gagnée !',gameLost:'Partie perdue.',
+      trumpHidden:'atout caché',closed:'fermé',def:'défense',eightTricks:'8 plis',
+      makerLabel:'Preneur',tokens:'Jetons',succeeded:'réussie',failedPcc:'ratée',failedBid:'chutée',caps:'Caps !',
+      welcome:'Bienvenue au 304. Vous êtes Sud, avec Nord pour partenaire, contre Est & Ouest.',
+      introHint:'Chaque donne : 4 cartes → 1er tour → atout caché → 4 cartes → 2e tour (≥250) → ouvert/fermé → 8 plis.',settings:'Réglages',trickTo:'Pli pour',revealed:'<b>Atout révélé !</b> Une carte cachée était un atout.',reveal250:'<b>Enchère ≥ 250</b> : l\'atout est révélé après le 1er pli.',spoilt:'Atout gâché — redistribution (aucun adversaire n\'a d\'atout).',
+      weakHand:'<b>Main faible</b> : vos 4 cartes valent {n} pts (moins de 15). Vous pouvez exiger une redistribution.',
+      redealRight:'Seul le joueur à droite du donneur a ce droit, et seulement avant d\'enchérir.',
+      botRedeals:'{p} a une main faible et redistribue…', allPass:'Tout le monde a passé. Nouvelle donne.',
+      bid1You:'<b>1er tour — à vous d\'enchérir</b> (sur vos 4 premières cartes, {n} pts). ',
+      bestBid:'Meilleure enchère : <b>{b}</b> ({p}).', noBidYet:'Personne n\'a encore enchéri.',
+      bid1Hint:'Enchère = points minimum promis par votre équipe (min 160). Le gagnant pose l\'atout, face cachée.',
+      thinking:'{p} réfléchit…',
+      youWinR1:'<b>Vous gagnez le 1er tour !</b> Posez une carte comme atout (face cachée) — sa couleur devient l\'atout.',
+      trumpTip:'Astuce : posez une carte faible de votre couleur la plus longue/forte — gardez vos maîtres en main.',
+      botSetsTrump:'{p} pose l\'atout, puis chacun reçoit 8 cartes…',
+      mustPass2:'2e tour : vous devez passer (votre partenaire mène).',
+      bid2You:'<b>2e tour d\'enchères</b> (vos 8 cartes, {n} pts). Monter à 250 ou plus (et reposer un atout), annoncer Partner Close Caps, ou passer.',
+      bid2Hint:'250+ ≈ 7-8 plis (+3/−4). Partner Close Caps = les 8 plis seul (+4/−5). Sinon, passez.',
+      botRound2:'{p} (2e tour)…',
+      pccYou:'<b>Partner Close Caps !</b> Vous jouez seul. Choisissez votre atout parmi vos 8 cartes (face cachée).',
+      pccHint:'Vous menez le 1er pli. L\'atout se révèle ensuite. Il faut gagner les 8 plis.',
+      botPcc:'{p} annonce Partner Close Caps et choisit son atout…',
+      youTakeR2:'<b>Vous prenez au 2e tour !</b> Choisissez un nouvel atout parmi vos 8 cartes (face cachée).',
+      botNewTrump:'{p} choisit un nouvel atout…',
+      openOrClosed:'Preneur : jeu <b>fermé</b> (atout caché aux adversaires) ou <b>ouvert</b> (atout révélé) ?',
+      openHint:'Fermé = les adversaires ignorent l\'atout, souvent le meilleur choix. Ouvert = atout visible dès le départ.',
+      lastTrickTM:'Dernier pli : le preneur joue sa carte d\'atout.',
+      youLead:'<b>À vous.</b> Vous entamez le pli.',
+      youFacedown:'<b>À vous.</b> Vous ne pouvez pas suivre : jouez une carte <b>face cachée</b> (tentez de couper si vous devinez l\'atout !).',
+      youFollow:'<b>À vous.</b> Suivez la couleur demandée si possible.',
+      trumpOpenHint:'Atout ouvert : {s}.', trumpHiddenHint:'Atout encore caché.',
+      botPlays:'{p} joue…',
+      pccOut:'Partner Close Caps : vous êtes écarté cette donne — votre partenaire joue seul contre les deux adversaires.',
+      suitS:'Pique', suitC:'Trèfle', suitD:'Carreau', suitH:'Cœur',
+      hint:'💡 Conseil', hintBid:'Conseil : annoncer {b}.', hintPass:'Conseil : passer.', hintPlay:'Conseil : la carte en surbrillance.',
+      hintDiscard:'Conseil : défaussez votre plus petite carte.',
+      lastTrickBtn:'Dernier pli', lastTrickTitle:'Dernier pli — remporté par {p} (+{n})',
+      language:'Langue', cardBack:'Dos de cartes', table:'Table', royal:'Royal', classic:'Classique', dark:'Sombre',
+      green:'Verte', blue:'Bleue', violet:'Violette', learn:'Apprendre le 304', close:'Fermer',
+      sound:'Son', on:'Activé', off:'Coupé', speed:'Vitesse des bots', slow:'Lente', normal:'Normale', fast:'Rapide'},
+  en:{us:'Us',them:'Them',bid:'Bid',trump:'Trump',tricks:'Tricks',tgtUs:'Our target',tgtThem:'Opponent target',
+      seatYou:'You',seatEast:'East',seatNorth:'North',seatWest:'West',mSud:'South',mPartner:'partner',mAI:'AI',mMaker:'declarer',mSolo:'solo',mOut:'sat out',
+      pass:'Pass',closedGame:'Closed game',openGame:'Open game',redeal:'Redeal',keep:'Keep',deal:'Deal',nextDeal:'Next deal',playAgain:'Play again',
+      dealWon:'Deal won',dealLost:'Deal lost',gameWon:'🏆 Game won!',gameLost:'Game lost.',
+      trumpHidden:'trump hidden',closed:'closed',def:'defence',eightTricks:'8 tricks',
+      makerLabel:'Declarer',tokens:'Tokens',succeeded:'made',failedPcc:'failed',failedBid:'went down',caps:'Caps!',
+      welcome:'Welcome to 304. You are South, partnered with North, versus East & West.',
+      introHint:'Each deal: 4 cards → round 1 → hidden trump → 4 cards → round 2 (≥250) → open/closed → 8 tricks.',settings:'Settings',trickTo:'Trick to',revealed:'<b>Trump revealed!</b> A face-down card was a trump.',reveal250:'<b>Bid ≥ 250</b>: trump is revealed after the first trick.',spoilt:'Spoilt trump — redeal (opponents hold no trumps).',
+      weakHand:'<b>Weak hand</b>: your 4 cards are worth {n} pts (under 15). You may demand a redeal.',
+      redealRight:'Only the player to the dealer\'s right has this right, and only before bidding.',
+      botRedeals:'{p} has a weak hand and redeals…', allPass:'Everyone passed. New deal.',
+      bid1You:'<b>Round 1 — your bid</b> (on your first 4 cards, {n} pts). ',
+      bestBid:'Highest bid: <b>{b}</b> ({p}).', noBidYet:'No one has bid yet.',
+      bid1Hint:'Bid = minimum points your team promises (min 160). The winner sets the trump face down.',
+      thinking:'{p} is thinking…',
+      youWinR1:'<b>You win round 1!</b> Place a card as trump (face down) — its suit becomes trump.',
+      trumpTip:'Tip: set a low card from your longest/strongest suit — keep your masters in hand.',
+      botSetsTrump:'{p} sets the trump, then everyone gets 8 cards…',
+      mustPass2:'Round 2: you must pass (your partner leads).',
+      bid2You:'<b>Round 2 bidding</b> (your 8 cards, {n} pts). Raise to 250 or more (and set a new trump), call Partner Close Caps, or pass.',
+      bid2Hint:'250+ ≈ 7-8 tricks (+3/−4). Partner Close Caps = all 8 tricks alone (+4/−5). Otherwise, pass.',
+      botRound2:'{p} (round 2)…',
+      pccYou:'<b>Partner Close Caps!</b> You play alone. Choose your trump from your 8 cards (face down).',
+      pccHint:'You lead the first trick. The trump is revealed after it. You must win all 8 tricks.',
+      botPcc:'{p} calls Partner Close Caps and chooses a trump…',
+      youTakeR2:'<b>You take it in round 2!</b> Choose a new trump from your 8 cards (face down).',
+      botNewTrump:'{p} chooses a new trump…',
+      openOrClosed:'Declarer: <b>closed</b> game (trump hidden from opponents) or <b>open</b> (trump revealed)?',
+      openHint:'Closed = opponents don\'t know the trump, usually best. Open = trump visible from the start.',
+      lastTrickTM:'Last trick: the declarer plays the trump card.',
+      youLead:'<b>Your turn.</b> You lead the trick.',
+      youFacedown:'<b>Your turn.</b> You can\'t follow suit: play a card <b>face down</b> (try to cut if you can guess the trump!).',
+      youFollow:'<b>Your turn.</b> Follow the led suit if you can.',
+      trumpOpenHint:'Trump is open: {s}.', trumpHiddenHint:'Trump still hidden.',
+      botPlays:'{p} is playing…',
+      pccOut:'Partner Close Caps: you sit out this deal — your partner plays alone against both opponents.',
+      suitS:'Spades', suitC:'Clubs', suitD:'Diamonds', suitH:'Hearts',
+      hint:'💡 Hint', hintBid:'Hint: bid {b}.', hintPass:'Hint: pass.', hintPlay:'Hint: the highlighted card.',
+      hintDiscard:'Hint: discard your lowest card.',
+      lastTrickBtn:'Last trick', lastTrickTitle:'Last trick — won by {p} (+{n})',
+      language:'Language', cardBack:'Card back', table:'Table', royal:'Royal', classic:'Classic', dark:'Dark',
+      green:'Green', blue:'Blue', violet:'Purple', learn:'Learn 304', close:'Close',
+      sound:'Sound', on:'On', off:'Off', speed:'Bot speed', slow:'Slow', normal:'Normal', fast:'Fast'},
+  // தமிழ் — traduction machine validée (repères/balises) ; relecture native bienvenue
+  ta:{us:'நாம்',
+      them:'அவர்கள்',
+      bid:'ஏலம்',
+      trump:'துருப்பு',
+      tricks:'கைகள்',
+      tgtUs:'நமது இலக்கு',
+      tgtThem:'எதிரணி இலக்கு',
+      seatYou:'நீங்கள்',
+      seatEast:'கிழக்கு',
+      seatNorth:'வடக்கு',
+      seatWest:'மேற்கு',
+      mSud:'தெற்கு',
+      mPartner:'கூட்டாளி',
+      mAI:'AI',
+      mMaker:'ஏலதாரர்',
+      mSolo:'தனி',
+      mOut:'வெளியே',
+      pass:'பாஸ்',
+      closedGame:'மூடிய ஆட்டம்',
+      openGame:'திறந்த ஆட்டம்',
+      redeal:'மீண்டும் பகிர்',
+      keep:'வைத்துக்கொள்',
+      deal:'பகிர்',
+      nextDeal:'அடுத்த பகிர்வு',
+      playAgain:'மீண்டும் விளையாடு',
+      dealWon:'பகிர்வு வெற்றி',
+      dealLost:'பகிர்வு தோல்வி',
+      gameWon:'🏆 ஆட்டம் வெற்றி!',
+      gameLost:'ஆட்டம் தோல்வி.',
+      trumpHidden:'மறைந்த துருப்பு',
+      closed:'மூடியது',
+      def:'தற்காப்பு',
+      eightTricks:'8 கைகள்',
+      makerLabel:'ஏலதாரர்',
+      tokens:'நாணயங்கள்',
+      succeeded:'வெற்றி',
+      failedPcc:'தோல்வி',
+      failedBid:'தோல்வி',
+      caps:'Caps!',
+      welcome:'304-க்கு வரவேற்கிறோம். நீங்கள் தெற்கு, வடக்கு உங்கள் கூட்டாளி; எதிரணி கிழக்கு & மேற்கு.',
+      introHint:'ஒவ்வொரு பகிர்விலும்: 4 சீட்டுகள் → 1ஆம் சுற்று → மறைந்த துருப்பு → 4 சீட்டுகள் → 2ஆம் சுற்று (≥250) → திறந்த/மூடிய → 8 கைகள்.',
+      settings:'அமைப்புகள்',
+      trickTo:'கை வென்றவர்:',
+      revealed:'<b>துருப்பு வெளிப்பட்டது!</b> கவிழ்த்து இறக்கிய சீட்டு ஒன்று துருப்பு.',
+      reveal250:'<b>ஏலம் ≥ 250</b>: முதல் கைக்குப் பிறகு துருப்பு வெளிப்படுத்தப்படும்.',
+      spoilt:'கெட்ட துருப்பு — மீண்டும் பகிர்வு (எதிரணியிடம் துருப்பு இல்லை).',
+      weakHand:'<b>பலவீனமான சீட்டுகள்</b>: உங்கள் 4 சீட்டுகளின் மதிப்பு {n} புள்ளிகள் (15-க்குக் குறைவு). மீண்டும் பகிரக் கேட்கலாம்.',
+      redealRight:'பகிர்பவரின் வலப்பக்க ஆட்டக்காரருக்கு மட்டுமே இந்த உரிமை, அதுவும் ஏலத்திற்கு முன்பு மட்டும்.',
+      botRedeals:'{p} பலவீனமான சீட்டுகளால் மீண்டும் பகிர்கிறார்…',
+      allPass:'அனைவரும் பாஸ். புதிய பகிர்வு.',
+      bid1You:'<b>1ஆம் சுற்று — உங்கள் ஏலம்</b> (முதல் 4 சீட்டுகள், {n} புள்ளிகள்). ',
+      bestBid:'அதிக ஏலம்: <b>{b}</b> ({p}).',
+      noBidYet:'இதுவரை யாரும் ஏலம் கேட்கவில்லை.',
+      bid1Hint:'ஏலம் = உங்கள் அணி உறுதியளிக்கும் குறைந்தபட்சப் புள்ளிகள் (குறைந்தது 160). வென்றவர் துருப்பைக் கவிழ்த்து வைப்பார்.',
+      thinking:'{p} யோசிக்கிறார்…',
+      youWinR1:'<b>1ஆம் சுற்றில் நீங்கள் வென்றீர்கள்!</b> ஒரு சீட்டைத் துருப்பாகக் கவிழ்த்து வையுங்கள் — அதன் வகையே துருப்பு.',
+      trumpTip:'குறிப்பு: உங்கள் நீளமான/வலுவான வகையிலிருந்து சிறிய சீட்டை வையுங்கள் — பெரிய சீட்டுகளைக் கையில் வைத்திருங்கள்.',
+      botSetsTrump:'{p} துருப்பை வைக்கிறார், பிறகு ஒவ்வொருவருக்கும் 8 சீட்டுகள்…',
+      mustPass2:'2ஆம் சுற்று: நீங்கள் பாஸ் செய்ய வேண்டும் (உங்கள் கூட்டாளி முன்னிலையில்).',
+      bid2You:'<b>2ஆம் சுற்று ஏலம்</b> (உங்கள் 8 சீட்டுகள், {n} புள்ளிகள்). 250 அல்லது அதற்கு மேல் ஏலம் (புதிய துருப்புடன்), Partner Close Caps, அல்லது பாஸ்.',
+      bid2Hint:'250+ ≈ 7-8 கைகள் (+3/−4). Partner Close Caps = தனியாக 8 கைகளும் (+4/−5). இல்லையெனில் பாஸ்.',
+      botRound2:'{p} (2ஆம் சுற்று)…',
+      pccYou:'<b>Partner Close Caps!</b> நீங்கள் தனியாக விளையாடுகிறீர்கள். உங்கள் 8 சீட்டுகளில் துருப்பைத் தேர்ந்தெடுங்கள் (கவிழ்த்து).',
+      pccHint:'முதல் கையை நீங்களே தொடங்குவீர்கள். அதன் பிறகு துருப்பு வெளிப்படும். 8 கைகளையும் வெல்ல வேண்டும்.',
+      botPcc:'{p} Partner Close Caps அறிவித்துத் துருப்பைத் தேர்ந்தெடுக்கிறார்…',
+      youTakeR2:'<b>2ஆம் சுற்றில் நீங்கள் எடுத்தீர்கள்!</b> உங்கள் 8 சீட்டுகளில் புதிய துருப்பைத் தேர்ந்தெடுங்கள் (கவிழ்த்து).',
+      botNewTrump:'{p} புதிய துருப்பைத் தேர்ந்தெடுக்கிறார்…',
+      openOrClosed:'ஏலதாரர்: <b>மூடிய</b> ஆட்டம் (எதிரணிக்குத் துருப்பு மறைவு) அல்லது <b>திறந்த</b> ஆட்டம் (துருப்பு வெளிப்படை)?',
+      openHint:'மூடியது = எதிரணிக்குத் துருப்பு தெரியாது, பொதுவாகச் சிறந்தது. திறந்தது = தொடக்கத்திலிருந்தே துருப்பு தெரியும்.',
+      lastTrickTM:'கடைசிக் கை: ஏலதாரர் துருப்புச் சீட்டை இறக்குகிறார்.',
+      youLead:'<b>உங்கள் முறை.</b> நீங்கள் கையைத் தொடங்குங்கள்.',
+      youFacedown:'<b>உங்கள் முறை.</b> அதே வகை இல்லை: ஒரு சீட்டை <b>கவிழ்த்து</b> இறக்குங்கள் (துருப்பை ஊகித்தால் வெட்டலாம்!).',
+      youFollow:'<b>உங்கள் முறை.</b> முடிந்தால் அதே வகைச் சீட்டை இறக்குங்கள்.',
+      trumpOpenHint:'துருப்பு திறந்தது: {s}.',
+      trumpHiddenHint:'துருப்பு இன்னும் மறைவில்.',
+      botPlays:'{p} இறக்குகிறார்…',
+      pccOut:'Partner Close Caps: இந்தப் பகிர்வில் நீங்கள் வெளியே — உங்கள் கூட்டாளி இரு எதிரிகளுக்கும் எதிராகத் தனியாக விளையாடுகிறார்.',
+      suitS:'ஸ்பேட்',
+      suitC:'கிளாவர்',
+      suitD:'டைமண்ட்',
+      suitH:'ஹார்ட்டின்',
+      hint:'💡 குறிப்பு',
+      hintBid:'குறிப்பு: {b} ஏலம் கேளுங்கள்.',
+      hintPass:'குறிப்பு: பாஸ் செய்யுங்கள்.',
+      hintPlay:'குறிப்பு: ஒளிரும் சீட்டு.',
+      hintDiscard:'குறிப்பு: உங்கள் சிறிய சீட்டைக் கழியுங்கள்.',
+      lastTrickBtn:'கடைசிக் கை',
+      lastTrickTitle:'கடைசிக் கை — வென்றவர் {p} (+{n})',
+      language:'மொழி',
+      cardBack:'சீட்டின் பின்புறம்',
+      table:'மேசை',
+      royal:'ராயல்',
+      classic:'கிளாசிக்',
+      dark:'இருண்ட',
+      green:'பச்சை',
+      blue:'நீலம்',
+      violet:'ஊதா',
+      learn:'304 கற்றுக்கொள்',
+      close:'மூடு',
+      sound:'ஒலி',
+      on:'இயக்கு',
+      off:'அணை',
+      speed:'கணினி வீரர் வேகம்',
+      slow:'மெதுவாக',
+      normal:'சாதாரண',
+      fast:'வேகமாக'},
+  // සිංහල — traduction machine validée (repères/balises) ; relecture native bienvenue
+  si:{us:'අපි',
+      them:'ඔවුන්',
+      bid:'ලංසුව',
+      trump:'තුරුම්පුව',
+      tricks:'අත්',
+      tgtUs:'අපේ ඉලක්කය',
+      tgtThem:'විරුද්ධ ඉලක්කය',
+      seatYou:'ඔබ',
+      seatEast:'නැගෙනහිර',
+      seatNorth:'උතුර',
+      seatWest:'බටහිර',
+      mSud:'දකුණ',
+      mPartner:'සහකරු',
+      mAI:'AI',
+      mMaker:'ලංසුකරු',
+      mSolo:'තනි',
+      mOut:'ඉවතින්',
+      pass:'පාස්',
+      closedGame:'වසා ඇති ක්‍රීඩාව',
+      openGame:'විවෘත ක්‍රීඩාව',
+      redeal:'නැවත බෙදන්න',
+      keep:'තබාගන්න',
+      deal:'බෙදන්න',
+      nextDeal:'ඊළඟ බෙදීම',
+      playAgain:'නැවත ක්‍රීඩා කරන්න',
+      dealWon:'බෙදීම ජයගත්තා',
+      dealLost:'බෙදීම පැරදුණා',
+      gameWon:'🏆 ක්‍රීඩාව ජයගත්තා!',
+      gameLost:'ක්‍රීඩාව පැරදුණා.',
+      trumpHidden:'සැඟවුණු තුරුම්පුව',
+      closed:'වසා ඇත',
+      def:'ආරක්ෂාව',
+      eightTricks:'අත් 8',
+      makerLabel:'ලංසුකරු',
+      tokens:'කාසි',
+      succeeded:'සාර්ථකයි',
+      failedPcc:'අසාර්ථකයි',
+      failedBid:'අසාර්ථකයි',
+      caps:'Caps!',
+      welcome:'304 වෙත සාදරයෙන් පිළිගනිමු. ඔබ දකුණ, උතුර ඔබේ සහකරු; විරුද්ධව නැගෙනහිර සහ බටහිර.',
+      introHint:'සෑම බෙදීමකම: කාඩ් 4 → 1 වන වටය → සැඟවුණු තුරුම්පුව → කාඩ් 4 → 2 වන වටය (≥250) → විවෘත/වසා → අත් 8.',
+      settings:'සැකසුම්',
+      trickTo:'අත දිනුවේ:',
+      revealed:'<b>තුරුම්පුව හෙළි විය!</b> මුණින් දැමූ කාඩ්පතක් තුරුම්පුවකි.',
+      reveal250:'<b>ලංසුව ≥ 250</b>: පළමු අතෙන් පසු තුරුම්පුව හෙළි කෙරේ.',
+      spoilt:'නරක් වූ තුරුම්පුව — නැවත බෙදීම (විරුද්ධ පාර්ශ්වයට තුරුම්පු නැත).',
+      weakHand:'<b>දුර්වල කාඩ්</b>: ඔබේ කාඩ් 4 හි වටිනාකම ලකුණු {n} (15ට අඩු). නැවත බෙදීමක් ඉල්ලිය හැක.',
+      redealRight:'බෙදන්නාගේ දකුණු පැත්තේ ක්‍රීඩකයාට පමණක් මෙම අයිතිය ඇත, එයද ලංසුවට පෙර පමණි.',
+      botRedeals:'{p} දුර්වල කාඩ් නිසා නැවත බෙදයි…',
+      allPass:'සියලු දෙනා පාස්. නව බෙදීමක්.',
+      bid1You:'<b>1 වන වටය — ඔබේ ලංසුව</b> (පළමු කාඩ් 4, ලකුණු {n}). ',
+      bestBid:'ඉහළම ලංසුව: <b>{b}</b> ({p}).',
+      noBidYet:'තවම කිසිවෙක් ලංසු තබා නැත.',
+      bid1Hint:'ලංසුව = ඔබේ කණ්ඩායම පොරොන්දු වන අවම ලකුණු (අවම 160). ජයග්‍රාහකයා තුරුම්පුව මුණින් තබයි.',
+      thinking:'{p} සිතමින්…',
+      youWinR1:'<b>1 වන වටය ඔබ දිනුවා!</b> කාඩ්පතක් තුරුම්පුව ලෙස මුණින් තබන්න — එහි වර්ගය තුරුම්පුව වේ.',
+      trumpTip:'ඉඟිය: ඔබේ දිගම/ශක්තිමත්ම වර්ගයෙන් කුඩා කාඩ්පතක් තබන්න — ලොකු කාඩ් අතේ තබාගන්න.',
+      botSetsTrump:'{p} තුරුම්පුව තබයි, පසුව සැමට කාඩ් 8 ලැබේ…',
+      mustPass2:'2 වන වටය: ඔබ පාස් කළ යුතුය (ඔබේ සහකරු ඉදිරියෙන්).',
+      bid2You:'<b>2 වන වටයේ ලංසුව</b> (ඔබේ කාඩ් 8, ලකුණු {n}). 250 හෝ ඊට වැඩි ලංසුවක් (නව තුරුම්පුවක් සමඟ), Partner Close Caps, හෝ පාස්.',
+      bid2Hint:'250+ ≈ අත් 7-8 (+3/−4). Partner Close Caps = තනිවම අත් 8ම (+4/−5). නැතිනම් පාස්.',
+      botRound2:'{p} (2 වන වටය)…',
+      pccYou:'<b>Partner Close Caps!</b> ඔබ තනිවම ක්‍රීඩා කරයි. ඔබේ කාඩ් 8 න් තුරුම්පුව තෝරන්න (මුණින්).',
+      pccHint:'පළමු අත ඔබ අරඹයි. ඉන්පසු තුරුම්පුව හෙළි වේ. අත් 8ම දිනිය යුතුය.',
+      botPcc:'{p} Partner Close Caps නිවේදනය කර තුරුම්පුවක් තෝරයි…',
+      youTakeR2:'<b>2 වන වටයේ ඔබ ගත්තා!</b> ඔබේ කාඩ් 8 න් නව තුරුම්පුවක් තෝරන්න (මුණින්).',
+      botNewTrump:'{p} නව තුරුම්පුවක් තෝරයි…',
+      openOrClosed:'ලංසුකරු: <b>වසා ඇති</b> ක්‍රීඩාව (විරුද්ධ පාර්ශ්වයෙන් තුරුම්පුව සැඟවේ) හෝ <b>විවෘත</b> (තුරුම්පුව හෙළි)?',
+      openHint:'වසා = විරුද්ධ පාර්ශ්වය තුරුම්පුව නොදනී, සාමාන්‍යයෙන් හොඳම. විවෘත = මුල සිටම තුරුම්පුව පෙනේ.',
+      lastTrickTM:'අවසාන අත: ලංසුකරු තුරුම්පු කාඩ්පත දමයි.',
+      youLead:'<b>ඔබේ වාරය.</b> ඔබ අත අරඹන්න.',
+      youFacedown:'<b>ඔබේ වාරය.</b> එම වර්ගය නැත: කාඩ්පතක් <b>මුණින්</b> දමන්න (තුරුම්පුව අනුමාන කළහොත් කපන්න!).',
+      youFollow:'<b>ඔබේ වාරය.</b> හැකි නම් එම වර්ගයම දමන්න.',
+      trumpOpenHint:'තුරුම්පුව විවෘතයි: {s}.',
+      trumpHiddenHint:'තුරුම්පුව තවම සැඟවී ඇත.',
+      botPlays:'{p} කාඩ් දමයි…',
+      pccOut:'Partner Close Caps: මෙම බෙදීමේ ඔබ ඉවතින් — ඔබේ සහකරු විරුද්ධවාදීන් දෙදෙනාට එරෙහිව තනිවම ක්‍රීඩා කරයි.',
+      suitS:'ස්පේඩ්',
+      suitC:'කලාවර්',
+      suitD:'දියමන්ති',
+      suitH:'හාට්',
+      hint:'💡 ඉඟිය',
+      hintBid:'ඉඟිය: {b} ලංසු කරන්න.',
+      hintPass:'ඉඟිය: පාස් කරන්න.',
+      hintPlay:'ඉඟිය: ආලෝකමත් කළ කාඩ්පත.',
+      hintDiscard:'ඉඟිය: ඔබේ කුඩාම කාඩ්පත ඉවත දමන්න.',
+      lastTrickBtn:'අවසාන අත',
+      lastTrickTitle:'අවසාන අත — දිනුවේ {p} (+{n})',
+      language:'භාෂාව',
+      cardBack:'කාඩ්පතේ පිටුපස',
+      table:'මේසය',
+      royal:'රාජකීය',
+      classic:'සම්භාව්‍ය',
+      dark:'අඳුරු',
+      green:'කොළ',
+      blue:'නිල්',
+      violet:'දම්',
+      learn:'304 ඉගෙන ගන්න',
+      close:'වසන්න',
+      sound:'ශබ්දය',
+      on:'සක්‍රිය',
+      off:'අක්‍රිය',
+      speed:'බොට් වේගය',
+      slow:'සෙමින්',
+      normal:'සාමාන්‍ය',
+      fast:'වේගයෙන්'}
+};
+let LANG='fr';
+// messages retraduisibles : si la langue change, le message affiché suit
+let MSG_FN=null, HINT_FN=null;
+function setMsgL(fn){ MSG_FN=fn; setMsg(fn()); MSG_FN=fn; }
+function setHintL(fn){ HINT_FN=fn; setHint(fn()); HINT_FN=fn; }
+function tf(k,v){ let x=t(k); for(const key in (v||{})) x=x.split('{'+key+'}').join(v[key]); return x; }
+function seatName(i){ return [t('mSud'),t('seatEast'),t('seatNorth'),t('seatWest')][i]; }
+function suitName(su){ return SUIT_SYM[su]+' '+t('suit'+su); }
+// ---- vitesse des bots ----
+let SPEED=1; try{ SPEED=parseFloat(localStorage.getItem('speed304'))||1; }catch(e){}
+function D(ms){ return Math.round(ms*SPEED); }
+// ---- sons (synthétisés, aucun fichier) ----
+let SOUND=true; try{ SOUND=localStorage.getItem('sound304')!=='off'; }catch(e){}
+let AC=null;
+function unlockAudio(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} }
+if(typeof document!=='undefined') document.addEventListener('pointerdown',unlockAudio);
+function beep(f,dur,type,vol,delay){ if(!SOUND||!AC) return; try{
+  const t0=AC.currentTime+(delay||0), o=AC.createOscillator(), g=AC.createGain();
+  o.type=type||'sine'; o.frequency.value=f; g.gain.setValueAtTime(vol||0.07,t0);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0+dur+0.03);
+}catch(e){} }
+const SFX={ card:()=>beep(520,0.06,'triangle',0.06),
+  trick:()=>{ beep(660,0.09,'sine',0.06); beep(880,0.13,'sine',0.06,0.08); },
+  win:()=>[523,659,784].forEach((f,i)=>beep(f,0.2,'sine',0.07,i*0.1)),
+  lose:()=>[392,330,262].forEach((f,i)=>beep(f,0.22,'sine',0.06,i*0.12)) };
+let LAST_TRICK=null;
+function t(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || I18N.fr[k] || k; }
+let introActive=true;
+function showIntro(){ setMsgL(()=>t('welcome')); setHintL(()=>t('introHint')); clearControls(); btn(t('deal'),'primary',()=>{introActive=false;startHand();}); }
+function applyLang(){
+  setText('#lblUs',t('us')); setText('#lblThem',t('them'));
+  setText('#lblBid',t('bid')); setText('#lblTrump',t('trump')); setText('#lblTricks',t('tricks'));
+  setText('#lblTgtUs',t('tgtUs')); setText('#lblTgtThem',t('tgtThem'));
+  document.documentElement.lang=LANG;
+  if(introActive) showIntro(); else { renderAll(); if(MSG_FN) setMsgL(MSG_FN); if(HINT_FN) setHintL(HINT_FN); }
+}
+function setLang(l){ LANG=l; try{localStorage.setItem('lang304',l);}catch(e){}
+  document.querySelectorAll('.langsel button').forEach(b=>b.classList.toggle('on', b.getAttribute('data-l')===l));
+  applyLang();
+}
+const nextSeat = s => (s+1)%4;
+const teamOf = s => (s%2===0) ? 'NS' : 'EW';   // 0,2 -> NS ; 1,3 -> EW
+
+const cardKey = c => c.s + c.r;
+const cardValue = c => VALUE[c.r];
+function buildDeck(){
+  const d=[]; for(const s of SUITS) for(const r of RANKS) d.push({s,r}); return d;
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+// force d'une carte dans un pli, donné l'atout et la couleur menée
+function trickStrength(card,trumpSuit,ledSuit){
+  if(card.s===trumpSuit) return 200+STRENGTH[card.r];
+  if(card.s===ledSuit)   return 100+STRENGTH[card.r];
+  return STRENGTH[card.r];
+}
+
+class Engine{
+  constructor(){
+    this.tokens={NS:11,EW:11};
+    this.dealer=Math.floor(Math.random()*4);
+    this.currentTrick=[]; this.ledSuit=null; this.tricks=[]; this.seen=new Set();
+  }
+  // ---- nouvelle donne : 1er temps, 4 cartes chacun ----------------------
+  newHand(){
+    this.deck=shuffle(buildDeck());
+    this.hands=[[],[],[],[]];
+    this.dealt=0;
+    this.dealBatch();                       // 1er temps : 4 cartes chacun
+    this.trumpSuit=null; this.trumpMaker=null;
+    this.trumpMaker1=null; this.bid1=null;
+    this.indicator=null; this.indicatorOnTable=true;
+    this.bid=null; this.trumpOpen=false;
+    this.pcc=false; this.soloMode=false; this.mutedSeat=null;   // Partner Close Caps
+    this.tricks=[]; this.trickWinsNS=0; this.trickWinsEW=0; this.trumpsPlayed=0; this.spoilt=false; this.seen=new Set(); this.currentTrick=[]; this.ledSuit=null;
+    this.pointsNS=0; this.pointsEW=0;
+    this.eldest=nextSeat(this.dealer);      // droite du donneur = parle en 1er
+    this.phase='redeal';                    // on vérifie d'abord le redeal éventuel
+    // enchères — 1er tour
+    this.bidTurn=this.eldest;
+    this.highBid=null; this.highBidder=null;
+    this.passStreak=0; this.spoken=new Set();
+    return {phase:'redeal'};
+  }
+  dealBatch(){ // donne 4 cartes chacun en partant de la droite du donneur
+    for(let k=0;k<4;k++){
+      for(let n=0;n<4;n++){
+        const seat=(this.dealer+1+n)%4;
+        this.hands[seat].push(this.deck[this.dealt++]);
+      }
+    }
+    for(const h of this.hands) sortHand(h);
+  }
+  handPoints(seat){ return this.hands[seat].reduce((a,c)=>a+cardValue(c),0); }
+  // REDEAL : le joueur à droite du donneur peut l'exiger si ses 4 cartes < 15 pts
+  canRedeal(){ return this.phase==='redeal' && this.handPoints(this.eldest) < 15; }
+  redeal(){ this.log('Redistribution (main du joueur à droite du donneur < 15 pts).'); return this.newHand(); }
+  startBidding1(){ this.phase='bid1'; return {phase:'bid1'}; }
+
+  // ---- ENCHÈRES · 1er tour (sur les 4 premières cartes) -----------------
+  legalBids(){
+    const out=[]; let min = this.highBid ? this.highBid+10 : 160;
+    const seat=this.bidTurn;
+    const secondTurn=this.spoken.has(seat);
+    const partnerLeads = this.highBidder!==null && teamOf(this.highBidder)===teamOf(seat);
+    if(secondTurn||partnerLeads) min=Math.max(min,200);       // contrainte des 200
+    for(let b=Math.max(160,min); b<=240; b+=10) out.push(b);  // 1er tour : 160→240
+    return out;
+  }
+  placeBid(value){ // value=null => pass
+    const seat=this.bidTurn;
+    this.spoken.add(seat);
+    if(value===null){ this.passStreak++; this.log(`${SEAT_NAME[seat]} passe.`); }
+    else { this.highBid=value; this.highBidder=seat; this.passStreak=0; this.log(`${SEAT_NAME[seat]} annonce ${value}.`); }
+    if(this.highBidder!==null && this.passStreak>=3){ return this.endBidding(); }
+    if(this.highBidder===null && this.spoken.size>=4 && this.passStreak>=4){ this.phase='allpass'; return {allPass:true}; }
+    this.bidTurn=nextSeat(this.bidTurn);
+    return {continue:true};
+  }
+  endBidding(){
+    this.trumpMaker1=this.highBidder; this.bid1=this.highBid;
+    this.trumpMaker=this.highBidder; this.bid=this.highBid;   // provisoire (peut changer au 2e tour)
+    this.phase='chooseTrump1';
+    this.log(`${SEAT_NAME[this.trumpMaker1]} gagne le 1er tour (${this.bid1}) et pose l'atout.`);
+    return {biddingDone:true,round:1};
+  }
+  // ---- CHOIX ATOUT (1er tour) : pose 1 des 4 cartes face cachée ----------
+  chooseTrump1(card){
+    const h=this.hands[this.trumpMaker1];
+    const idx=h.findIndex(c=>c.s===card.s&&c.r===card.r);
+    if(idx<0) throw new Error('carte absente');
+    this.indicator=h.splice(idx,1)[0]; this.trumpSuit=this.indicator.s; this.indicatorOnTable=true;
+    this.dealBatch();                       // 2e temps : +4 cartes -> 8
+    // 2e tour d'enchères (sur 8 cartes)
+    this.phase='bid2';
+    this.bid2Turn=this.trumpMaker1;         // commence par le gagnant du 1er tour
+    this.bid2Count=0; this.bid2High=null; this.bid2Bidder=null; this.bid2Pcc=false;
+    return {trumpChosen1:true,phase:'bid2'};
+  }
+  // ---- ENCHÈRES · 2e tour (sur 8 cartes, >= 250) ------------------------
+  legalBids2(){
+    const seat=this.bid2Turn;
+    // doit passer si le meneur ACTUEL du 2e tour est le partenaire
+    if(this.bid2Bidder!==null && teamOf(this.bid2Bidder)===teamOf(seat)) return [];
+    let floor=Math.max(250, this.bid1+10);
+    if(this.bid2High) floor=Math.max(floor, this.bid2High+10);
+    const out=[]; for(let b=floor; b<=300; b+=10) out.push(b);
+    return out;
+  }
+  // Partner Close Caps peut être annoncé sauf si on doit passer (partenaire mène)
+  canPCC(){
+    const seat=this.bid2Turn;
+    return !(this.bid2Bidder!==null && teamOf(this.bid2Bidder)===teamOf(seat));
+  }
+  placeBid2(value){ // value=null => pass ; nombre ; ou 'PCC' ; un seul tour de table
+    const seat=this.bid2Turn;
+    if(value==='PCC'){                        // enchère max : fin immédiate des enchères
+      this.bid2Bidder=seat; this.bid2Pcc=true;
+      this.log(`${SEAT_NAME[seat]} annonce PARTNER CLOSE CAPS !`);
+      return this.endBidding2();
+    }
+    if(value!==null){ this.bid2High=value; this.bid2Bidder=seat; this.log(`${SEAT_NAME[seat]} surenchérit à ${value} (2e tour) !`); }
+    else this.log(`${SEAT_NAME[seat]} passe (2e tour).`);
+    this.bid2Count++;
+    if(this.bid2Count>=4) return this.endBidding2();
+    this.bid2Turn=nextSeat(this.bid2Turn);
+    return {continue:true};
+  }
+  endBidding2(){
+    if(this.bid2Pcc){                         // Partner Close Caps
+      this.hands[this.trumpMaker1].push(this.indicator); sortHand(this.hands[this.trumpMaker1]);
+      this.indicator=null; this.trumpSuit=null; this.indicatorOnTable=false;
+      this.trumpMaker=this.bid2Bidder; this.pcc=true; this.bid=250; // sentinel numérique (règle de révélation)
+      this.phase='chooseTrumpPCC';
+      return {pcc:true};
+    }
+    if(this.bid2Bidder!==null){
+      // nouveau preneur : l'ancien indicator revient dans la main de trumpMaker1
+      this.hands[this.trumpMaker1].push(this.indicator); sortHand(this.hands[this.trumpMaker1]);
+      this.indicator=null; this.trumpSuit=null; this.indicatorOnTable=false;
+      this.trumpMaker=this.bid2Bidder; this.bid=this.bid2High;
+      this.phase='chooseTrump2';
+      this.log(`${SEAT_NAME[this.trumpMaker]} devient preneur (${this.bid}) et choisit un nouvel atout.`);
+      return {round2Winner:true};
+    }
+    this.trumpMaker=this.trumpMaker1; this.bid=this.bid1;  // tous passent -> on joue sur le 1er tour
+    this.phase='preplay';
+    return {round2AllPass:true};
+  }
+  chooseTrump2(card){
+    const h=this.hands[this.trumpMaker];
+    const idx=h.findIndex(c=>c.s===card.s&&c.r===card.r);
+    if(idx<0) throw new Error('carte absente');
+    this.indicator=h.splice(idx,1)[0]; this.trumpSuit=this.indicator.s; this.indicatorOnTable=true;
+    this.phase='preplay';
+    return {trumpChosen2:true};
+  }
+  // ---- CHOIX JEU OUVERT / FERMÉ puis début du jeu -----------------------
+  startPlayClosed(){ this._beginPlay(false); }
+  startPlayOpen(){
+    if(this.indicatorOnTable){ this.hands[this.trumpMaker].push(this.indicator); sortHand(this.hands[this.trumpMaker]); this.indicatorOnTable=false; }
+    this.trumpOpen=true; this._beginPlay(true);
+    if(this._checkSpoilt()) this.phase='spoilt';
+  }
+  _beginPlay(open){
+    this.phase='play'; this.soloMode=false;
+    this.leader=nextSeat(this.dealer);      // droite du donneur mène le 1er pli
+    this.turn=this.leader;
+    this.currentTrick=[]; this.ledSuit=null;
+    this.log(`Jeu ! Atout ${open?'ouvert':'caché'} · enchère ${this.bid}. ${SEAT_NAME[this.leader]} entame.`);
+    return {playStarted:true};
+  }
+  // ---- PARTNER CLOSE CAPS : le preneur joue seul contre les 2 adversaires -
+  chooseTrumpPCC(card){
+    const h=this.hands[this.trumpMaker];
+    const idx=h.findIndex(c=>c.s===card.s&&c.r===card.r);
+    if(idx<0) throw new Error('carte absente');
+    this.indicator=h.splice(idx,1)[0]; this.trumpSuit=this.indicator.s; this.indicatorOnTable=true;
+    this._beginPlayPCC();
+    return {pccStarted:true};
+  }
+  _beginPlayPCC(){
+    this.phase='play'; this.soloMode=true;
+    this.mutedSeat=(this.trumpMaker+2)%4;   // le partenaire du preneur ne joue pas
+    this.leader=this.trumpMaker;            // le preneur mène toujours
+    this.turn=this.trumpMaker;
+    this.currentTrick=[]; this.ledSuit=null;
+    this.log(`PARTNER CLOSE CAPS ! ${SEAT_NAME[this.trumpMaker]} joue seul contre ${SEAT_NAME[(this.trumpMaker+1)%4]} & ${SEAT_NAME[(this.trumpMaker+3)%4]}. ${SEAT_NAME[this.mutedSeat]} est écarté.`);
+    return {playStarted:true};
+  }
+  // sens anti-horaire en sautant le partenaire écarté (mode solo)
+  nextActiveSeat(s){ let n=nextSeat(s); if(this.soloMode && n===this.mutedSeat) n=nextSeat(n); return n; }
+  get trickSize(){ return this.soloMode?3:4; }
+  advanceTurn(){ this.turn = this.soloMode ? this.nextActiveSeat(this.turn) : nextSeat(this.turn); }
+  // ---- JEU D'UN PLI ------------------------------------------------------
+  // cartes jouables pour un siège au tour courant
+  playableCards(seat){
+    const h=this.hands[seat];
+    if(this.currentTrick.length===0){
+      // Règle des ATOUTS ÉPUISÉS : si le preneur (atout ouvert) détient tous les
+      // atouts restants et possède aussi d'autres cartes, il doit mener atout.
+      if(seat===this.trumpMaker && this.trumpOpen && this.trumpSuit){
+        const myTr=h.filter(c=>c.s===this.trumpSuit);
+        const remaining=8-(this.trumpsPlayed||0);
+        if(myTr.length>0 && myTr.length===remaining && myTr.length<h.length){
+          return myTr.slice();
+        }
+      }
+      return h.slice();
+    }
+    if(this.trumpOpen){
+      const canFollow=h.filter(c=>c.s===this.ledSuit);
+      return canFollow.length?canFollow:h.slice();
+    }
+    const canFollow=h.filter(c=>c.s===this.ledSuit);
+    if(canFollow.length) return canFollow;
+    return h.slice(); // jouée face cachée
+  }
+  // le TM peut-il/doit-il jouer l'indicator ? (v0.1 : au 8e pli s'il n'a plus qu'elle)
+  mustPlayIndicator(seat){
+    return seat===this.trumpMaker && this.hands[seat].length===0 && this.indicatorOnTable;
+  }
+  playCard(seat,card){
+    const h=this.hands[seat];
+    const canFollow = this.currentTrick.length>0 && h.some(c=>c.s===this.ledSuit);
+    let faceDown=false;
+    // détermine face cachée : atout fermé, pas meneur, ne suit pas
+    if(!this.trumpOpen && this.currentTrick.length>0 && !canFollow) faceDown=true;
+    // retire de la main
+    const idx=h.findIndex(c=>c.s===card.s&&c.r===card.r);
+    if(idx<0) throw new Error('carte absente de la main');
+    h.splice(idx,1);
+    if(this.currentTrick.length===0){ this.ledSuit=card.s; }
+    this.currentTrick.push({seat,card,faceDown});
+    this.advanceTurn();
+    if(this.currentTrick.length===this.trickSize) return this.resolveTrick();
+    return {played:true,faceDown};
+  }
+  // TM joue l'indicator pour couper (face cachée) quand il ne peut pas suivre
+  playIndicatorToCut(seat){
+    this.currentTrick.push({seat,card:this.indicator,faceDown:true,isIndicator:true});
+    this.indicatorOnTable=false;
+    this.advanceTurn();
+    if(this.currentTrick.length===this.trickSize) return this.resolveTrick();
+    return {played:true,faceDown:true};
+  }
+  // 8e pli : le TM n'a plus que l'indicator en main -> il doit la jouer
+  playLastIndicator(seat){
+    const leading = this.currentTrick.length===0;
+    if(leading){ this.ledSuit=this.indicator.s; this.trumpOpen=true; }
+    this.currentTrick.push({seat,card:this.indicator,faceDown:false,isIndicator:true});
+    this.indicatorOnTable=false;
+    this.advanceTurn();
+    if(this.currentTrick.length===this.trickSize) return this.resolveTrick();
+    return {played:true};
+  }
+  // ATOUT GÂCHÉ : les deux adversaires du preneur n'ont aucun atout -> donne annulée
+  _checkSpoilt(){
+    if(this.soloMode || !this.trumpOpen || !this.trumpSuit) return false;
+    const tm=teamOf(this.trumpMaker); let opp=0;
+    for(let i=0;i<4;i++){ if(teamOf(i)!==tm) opp+=this.hands[i].filter(c=>c.s===this.trumpSuit).length; }
+    return opp===0;
+  }
+  resolveTrick(){
+    const t=this.currentTrick;
+    let reveal=false;
+    if(!this.trumpOpen){
+      // le TM inspecte les face-down : y a-t-il un atout ?
+      const anyTrumpFaceDown=t.some(x=>x.faceDown && x.card.s===this.trumpSuit);
+      if(anyTrumpFaceDown){ reveal=true; this.trumpOpen=true; }
+    }
+    // gagnant
+    let win=t[0], winStr=trickStrength(t[0].card,this.trumpSuit,this.ledSuit);
+    for(let i=1;i<t.length;i++){
+      const s=trickStrength(t[i].card,this.trumpSuit,this.ledSuit);
+      if(s>winStr){winStr=s;win=t[i];}
+    }
+    const pts=t.reduce((a,x)=>a+cardValue(x.card),0);
+    if(teamOf(win.seat)==='NS'){this.pointsNS+=pts;this.trickWinsNS++;}
+    else{this.pointsEW+=pts;this.trickWinsEW++;}
+    const res={trickDone:true,winner:win.seat,points:pts,revealed:reveal,cards:t.slice(),ledSuit:this.ledSuit};
+    if(this.trumpSuit){ for(const x of t){ if(x.card.s===this.trumpSuit) this.trumpsPlayed++; } }
+    for(const x of t){ if(!x.faceDown||this.trumpOpen) this.seen.add(cardKey(x.card)); }  // mémoire publique
+    this.tricks.push(res);
+    this.log(`Pli ${this.tricks.length} : ${SEAT_NAME[win.seat]} remporte (${pts} pts)`+(reveal?' — atout révélé !':''));
+    // règle des enchères >= 250 : l'atout est révélé après le 1er pli
+    if(!this.trumpOpen && (this.pcc || this.bid>=250) && this.tricks.length===1){
+      if(this.indicatorOnTable){ this.hands[this.trumpMaker].push(this.indicator); sortHand(this.hands[this.trumpMaker]); this.indicatorOnTable=false; }
+      this.trumpOpen=true; res.reveal250=true;
+      this.log('Enchère ≥ 250 : atout révélé après le 1er pli — tout se joue face visible.');
+    }
+    // prépare le pli suivant
+    this.leader=win.seat; this.turn=win.seat;
+    this.currentTrick=[]; this.ledSuit=null;
+    if(this.tricks.length===8){ res.handDone=true; this.scoreHand(res); }
+    return res;
+  }
+  scoreHand(res){
+    this.phase='scored';
+    const tmTeam=teamOf(this.trumpMaker);
+    const other = tmTeam==='NS'?'EW':'NS';
+    // ---- Partner Close Caps : réussite = les 8 plis ; +4 / -5 --------------
+    if(this.pcc){
+      const wins = tmTeam==='NS'?this.trickWinsNS:this.trickWinsEW;
+      const success = wins===8;
+      const transfer = success?4:5;
+      if(success){ this.tokens[tmTeam]+=transfer; this.tokens[other]-=transfer; }
+      else       { this.tokens[tmTeam]-=transfer; this.tokens[other]+=transfer; }
+      this.tokens.NS=Math.max(0,Math.min(22,this.tokens.NS));
+      this.tokens.EW=Math.max(0,Math.min(22,this.tokens.EW));
+      res.score={tmTeam,pcc:true,tricks:wins,bid:'Partner Close Caps',success,transfer,caps:success};
+      res.gameOver = this.tokens.NS<=0 || this.tokens.EW<=0;
+      if(res.gameOver) res.gameWinner = this.tokens.NS<=0 ? 'EW':'NS';
+      this.dealer=nextSeat(this.dealer);
+      return res;
+    }
+    const tmPoints = tmTeam==='NS'?this.pointsNS:this.pointsEW;
+    const success = tmPoints>=this.bid;
+    // barème
+    let delta;
+    if(this.bid<200) delta=success?1:-2;
+    else if(this.bid<250) delta=success?2:-3;
+    else delta=success?3:-4;
+    // Caps (8 plis) : +1 bonus (simplifié)
+    const capsNS=this.trickWinsNS===8, capsEW=this.trickWinsEW===8;
+    let capsBonus=0;
+    if((tmTeam==='NS'&&capsNS)||(tmTeam==='EW'&&capsEW)) capsBonus=1;
+    // transfert de jetons
+    let transfer = success ? Math.abs(delta)+capsBonus : Math.abs(delta);
+    if(success){ this.tokens[tmTeam]+=transfer; this.tokens[other]-=transfer; }
+    else       { this.tokens[tmTeam]-=transfer; this.tokens[other]+=transfer; }
+    this.tokens.NS=Math.max(0,Math.min(22,this.tokens.NS));
+    this.tokens.EW=Math.max(0,Math.min(22,this.tokens.EW));
+    res.score={tmTeam,tmPoints,bid:this.bid,success,transfer,caps:capsBonus>0};
+    res.gameOver = this.tokens.NS<=0 || this.tokens.EW<=0;
+    if(res.gameOver) res.gameWinner = this.tokens.NS<=0 ? 'EW':'NS';
+    // le donneur passe à droite
+    this.dealer=nextSeat(this.dealer);
+    return res;
+  }
+  log(m){ (this._log=this._log||[]).push(m); if(this.onLog)this.onLog(m); }
+}
+function sortHand(h){
+  h.sort((a,b)=> a.s!==b.s ? SUITS.indexOf(a.s)-SUITS.indexOf(b.s) : STRENGTH[b.r]-STRENGTH[a.r]);
+}
+
+/* ============================================================================
+   IA SIMPLE POUR LES BOTS
+============================================================================ */
+// Estimation des points que l'équipe réalisera, à partir des 4 premières cartes.
+// Modèle calibré sur 40 000 donnes simulées : la STRUCTURE compte plus que le total.
+function est4(h){
+  const bySuit={}; for(const c of h)(bySuit[c.s]=bySuit[c.s]||[]).push(c);
+  let best=null,bs=-1;
+  for(const s in bySuit){ const cs=bySuit[s]; const sc=cs.reduce((a,c)=>a+cardValue(c),0)+cs.length*2; if(sc>bs){bs=sc;best=s;} }
+  const tr=bySuit[best]; const pts=h.reduce((a,c)=>a+cardValue(c),0);
+  return 124.8 + 0.09*pts + 13.6*tr.length
+       + 26.7*(tr.some(c=>c.r==='J')?1:0) + 9.2*(tr.some(c=>c.r==='9')?1:0)
+       + 20.7*h.filter(c=>c.r==='J'&&c.s!==best).length;
+}
+function botBid(engine,seat){
+  const legal=engine.legalBids(); if(!legal.length) return null;
+  const est=est4(engine.hands[seat]);
+  // seuils choisis par duel (97 % de victoires contre l'ancienne IA d'enchères)
+  let target = est>=210?190 : est>=195?180 : est>=185?170 : est>=160?160 : 0;
+  if(!target) return null;
+  const partnerLeads=engine.highBidder!==null && teamOf(engine.highBidder)===teamOf(seat);
+  if(partnerLeads) target = est>=230?200:0;          // ne pas surenchérir son partenaire sans main énorme
+  const opts=legal.filter(b=>b<=target);
+  return opts.length?opts[opts.length-1]:null;
+}
+function botBid2(engine,seat){
+  // 2e tour : très prudent, on ne monte à 250+ qu'avec une main quasi imbattable
+  const legal=engine.legalBids2(); const canPcc=engine.canPCC();
+  const h=engine.hands[seat];
+  const bySuit={}; for(const c of h){ (bySuit[c.s]=bySuit[c.s]||[]).push(c); }
+  let bestLen=0,bestSuit='S';
+  for(const s of SUITS){ const arr=bySuit[s]||[]; if(arr.length>bestLen){bestLen=arr.length;bestSuit=s;} }
+  const tr=bySuit[bestSuit]||[];
+  const hasJ=tr.some(c=>c.r==='J'), has9=tr.some(c=>c.r==='9');
+  const pts=h.reduce((a,c)=>a+cardValue(c),0);
+  // Partner Close Caps : seulement une main monstrueuse (quasi jamais)
+  if(canPcc && bestLen>=7 && hasJ && has9 && pts>=200) return 'PCC';
+  if(legal.length && bestLen>=5 && hasJ && has9 && pts>=150 && legal.includes(250)) return 250;
+  return null; // pass
+}
+function botChooseTrump(engine,seat){
+  // couleur où le bot est le plus fort (points + présence J/9)
+  const h=engine.hands[seat]; let best='S',bestScore=-1;
+  for(const s of SUITS){
+    const cards=h.filter(c=>c.s===s);
+    const sc=cards.reduce((a,c)=>a+cardValue(c),0)+cards.length*2;
+    if(sc>bestScore){bestScore=sc;best=s;}
+  }
+  // pose comme indicator une carte faible de cette couleur (garde les fortes en main)
+  const inSuit=h.filter(c=>c.s===best).sort((a,b)=>STRENGTH[a.r]-STRENGTH[b.r]);
+  return inSuit[0] || h[0];
+}
+// Carte « maître » : aucune carte plus forte de sa couleur n'est encore inconnue
+// (connue = déjà vue en public, dans ma main, ou visible dans le pli en cours).
+const byStrAsc=(a,b)=>STRENGTH[a.r]-STRENGTH[b.r];   // ordre de force = ordre de valeur au 304
+// ----- mémoire : cartes plus fortes de la même couleur encore invisibles -----
+function unseenHigher(e,seat,card){
+  const mine=new Set(e.hands[seat].map(cardKey));
+  const inTrick=new Set(e.currentTrick.filter(x=>!x.faceDown||e.trumpOpen).map(x=>cardKey(x.card)));
+  let n=0;
+  for(const r of RANKS){ if(STRENGTH[r]>STRENGTH[card.r]){ const k=card.s+r;
+    if(!e.seen.has(k)&&!mine.has(k)&&!inTrick.has(k)) n++; } }
+  return n;
+}
+const isMaster=(e,s,c)=>unseenHigher(e,s,c)===0;
+function trumpsOut(e,seat){ // atouts encore chez les autres (estimation publique)
+  if(!e.trumpSuit) return 8;
+  let seenT=0; for(const k of e.seen) if(k[0]===e.trumpSuit) seenT++;
+  return 8-seenT-e.hands[seat].filter(c=>c.s===e.trumpSuit).length;
+}
+function botPlay(engine,seat){
+  const e=engine, legal=e.playableCards(seat);
+  const led=e.ledSuit, trump=e.trumpSuit, tk=e.currentTrick;
+  const isTM=seat===e.trumpMaker;
+  const asc=(a,b)=>STRENGTH[a.r]-STRENGTH[b.r];
+  const pot=tk.reduce((a,x)=>a+cardValue(x.card),0);
+  const last = tk.length===e.trickSize-1;
+
+  // ---- ENTAME ----
+  if(tk.length===0){
+    // preneur, atout ouvert, maître à l'atout et atouts adverses dehors -> il tire
+    if(isTM && e.trumpOpen && trump){
+      const mt=legal.filter(c=>c.s===trump && isMaster(e,seat,c)).sort((a,b)=>STRENGTH[b.r]-STRENGTH[a.r]);
+      if(mt.length && trumpsOut(e,seat)>0) return mt[0];
+    }
+    const nonTrump=legal.filter(c=>c.s!==trump);
+    // une carte MAÎTRE avec des points : on l'encaisse
+    const masters=nonTrump.filter(c=>isMaster(e,seat,c)).sort((a,b)=>cardValue(b)-cardValue(a));
+    if(masters.length && cardValue(masters[0])>0) return masters[0];
+    // sinon une petite carte sans points
+    const pool=(nonTrump.length?nonTrump:legal).slice().sort(asc);
+    const zero=pool.find(c=>cardValue(c)===0);
+    return zero||pool[0];
+  }
+
+  // force actuelle du pli (cartes visibles)
+  let bestStr=-1,bestSeat=null,bestCard=null;
+  for(const x of tk){ if(!x.faceDown||e.trumpOpen){ const st=trickStrength(x.card,trump,led);
+    if(st>bestStr){bestStr=st;bestSeat=x.seat;bestCard=x.card;} } }
+  const partnerWinning = bestSeat!==null && teamOf(bestSeat)===teamOf(seat);
+  const partnerSafe = partnerWinning && (last || (bestCard && isMaster(e,seat,bestCard) && bestCard.s===led));
+
+  // ---- JE PEUX SUIVRE ----
+  if(legal.some(c=>c.s===led)){
+    const follow=legal.filter(c=>c.s===led).sort(asc);
+    if(partnerWinning){
+      // partenaire assuré de gagner : on lui donne des points ; sinon on reste petit
+      if(partnerSafe && !(!e.trumpOpen && e.trumpMaker!==null && teamOf(e.trumpMaker)!==teamOf(seat) && !last))
+        return follow.slice().sort((a,b)=>cardValue(b)-cardValue(a))[0];
+      return follow[0];
+    }
+    const winners=follow.filter(c=>trickStrength(c,trump,led)>bestStr);
+    if(!winners.length) return follow[0];
+    if(last) return winners[0];                                  // dernier : plus petite gagnante
+    const mw=winners.filter(c=>isMaster(e,seat,c));
+    if(mw.length) return mw[0];                                  // gagnante sûre
+    return (pot>=10) ? winners[0] : follow[0];
+  }
+
+  // ---- JE NE PEUX PAS SUIVRE ----
+  if(e.trumpOpen){
+    const trumps=legal.filter(c=>c.s===trump).sort(asc);
+    const disc=legal.filter(c=>c.s!==trump);
+    if(partnerWinning){
+      if(partnerSafe && disc.length) return disc.slice().sort((a,b)=>cardValue(b)-cardValue(a))[0]; // on charge le partenaire
+      return disc.length? disc.slice().sort(asc)[0] : trumps[0];
+    }
+    const w=trumps.filter(c=>trickStrength(c,trump,led)>bestStr);
+    if(w.length && (pot>0 || !disc.length)) return w[0];        // coupe minimale si ça rapporte
+    return disc.length? disc.slice().sort(asc)[0] : trumps[0];
+  }
+  // atout FERMÉ, le preneur connaît l'atout
+  if(isTM){
+    const trumps=e.hands[seat].filter(c=>c.s===trump).sort(asc);
+    if(!partnerWinning && trumps.length && pot>=10) return {card:trumps[0]};
+    if(!partnerWinning && e.indicatorOnTable && trumps.length===0 && pot>=20) return {indicator:true};
+    const disc=e.hands[seat].filter(c=>c.s!==trump).sort(asc);
+    return {card: disc[0]||e.hands[seat][0]};
+  }
+  // défenseur, atout caché : coupe « devinée » si le pli vaut le coup
+  const sorted=legal.slice().sort(asc);
+  if(!partnerWinning && pot>=13){
+    const bySuit={}; for(const c of legal){ if(c.s!==led)(bySuit[c.s]=bySuit[c.s]||[]).push(c); }
+    let guess=null,gl=99; for(const su in bySuit){ if(bySuit[su].length<gl){gl=bySuit[su].length;guess=su;} }
+    if(guess) return {card: bySuit[guess].sort(asc)[0]};
+  }
+  return {card: sorted.find(c=>cardValue(c)===0) || sorted[0]};
+}
+
+/* ============================================================================
+   UI / CONTRÔLEUR
+============================================================================ */
+const $=s=>document.querySelector(s);
+const seatEl=i=>$('#seat-'+SEAT_LETTER[i]);
+let eng=new Engine();
+eng.onLog=m=>addLog(m);
+
+function addLog(m){const l=$('#log');const d=document.createElement('div');d.textContent=m;l.prepend(d);}
+function setMsg(html){MSG_FN=null;$('#msg').innerHTML=html;}
+function setHint(html){HINT_FN=null;$('#hint').innerHTML=html||'';}
+function clearControls(){$('#controls').innerHTML='';}
+function btn(label,cls,fn){const b=document.createElement('button');b.textContent=label;if(cls)b.className=cls;b.onclick=fn;$('#controls').appendChild(b);return b;}
+function updScore(){
+  setText('#tokNS', eng.tokens.NS); setText('#tokEW', eng.tokens.EW);
+  const bN=$('#barNS'), bE=$('#barEW');
+  if(bN) bN.style.width=(eng.tokens.NS/22*100)+'%';
+  if(bE) bE.style.width=(eng.tokens.EW/22*100)+'%';
+  setText('#sbBid', eng.pcc?'PCC':(eng.bid!=null?eng.bid:'—'));
+  const tEl=$('#sbTrump');
+  if(tEl){
+    if(eng.trumpSuit && eng.trumpOpen){ const red=(eng.trumpSuit==='D'||eng.trumpSuit==='H');
+      tEl.innerHTML=`<span style="color:${red?'#e06666':'#f6f1e2'}">${SUIT_SYM[eng.trumpSuit]}</span>`; }
+    else if(eng.trumpSuit){ tEl.textContent=t('closed'); }
+    else tEl.textContent='—';
+  }
+  setText('#sbTricks', `${eng.trickWinsNS}\u2013${eng.trickWinsEW}`);
+  let us='—', them='—';
+  if(eng.bid!=null && eng.trumpMaker!=null){
+    const tk=teamOf(eng.trumpMaker);
+    if(eng.pcc){ us=(tk==='NS')?t('eightTricks'):t('def'); them=(tk==='EW')?t('eightTricks'):t('def'); }
+    else { const usT=(tk==='NS')?eng.bid:305-eng.bid; us=usT; them=305-usT; }
+  }
+  setText('#sbTgtUs', us); setText('#sbTgtThem', them);
+  const chip=$('#trumpBadge');
+  if(chip){
+    if(eng.trumpSuit && eng.trumpOpen){ const red=(eng.trumpSuit==='D'||eng.trumpSuit==='H');
+      chip.innerHTML=`atout <b style="color:${red?'#e06666':'#fff'}">${SUIT_SYM[eng.trumpSuit]}</b>`; }
+    else chip.innerHTML='<span class="hidden">'+t('trumpHidden')+'</span>';
+  }
+}
+function setText(sel,v){const e=$(sel); if(e)e.textContent=v;}
+
+function cardDiv(c,{mini,big,cls}={}){
+  const d=document.createElement('div');
+  const red=(c.s==='D'||c.s==='H');
+  d.className='card'+(mini?' mini':'')+(big?' big':'')+(red?' red':'')+(cls?' '+cls:'');
+  d.innerHTML=`<span class="r">${c.r}</span><span class="s">${SUIT_SYM[c.s]}</span>`;
+  return d;
+}
+function backDiv(mini){const d=document.createElement('div');d.className='card back'+(mini?' mini':'');return d;}
+
+let _prevLen=[0,0,0,0];
+function renderHands(){
+  const muted = eng.soloMode?eng.mutedSeat:-1;
+  for(let i=0;i<4;i++){
+    const seat=seatEl(i), row=seat.querySelector('.handrow'); row.innerHTML='';
+    const h=eng.hands[i];
+    if(i===0 && i!==muted){
+      const myTurn = eng.phase==='play'&&eng.turn===0&&!ANIM;
+      const playable = myTurn? eng.playableCards(0).map(cardKey):[];
+      const facedownMode = myTurn && eng.currentTrick.length>0 && !eng.trumpOpen && !eng.hands[0].some(c=>c.s===eng.ledSuit);
+      const n=h.length, mid=(n-1)/2; let _newIdx=0;
+      h.forEach((c,idx)=>{
+        const canPlay = myTurn && (facedownMode || playable.includes(cardKey(c)));
+        const d=cardDiv(c,{big:true, cls: canPlay?'play':(myTurn?'disabled':'')}); d.dataset.k=cardKey(c);
+        const off=idx-mid;
+        d.style.transform=`rotate(${(off*4).toFixed(1)}deg) translateY(${Math.round(Math.abs(off)*5)}px)`;
+        if(idx) d.style.marginLeft='-16px';
+        d.style.zIndex=String(idx);
+        if(canPlay) d.onclick=()=>humanPlay(c);
+        if(!_prevKeys.has(cardKey(c))){ d.classList.add('dealt'); d.style.animationDelay=(_newIdx++*70)+'ms'; }
+        row.appendChild(d);
+      });
+    } else if(i===muted){
+      const cnt=Math.min(h.length,6);
+      for(let k=0;k<cnt;k++){const b=backDiv();b.style.opacity='.3';if(k)b.style.marginLeft='-22px';row.appendChild(b);}
+    } else {
+      const side=(i===1||i===3);
+      const cnt=Math.min(h.length,6);
+      for(let k=0;k<cnt;k++){const b=backDiv(true);
+        if(k){ if(side) b.style.marginTop='-26px'; else b.style.marginLeft='-18px'; }
+        row.appendChild(b);}
+    }
+    // animation de distribution : si la main a grossi, les cartes arrivent une à une
+    if(h.length > (_prevLen[i]||0)){
+      [...row.children].forEach((el,k)=>{ el.classList.add('dealt'); el.style.animationDelay=(k*45+i*25)+'ms'; });
+    }
+    _prevLen[i]=h.length;
+  }
+  for(let i=0;i<4;i++){
+    const el=seatEl(i);
+    el.classList.toggle('active', (eng.phase==='bid1'&&eng.bidTurn===i)||(eng.phase==='bid2'&&eng.bid2Turn===i)||(eng.phase==='play'&&eng.turn===i));
+    el.style.opacity=(i===muted)?'.6':'1';
+    const nameEl=el.querySelector('.name'), metaEl=el.querySelector('.meta'), avEl=el.querySelector('.avatar');
+    const base=[t('seatYou'),t('seatEast'),t('seatNorth'),t('seatWest')][i];
+    if(nameEl) nameEl.textContent=base;
+    let meta=(i===0?t('mSud'):i===2?t('mPartner'):t('mAI'));
+    if(eng.trumpMaker===i) meta=eng.pcc?t('mSolo'):t('mMaker');
+    if(i===muted) meta=t('mOut');
+    if(metaEl){ metaEl.textContent=meta; metaEl.className='meta'+(eng.trumpMaker===i?' tm':'')+(i===muted?' out':''); }
+    if(avEl) avEl.textContent=AVATAR[i];
+  }
+}
+let _lastTrick=0; let ANIM=false; let _prevKeys=new Set();
+function rememberHand(){ _prevKeys=new Set(eng.hands[0].map(cardKey)); }
+function renderTrick(){
+  document.querySelectorAll('#trick .slot').forEach(s=>s.innerHTML='');
+  const t=eng.currentTrick||[];
+  t.forEach((x,idx)=>{
+    const slot=$('#trick .slot.'+SEAT_LETTER[x.seat]);
+    let el;
+    if(x.faceDown && !eng.trumpOpen){ el=document.createElement('div'); el.className='card facedown big'; }
+    else el=cardDiv(x.card,{big:true});
+    if(idx===t.length-1 && t.length>_lastTrick) el.classList.add('enter');
+    slot.appendChild(el);
+  });
+  _lastTrick=t.length;
+}
+function renderAll(){updScore();renderHands();rememberHand();renderTrick();}
+
+/* ---------- déroulé d'une donne ---------- */
+function startHand(){
+  _prevLen=[0,0,0,0]; LAST_TRICK=null;
+  eng.newHand();
+  addLog(`— Nouvelle donne — Donneur : ${SEAT_NAME[eng.dealer]} —`);
+  renderAll();
+  handleRedeal(0);
+}
+// REDEAL : joueur à droite du donneur, main < 15 pts
+function handleRedeal(safety){
+  renderAll();
+  if(safety>6){ eng.startBidding1(); return stepBidding(); }   // garde-fou
+  if(!eng.canRedeal()){ eng.startBidding1(); return stepBidding(); }
+  if(eng.eldest===0){
+    setMsgL(()=>tf('weakHand',{n:eng.handPoints(0)}));
+    clearControls();
+    btn(t('redeal'),'primary',()=>{ eng.redeal(); handleRedeal(safety+1); });
+    btn(t('keep'),'',()=>{ eng.startBidding1(); stepBidding(); });
+    setHintL(()=>t('redealRight'));
+  }else{
+    setMsgL(()=>tf('botRedeals',{p:seatName(eng.eldest)})); clearControls();
+    setTimeout(()=>{ eng.redeal(); handleRedeal(safety+1); }, D(700));
+  }
+}
+// ---- 1er tour d'enchères ----
+function stepBidding(){
+  renderAll();
+  if(eng.phase==='allpass'){ setMsgL(()=>t('allPass')); clearControls(); setTimeout(startHand,1200); return; }
+  if(eng.phase!=='bid1'){ return afterRound1(); }
+  const seat=eng.bidTurn;
+  if(seat===0){
+    const legal=eng.legalBids();
+    setMsgL(()=>tf('bid1You',{n:eng.handPoints(0)})+
+           (eng.highBid?tf('bestBid',{b:eng.highBid,p:seatName(eng.highBidder)}):t('noBidYet')));
+    clearControls();
+    legal.forEach(v=>btn(String(v),'',()=>{eng.placeBid(v);nextBid();}));
+    btn(t('pass'),'pass',()=>{eng.placeBid(null);nextBid();});
+    btn(t('hint'),'',()=>{ const v=botBid(eng,0); setHint(v?tf('hintBid',{b:v}):t('hintPass')); });
+    setHintL(()=>t('bid1Hint'));
+  }else{
+    clearControls(); setHint(''); setMsgL(()=>tf('thinking',{p:seatName(seat)}));
+    setTimeout(()=>{ eng.placeBid(botBid(eng,seat)); nextBid(); }, D(600));
+  }
+}
+function nextBid(){
+  renderAll();
+  if(eng.phase==='allpass'){ setMsgL(()=>t('allPass')); clearControls(); setTimeout(startHand,1200); return; }
+  if(eng.phase==='chooseTrump1') return afterRound1();
+  stepBidding();
+}
+// ---- choix atout du 1er tour ----
+function afterRound1(){
+  renderAll();
+  const tm=eng.trumpMaker1;
+  if(tm===0){
+    setMsgL(()=>t('youWinR1'));
+    setHintL(()=>t('trumpTip'));
+    humanPickTrump(c=>{ eng.chooseTrump1(c); addLog(`Atout posé (caché).`); startRound2(); });
+  }else{
+    setMsgL(()=>tf('botSetsTrump',{p:seatName(tm)})); clearControls(); setHint('');
+    setTimeout(()=>{ eng.chooseTrump1(botChooseTrump(eng,tm)); startRound2(); }, D(700));
+  }
+}
+// ---- 2e tour d'enchères (8 cartes) ----
+function startRound2(){ renderAll(); stepBid2(); }
+function stepBid2(){
+  renderAll();
+  if(eng.phase!=='bid2') return afterRound2();
+  const seat=eng.bid2Turn;
+  const legal=eng.legalBids2();
+  if(seat===0){
+    if(!legal.length && !eng.canPCC()){ setMsgL(()=>t('mustPass2')); clearControls(); setHint('');
+      setTimeout(()=>{ eng.placeBid2(null); stepBid2(); }, D(700)); return; }
+    setMsgL(()=>tf('bid2You',{n:eng.handPoints(0)}));
+    clearControls();
+    legal.slice(0,5).forEach(v=>btn(String(v),'',()=>{eng.placeBid2(v);stepBid2();}));
+    if(eng.canPCC()) btn('Partner Close Caps','gold',()=>{
+      if(confirm('Partner Close Caps : vous jouez SEUL contre les deux adversaires et devez gagner les 8 plis. Votre partenaire ne joue pas. Réussi +4 jetons, raté −5. Confirmer ?'))
+      { eng.placeBid2('PCC'); stepBid2(); }
+    });
+    btn(t('pass'),'pass',()=>{eng.placeBid2(null);stepBid2();});
+    setHintL(()=>t('bid2Hint'));
+  }else{
+    clearControls(); setHint(''); setMsgL(()=>tf('botRound2',{p:seatName(seat)}));
+    setTimeout(()=>{ eng.placeBid2(botBid2(eng,seat)); stepBid2(); }, D(550));
+  }
+}
+function afterRound2(){
+  renderAll();
+  if(eng.phase==='chooseTrumpPCC'){
+    const tm=eng.trumpMaker;
+    if(tm===0){
+      setMsgL(()=>t('pccYou'));
+      setHintL(()=>t('pccHint'));
+      humanPickTrump(c=>{ eng.chooseTrumpPCC(c); startPlay(); });
+    }else{
+      setMsgL(()=>tf('botPcc',{p:seatName(tm)})); clearControls(); setHint('');
+      setTimeout(()=>{ eng.chooseTrumpPCC(botChooseTrump(eng,tm)); startPlay(); }, D(800));
+    }
+    return;
+  }
+  if(eng.phase==='chooseTrump2'){
+    const tm=eng.trumpMaker;
+    if(tm===0){
+      setMsgL(()=>t('youTakeR2'));
+      setHint(''); humanPickTrump(c=>{ eng.chooseTrump2(c); preplay(); });
+    }else{
+      setMsgL(()=>tf('botNewTrump',{p:seatName(tm)})); clearControls(); setHint('');
+      setTimeout(()=>{ eng.chooseTrump2(botChooseTrump(eng,tm)); preplay(); }, D(700));
+    }
+  }else{ preplay(); }   // 2e tour : tous passent -> on joue sur le 1er tour
+}
+// ---- choix jeu ouvert / fermé ----
+function preplay(){
+  renderAll();
+  const tm=eng.trumpMaker;
+  if(tm===0){
+    setMsgL(()=>t('openOrClosed'));
+    clearControls();
+    btn(t('closedGame'),'primary',()=>{ eng.startPlayClosed(); startPlay(); });
+    btn(t('openGame'),'',()=>{ eng.startPlayOpen(); if(eng.phase==='spoilt'){ setMsgL(()=>t('spoilt')); clearControls(); setTimeout(startHand,1600);} else startPlay(); });
+    setHintL(()=>t('openHint'));
+  }else{
+    // les bots jouent fermé (sauf enchère ≥250 où l\'atout se révèle après le 1er pli de toute façon)
+    eng.startPlayClosed(); startPlay();
+  }
+}
+function humanPickTrump(cb){
+  clearControls();
+  const row=seatEl(0).querySelector('.handrow'); row.innerHTML='';
+  const h=eng.hands[0], n=h.length, mid=(n-1)/2;
+  h.forEach((c,idx)=>{
+    const d=cardDiv(c,{big:true, cls:'play'});
+    const off=idx-mid;
+    d.style.transform=`rotate(${(off*4).toFixed(1)}deg) translateY(${Math.round(Math.abs(off)*5)}px)`;
+    if(idx) d.style.marginLeft='-16px';
+    d.style.zIndex=String(idx);
+    d.onclick=()=>cb(c);
+    row.appendChild(d);
+  });
+}
+function startPlay(){
+  renderAll();
+  stepPlay();
+}
+function stepPlay(){
+  renderAll();
+  if(eng.tricks.length===8){ return; } // fin gérée dans resolveTrick handler
+  const seat=eng.turn;
+  // preneur avec seulement l'indicator en main (8e pli) : jeu forcé
+  if(eng.hands[seat].length===0 && seat===eng.trumpMaker && eng.indicatorOnTable){
+    setMsgL(()=>t('lastTrickTM')); clearControls();
+    setTimeout(()=>{ const r=eng.playLastIndicator(seat); afterPlay(r); }, D(seat===0?400:620));
+    return;
+  }
+  if(seat===0){
+    const facedownMode = eng.currentTrick.length>0 && !eng.trumpOpen && !eng.hands[0].some(c=>c.s===eng.ledSuit);
+    if(eng.currentTrick.length===0) setMsgL(()=>t('youLead'));
+    else if(facedownMode) setMsgL(()=>t('youFacedown'));
+    else setMsgL(()=>t('youFollow'));
+    clearControls();
+    btn(t('hint'),'',showPlayHint);
+    if(LAST_TRICK) btn(t('lastTrickBtn'),'',openLastTrick);
+    setHint(eng.trumpOpen?tf('trumpOpenHint',{s:suitName(eng.trumpSuit)}):t('trumpHiddenHint'));
+  }else{
+    setMsgL(()=>tf('botPlays',{p:seatName(seat)})); clearControls();
+    if(eng.soloMode && eng.mutedSeat===0) setHintL(()=>t('pccOut'));
+    setTimeout(()=>botTurn(seat), D(620));
+  }
+}
+function humanPlay(c){
+  clearControls();                       // Conseil / Dernier pli disparaissent une fois la carte jouée
+  const r=eng.playCard(0,c);
+  afterPlay(r);
+}
+function botTurn(seat){
+  const choice=botPlay(eng,seat);
+  let r;
+  if(choice && choice.indicator){ r=eng.playIndicatorToCut(seat); }
+  else { const card=choice.card||choice; r=eng.playCard(seat,card); }
+  afterPlay(r);
+}
+function renderTrickCards(cards){
+  document.querySelectorAll('#trick .slot').forEach(sl=>sl.innerHTML='');
+  for(const x of cards){
+    const slot=$('#trick .slot.'+SEAT_LETTER[x.seat]);
+    const el=(x.faceDown && !eng.trumpOpen) ? Object.assign(document.createElement('div'),{className:'card facedown big'}) : cardDiv(x.card,{big:true});
+    slot.appendChild(el);
+  }
+}
+function afterPlay(r){
+  if(r && r.trickDone){ SFX.trick(); LAST_TRICK={cards:r.cards,winner:r.winner,points:r.points}; } else if(r) SFX.card();
+  renderAll();
+  if(r && r.spoilt){ setMsgL(()=>t('spoilt')); clearControls(); setTimeout(startHand,1600); return; }
+  if(r && r.trickDone){
+    ANIM=true; renderHands();
+    renderTrickCards(r.cards); _lastTrick=0;           // le pli COMPLET reste visible
+    const name=[t('seatYou'),t('seatEast'),t('seatNorth'),t('seatWest')][r.winner];
+    if(r.revealed) setMsgL(()=>t('revealed'));
+    else if(r.reveal250) setMsgL(()=>t('reveal250'));
+    else setMsg(`${t('trickTo')} <b>${name}</b> (+${r.points})`);
+    const toast=$('#trickToast'); if(toast){ toast.textContent='+'+r.points; toast.classList.add('show'); }
+    const hold=D((r.revealed||r.reveal250)?1400:850);
+    setTimeout(()=>{
+      if(toast) toast.classList.remove('show');
+      const tr=$('#trick'), cls='to-'+SEAT_LETTER[r.winner];
+      tr.classList.add(cls);                            // les cartes filent vers le gagnant
+      setTimeout(()=>{
+        tr.classList.remove(cls);
+        document.querySelectorAll('#trick .slot').forEach(sl=>sl.innerHTML='');
+        ANIM=false;
+        if(r.handDone) return showHandResult(r);
+        stepPlay();
+      },470);
+    },hold);
+  }else{
+    stepPlay();
+  }
+}
+function showHandResult(r){
+  renderAll();
+  const s=r.score;
+  const weWon = (s.tmTeam==='NS') === s.success;   // notre équipe est-elle gagnante de la donne ?
+  const nsWon = s.success ? s.tmTeam==='NS' : s.tmTeam==='EW';
+  bumpStats(nsWon);
+  const usTeam='NS';
+  const usIsWinner = (nsWon);
+  (usIsWinner?SFX.win:SFX.lose)();
+  const ov=document.createElement('div'); ov.className='overlay';
+  const gameOver=r.gameOver;
+  ov.innerHTML=`<div class="modal">
+    <h2>${usIsWinner?'<span class="win">'+t('dealWon')+'</span>':'<span class="lose">'+t('dealLost')+'</span>'}</h2>
+    <p>${t('makerLabel')} : <b>${SEAT_NAME[eng.trumpMaker!==null?eng.trumpMaker:0]}</b> (${s.tmTeam==='NS'?t('us'):t('them')})<br>
+       ${s.pcc
+         ? `<b>Partner Close Caps</b> · ${s.tricks}/8 plis — ${s.success?'<span class="win">'+t('succeeded')+'</span>':'<span class="lose">'+t('failedPcc')+'</span>'}`
+         : `Enchère <b>${s.bid}</b> · réalisé <b>${s.tmPoints}</b> pts — ${s.success?'<span class="win">'+t('succeeded')+'</span>':'<span class="lose">'+t('failedBid')+'</span>'}${s.caps?' · <b>'+t('caps')+'</b>':''}`}</p>
+    <div class="score">${t('tokens')} — ${t('us')} <b>${eng.tokens.NS}</b> · ${t('them')} <b>${eng.tokens.EW}</b> <span style="color:var(--dim)">(${s.success?'+':'−'}${s.transfer})</span></div>
+    ${gameOver?`<p style="font-size:16px;color:${r.gameWinner==='NS'?'var(--green)':'var(--red)'}"><b>${r.gameWinner==='NS'?t('gameWon'):t('gameLost')}</b></p>`:''}
+    <button class="primary" id="cont">${gameOver?t('playAgain'):t('nextDeal')}</button>
+  </div>`;
+  $('#table').appendChild(ov);
+  $('#cont').onclick=()=>{
+    ov.remove();
+    if(gameOver){ eng=new Engine(); eng.onLog=addLog; }
+    startHand();
+  };
+}
+
+
+// ===== Réglages (cosmétiques) & Tutoriel =====
+function setBack(v){ document.body.setAttribute('data-back',v); try{localStorage.setItem('back304',v);}catch(e){} markOpts(); }
+function setFelt(v){ document.body.setAttribute('data-felt',v); try{localStorage.setItem('felt304',v);}catch(e){} markOpts(); }
+function markOpts(){
+  document.querySelectorAll('#setBacks button').forEach(b=>b.classList.toggle('on', b.dataset.v===(localStorage.getItem('back304')||'royal')));
+  document.querySelectorAll('#setFelts button').forEach(b=>b.classList.toggle('on', b.dataset.v===(localStorage.getItem('felt304')||'green')));
+  document.querySelectorAll('#setLangs button').forEach(b=>b.classList.toggle('on', b.dataset.v===LANG));
+  document.querySelectorAll('#setSound button').forEach(b=>b.classList.toggle('on', b.dataset.v===(SOUND?'on':'off')));
+  document.querySelectorAll('#setSpeed button').forEach(b=>b.classList.toggle('on', parseFloat(b.dataset.v)===SPEED));
+}
+function setSound(v){ SOUND=(v==='on'); try{localStorage.setItem('sound304',v);}catch(e){} if(SOUND){unlockAudio();SFX.card();} markOpts(); }
+function setSpeed(v){ SPEED=v; try{localStorage.setItem('speed304',String(v));}catch(e){} markOpts(); }
+function closeOverlay(el){ el.remove(); }
+function openSettings(){
+  const ov=document.createElement('div'); ov.className='fs-overlay';
+  ov.innerHTML=`<div class="sheet">
+    <h2>${t('settings')}</h2>
+    <div class="lbl">${t('language')}</div>
+    <div class="opt" id="setLangs">
+      <button data-v="fr" onclick="setLang('fr');this.closest('.fs-overlay').remove();openSettings()">FR</button>
+      <button data-v="en" onclick="setLang('en');this.closest('.fs-overlay').remove();openSettings()">EN</button>
+      <button data-v="ta" onclick="setLang('ta');this.closest('.fs-overlay').remove();openSettings()">தமிழ்</button>
+      <button data-v="si" onclick="setLang('si');this.closest('.fs-overlay').remove();openSettings()">සිංහල</button>
+    </div>
+    <div class="lbl">${t('sound')}</div>
+    <div class="opt" id="setSound">
+      <button data-v="on" onclick="setSound('on')">${t('on')}</button>
+      <button data-v="off" onclick="setSound('off')">${t('off')}</button>
+    </div>
+    <div class="lbl">${t('speed')}</div>
+    <div class="opt" id="setSpeed">
+      <button data-v="1.6" onclick="setSpeed(1.6)">${t('slow')}</button>
+      <button data-v="1" onclick="setSpeed(1)">${t('normal')}</button>
+      <button data-v="0.5" onclick="setSpeed(0.5)">${t('fast')}</button>
+    </div>
+    <div class="lbl">${t('cardBack')}</div>
+    <div class="opt" id="setBacks">
+      <button data-v="royal" onclick="setBack('royal')">${t('royal')}</button>
+      <button data-v="classic" onclick="setBack('classic')">${t('classic')}</button>
+      <button data-v="dark" onclick="setBack('dark')">${t('dark')}</button>
+    </div>
+    <div class="lbl">${t('table')}</div>
+    <div class="opt" id="setFelts">
+      <button data-v="green" onclick="setFelt('green')">${t('green')}</button>
+      <button data-v="blue" onclick="setFelt('blue')">${t('blue')}</button>
+      <button data-v="violet" onclick="setFelt('violet')">${t('violet')}</button>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="primary" onclick="this.closest('.fs-overlay').remove();openTutorial()">${t('learn')}</button>
+      <button onclick="this.closest('.fs-overlay').remove()">${t('close')}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  markOpts();
+}
+// ---- 💡 Conseil pendant le jeu : met en valeur la carte que jouerait l'IA ----
+function showPlayHint(){
+  if(eng.phase!=='play' || eng.turn!==0 || !eng.hands[0].length) return;
+  const ch=botPlay(eng,0);
+  if(!ch) return;
+  if(ch && ch.indicator){ setHintL(()=>t('hintDiscard')); return; }
+  const c=(ch&&ch.card)||ch;
+  document.querySelectorAll('#seat-S .card.hinted').forEach(el=>el.classList.remove('hinted'));
+  const el=document.querySelector('#seat-S .handrow [data-k="'+cardKey(c)+'"]');
+  if(el) el.classList.add('hinted');
+  setHintL(()=>t('hintPlay'));
+}
+// ---- Dernier pli ----
+function openLastTrick(){
+  if(!LAST_TRICK) return;
+  const L=LAST_TRICK, ov=document.createElement('div'); ov.className='fs-overlay';
+  ov.innerHTML=`<div class="sheet" style="text-align:center"><h2>${tf('lastTrickTitle',{p:[t('seatYou'),t('seatEast'),t('seatNorth'),t('seatWest')][L.winner],n:L.points})}</h2>
+    <div id="ltRow" style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0"></div>
+    <button class="primary" onclick="this.closest('.fs-overlay').remove()">${t('close')}</button></div>`;
+  document.body.appendChild(ov);
+  const row=ov.querySelector('#ltRow');
+  for(const x of L.cards){
+    const cell=document.createElement('div'); cell.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px';
+    const lab=document.createElement('div'); lab.style.cssText='font-size:11px;color:var(--dim)';
+    lab.textContent=[t('seatYou'),t('seatEast'),t('seatNorth'),t('seatWest')][x.seat];
+    let c;
+    if(x.faceDown && !eng.trumpOpen && x.seat!==0){ c=document.createElement('div'); c.className='card facedown big'; }
+    else c=cardDiv(x.card,{big:true});
+    if(x.seat===L.winner) c.style.boxShadow='0 0 0 3px var(--gold)';
+    cell.appendChild(lab); cell.appendChild(c); row.appendChild(cell);
+  }
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+}
+function openTutorial(){
+  const FR=`<h2>Apprendre le 304</h2>
+    <h3>But du jeu</h3>
+    <p>4 joueurs, 2 équipes (vous + Nord contre Est + Ouest). On enchérit des points, puis on tente de les réaliser en remportant des plis. Chaque donne transfère des jetons ; l'équipe qui rafle tous les jetons de l'autre gagne.</p>
+    <h3>Les cartes (32) et leurs points</h3>
+    <ul><li><b>Valet</b> = 30 (la plus forte)</li><li><b>9</b> = 20</li><li><b>As</b> = 11 · <b>10</b> = 10 · <b>Roi</b> = 3 · <b>Dame</b> = 2 · <b>8</b>/<b>7</b> = 0</li></ul>
+    <p>Total : <b>304 points</b>. Hiérarchie : V &gt; 9 &gt; As &gt; 10 &gt; R &gt; D &gt; 8 &gt; 7.</p>
+    <h3>Déroulé</h3>
+    <p>4 cartes → 1er tour d'enchères (min 160) → le gagnant pose l'<b>atout</b> face cachée → 4 cartes de plus → 2e tour possible (≥250) → <b>jeu fermé/ouvert</b> → 8 plis.</p>
+    <h3>Atout caché</h3>
+    <p>Suivez la couleur demandée si possible. Sinon, posez une carte <b>face cachée</b> en pariant sur l'atout pour couper. Le preneur révèle si l'une est atout.</p>
+    <h3>Partner Close Caps</h3>
+    <p>L'enchère max : jouer <b>seul</b> et gagner les <b>8 plis</b>. +4 jetons si réussi, −5 sinon.</p>
+    <h3>Marquer</h3>
+    <p>Enchère atteinte → jetons gagnés (&lt;200 : +1 · 200-249 : +2 · ≥250 : +3 · les 8 plis « Caps » : +1). Sinon perdus.</p>`;
+  const EN=`<h2>Learn 304</h2>
+    <h3>Goal</h3>
+    <p>4 players, 2 teams (you + North vs East + West). Bid for points, then try to make them by winning tricks. Each deal transfers tokens; the team that takes all the other's tokens wins.</p>
+    <h3>The 32 cards & their points</h3>
+    <ul><li><b>Jack</b> = 30 (highest)</li><li><b>9</b> = 20</li><li><b>Ace</b> = 11 · <b>10</b> = 10 · <b>King</b> = 3 · <b>Queen</b> = 2 · <b>8</b>/<b>7</b> = 0</li></ul>
+    <p>Total: <b>304 points</b>. Order: J &gt; 9 &gt; A &gt; 10 &gt; K &gt; Q &gt; 8 &gt; 7.</p>
+    <h3>Flow</h3>
+    <p>4 cards → round 1 bidding (min 160) → winner sets the <b>trump</b> face down → 4 more cards → optional round 2 (≥250) → <b>closed/open</b> game → 8 tricks.</p>
+    <h3>Hidden trump</h3>
+    <p>Follow the led suit if you can. Otherwise play a <b>face-down</b> card, betting on the trump to cut. The declarer reveals if one is a trump.</p>
+    <h3>Partner Close Caps</h3>
+    <p>The top bid: play <b>solo</b> and win all <b>8 tricks</b>. +4 tokens if made, −5 if not.</p>
+    <h3>Scoring</h3>
+    <p>Bid made → tokens won (&lt;200: +1 · 200-249: +2 · ≥250: +3 · all 8 tricks "Caps": +1). Otherwise lost.</p>`;
+  const done = LANG==='fr' ? 'Compris !' : 'Got it!';
+  const ov=document.createElement('div'); ov.className='fs-overlay';
+  ov.innerHTML=`<div class="sheet">${LANG==='fr'?FR:EN}
+    <div style="margin-top:16px"><button class="primary" onclick="this.closest('.fs-overlay').remove()">${done}</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+}
+// init cosmétiques (au chargement)
+try{ document.body.setAttribute('data-back', localStorage.getItem('back304')||'royal');
+     document.body.setAttribute('data-felt', localStorage.getItem('felt304')||'green'); }catch(e){}
+
+// GO
+try{ const sv=localStorage.getItem('lang304'); if(sv&&I18N[sv]) LANG=sv; }catch(e){}
+
+// ===== Stats de session =====
+let STATS={played:0,won:0,lost:0};
+try{ const sv=localStorage.getItem('stats304'); if(sv) STATS=JSON.parse(sv); }catch(e){}
+function bumpStats(nsWon){ STATS.played++; nsWon?STATS.won++:STATS.lost++; try{localStorage.setItem('stats304',JSON.stringify(STATS));}catch(e){} }
+// ===== Écran d'accueil =====
+function openHome(){
+  const en=LANG!=='fr';
+  const ov=document.createElement('div'); ov.className='fs-overlay'; ov.id='home';
+  ov.innerHTML=`<div class="sheet" style="text-align:center">
+    <div style="font-family:var(--display);font-size:64px;font-weight:800;color:var(--gold);line-height:1">304</div>
+    <div style="color:var(--dim);letter-spacing:6px;font-size:12px;margin-bottom:6px">THREE-NOUGHT-FOUR</div>
+    <div style="color:var(--dim);font-size:12px;margin-bottom:16px">${STATS.played?`${en?'Deals':'Donnes'} : ${STATS.played} · ${en?'won':'gagnées'} ${STATS.won} · ${en?'lost':'perdues'} ${STATS.lost}`:''}</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="primary" onclick="document.getElementById('home').remove();introActive=false;startHand();">${en?'Play vs bots':'Jouer contre les bots'}</button>
+      <button onclick="openTutorial()">${en?'Learn 304':'Apprendre le 304'}</button>
+      <button onclick="openSettings()">${t('settings')}</button>
+      <button disabled title="bientôt">${en?'Online — soon':'Multijoueur — bientôt'}</button>
+    </div>
+    <div class="opt" id="setLangs" style="justify-content:center;margin-top:14px">
+      <button data-v="fr" onclick="setLang('fr');markOpts&&markOpts()">FR</button>
+      <button data-v="en" onclick="setLang('en');markOpts&&markOpts()">EN</button>
+      <button data-v="ta" onclick="setLang('ta')">தமிழ்</button>
+      <button data-v="si" onclick="setLang('si')">සිංහල</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+setLang(LANG);
+openHome();
+</script>
+</body>
+</html>

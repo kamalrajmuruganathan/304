@@ -1,0 +1,33 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+.pub-cache/
+.pub/
+
+# Node (tools/ui-test)
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Générés (localisation)
+lib/l10n/app_localizations*.dart
+
+# Clés / secrets — NE JAMAIS committer
+*.keystore
+*.jks
+key.properties
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json
+.env
