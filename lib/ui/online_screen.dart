@@ -7,6 +7,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart' hide Card;
 import '../engine/engine.dart';
+import '../l10n/app_localizations.dart';
 import '../net/client.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
@@ -30,7 +31,7 @@ class OnlineLobbyScreen extends StatefulWidget {
 }
 
 class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
-  final _name = TextEditingController(text: 'Joueur');
+  final _name = TextEditingController();
   final _code = TextEditingController();
   StreamSubscription<Map>? _sub;
   String? _error;
@@ -53,7 +54,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           _busy = false;
           _error = m['t'] == 'error'
               ? '${m['msg']}'
-              : 'Connexion au serveur impossible ($kServerUrl).';
+              : AppLocalizations.of(context)!.serverUnreachable(kServerUrl);
         });
       }
     });
@@ -70,21 +71,24 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final name = _name.text.trim().isEmpty ? 'Joueur' : _name.text.trim();
+    final l = AppLocalizations.of(context)!;
+    final name =
+        _name.text.trim().isEmpty ? l.defaultPlayer : _name.text.trim();
     return Scaffold(
-      appBar: AppBar(title: const Text('Table privée')),
+      appBar: AppBar(title: Text(l.privateTable)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             TextField(
               controller: _name,
-              decoration: const InputDecoration(labelText: 'Votre nom'),
+              decoration: InputDecoration(
+                  labelText: l.yourName, hintText: l.defaultPlayer),
             ),
             const SizedBox(height: 20),
             FilledButton(
               onPressed: _busy ? null : () => _connect((c) => c.create(name)),
-              child: const Text('Créer une table'),
+              child: Text(l.createTable),
             ),
             const SizedBox(height: 28),
             TextField(
@@ -92,14 +96,14 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               textCapitalization: TextCapitalization.characters,
               maxLength: 4,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(labelText: 'Code de la table'),
+              decoration: InputDecoration(labelText: l.tableCodeLabel),
             ),
             OutlinedButton(
               onPressed: _busy || _code.text.trim().length != 4
                   ? null
                   : () => _connect(
                       (c) => c.join(_code.text.trim().toUpperCase(), name)),
-              child: const Text('Rejoindre'),
+              child: Text(l.join),
             ),
             if (_busy) ...[
               const SizedBox(height: 20),
@@ -110,10 +114,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               Text(_error!, style: const TextStyle(color: Color(0xFFE0866A))),
             ],
             const SizedBox(height: 24),
-            const Text(
-              'Les sièges vides sont tenus par des bots : la partie démarre '
-              'même à deux. Le 2ᵉ joueur devient votre partenaire.',
-              style: TextStyle(color: _dim, fontSize: 12),
+            Text(
+              l.lobbyInfo,
+              style: const TextStyle(color: _dim, fontSize: 12),
             ),
           ],
         ),
@@ -138,6 +141,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   late final StreamSubscription<Map> _s2;
 
   GameClient get c => widget.client;
+  AppLocalizations get l => AppLocalizations.of(context)!;
 
   @override
   void initState() {
@@ -158,8 +162,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('${m['msg']}')));
       } else if (m['t'] == 'disconnected') {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Connexion perdue.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context)!.connectionLost)));
       }
     });
   }
@@ -178,8 +182,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   String _playerName(int seat) {
     final p = v!.players.length > seat ? v!.players[seat] : null;
-    if (p == null) return kSeatName[seat];
-    return p['bot'] == true ? 'Bot' : '${p['name']}';
+    if (p == null) return [l.mSud, l.seatEast, l.seatNorth, l.seatWest][seat];
+    return p['bot'] == true ? l.mAI : '${p['name']}';
   }
 
   List<Card> get _myCards => v!.hands[v!.you].cards ?? const [];
@@ -235,32 +239,30 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   String _prompt() {
     final g = v!;
     if (!g.started) {
-      return g.you == 0
-          ? 'Partagez le code ${g.code ?? ''} puis démarrez.'
-          : 'En attente du démarrage par l\'hôte…';
+      return g.you == 0 ? l.shareCode(g.code ?? '') : l.waitingHost;
     }
     if (g.gameOver) {
       final weWon = g.tokens[g.you % 2 == 0 ? 'NS' : 'EW']! > 0;
-      return '${weWon ? 'Partie gagnée !' : 'Partie perdue.'} '
-          '${g.you == 0 ? 'Relancez quand vous voulez.' : 'L\'hôte peut relancer.'}';
+      return '${weWon ? l.gameWon : l.gameLost} '
+          '${g.you == 0 ? l.youCanRestart : l.hostCanRestart}';
     }
-    if (g.phase == 'scored') return 'Donne terminée — la suivante arrive…';
-    if (!g.yourTurn) return 'Au tour des autres joueurs…';
+    if (g.phase == 'scored') return l.dealOverNext;
+    if (!g.yourTurn) return l.othersTurn;
     switch (g.phase) {
       case 'redeal':
-        return 'Main faible : redistribuer ?';
+        return l.weakHandAsk;
       case 'bid1':
-        return '1er tour — votre enchère.';
+        return l.bid1Short;
       case 'chooseTrump1':
       case 'chooseTrump2':
       case 'chooseTrumpPCC':
-        return 'Touchez la carte qui devient l\'atout (face cachée).';
+        return l.tapTrump;
       case 'bid2':
-        return '2e tour — 250 ou plus, Partner Close Caps, ou passe.';
+        return l.bid2Short;
       case 'preplay':
-        return 'Jeu fermé ou ouvert ?';
+        return l.openOrClosed;
       case 'play':
-        return 'À vous de jouer.';
+        return l.yourTurnPlay;
     }
     return '';
   }
@@ -271,16 +273,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     if (!g.started) {
       return [
         if (g.you == 0)
-          FilledButton(
-              onPressed: () => _send(c.start), child: const Text('Démarrer')),
+          FilledButton(onPressed: () => _send(c.start), child: Text(l.start)),
       ];
     }
     if (g.gameOver) {
       return [
         if (g.you == 0)
-          FilledButton(
-              onPressed: () => _send(c.start),
-              child: const Text('Nouvelle partie')),
+          FilledButton(onPressed: () => _send(c.start), child: Text(l.newGame)),
       ];
     }
     if (!g.yourTurn) return const [];
@@ -289,18 +288,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         return [
           FilledButton(
               onPressed: () => _send(() => c.redeal(keep: false)),
-              child: const Text('Redistribuer')),
+              child: Text(l.redeal)),
           OutlinedButton(
               onPressed: () => _send(() => c.redeal(keep: true)),
-              child: const Text('Garder')),
+              child: Text(l.keep)),
         ];
       case 'bid1':
         return [
           for (final b in g.legalBids)
             OutlinedButton(
                 onPressed: () => _send(() => c.bid(b)), child: Text('$b')),
-          OutlinedButton(
-              onPressed: () => _send(c.pass), child: const Text('Passe')),
+          OutlinedButton(onPressed: () => _send(c.pass), child: Text(l.pass)),
         ];
       case 'bid2':
         return [
@@ -315,27 +313,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                 onPressed: () => _send(c.partnerCloseCaps),
                 child: const Text('Partner Close Caps')),
           OutlinedButton(
-              onPressed: () => _send(() => c.bid2(null)),
-              child: const Text('Passe')),
+              onPressed: () => _send(() => c.bid2(null)), child: Text(l.pass)),
         ];
       case 'preplay':
         return [
           FilledButton(
               onPressed: () => _send(() => c.setOpen(false)),
-              child: const Text('Jeu fermé')),
+              child: Text(l.closedGame)),
           OutlinedButton(
               onPressed: () => _send(() => c.setOpen(true)),
-              child: const Text('Jeu ouvert')),
+              child: Text(l.openGame)),
         ];
     }
     return const [];
   }
 
-  Widget _card(Card card, {bool playable = false}) {
+  Widget _card(Card card, {bool playable = false, double width = 50}) {
     final red = card.suit == 'D' || card.suit == 'H';
     final w = Container(
-      width: 50,
-      height: 72,
+      width: width,
+      height: width * 1.44,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Colors.white, _cream]),
@@ -348,7 +345,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           style: TextStyle(
               color: red ? _red : _ink,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: width * 0.32,
               height: 1.1)),
     );
     return playable
@@ -384,7 +381,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         border: Border.all(color: active ? _gold : const Color(0xFF5A3D2E)),
       ),
       child: Text(
-          '${_playerName(seat)}${g.trumpMaker == seat ? ' · preneur' : ''}  ($cnt)',
+          '${_playerName(seat)}${g.trumpMaker == seat ? ' · ${l.mMaker}' : ''}  ($cnt)',
           style: const TextStyle(color: _txt, fontSize: 12)),
     );
   }
@@ -403,19 +400,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final trump = g.trumpSuit;
+    final us = g.you % 2 == 0 ? 'NS' : 'EW';
+    final them = us == 'NS' ? 'EW' : 'NS';
     return Scaffold(
       backgroundColor: const Color(0xFF160A06),
       appBar: AppBar(
-        title: Text('Table ${g.code ?? ''}'),
-        actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text(
-                  'Nous ${g.tokens[g.you % 2 == 0 ? 'NS' : 'EW']} · Eux ${g.tokens[g.you % 2 == 0 ? 'EW' : 'NS']}'),
-            ),
-          ),
-        ],
+        // le code de table reste toujours lisible (il se partage)
+        title: Text(l.tableTitle(g.code ?? '')),
       ),
       body: SafeArea(
         child: Column(children: [
@@ -424,9 +415,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             padding: const EdgeInsets.all(6),
             color: const Color(0xFF123524),
             child: Text(
-              '${g.pcc ? 'Partner Close Caps' : 'Enchère ${g.bid ?? '—'}'} · '
-              'Atout ${trump == null ? 'caché' : (g.trumpOpen ? kSuitSym[trump] : '${kSuitSym[trump]} (vous seul)')} · '
-              'Plis ${g.trickWinsNS}–${g.trickWinsEW}',
+              // tout est vu de MON équipe (je peux être Est/Ouest)
+              '${l.us} ${g.tokens[us]} · ${l.them} ${g.tokens[them]}\n'
+              '${g.pcc ? 'Partner Close Caps' : '${l.bid} ${g.bid ?? '—'}'} · '
+              '${trump == null ? l.trumpHidden : '${l.trump} ${g.trumpOpen ? kSuitSym[trump] : '${kSuitSym[trump]} ${l.onlyYou}'}'} · '
+              '${l.tricks} ${us == 'NS' ? g.trickWinsNS : g.trickWinsEW}–'
+              '${us == 'NS' ? g.trickWinsEW : g.trickWinsNS}',
               textAlign: TextAlign.center,
               style: const TextStyle(color: _txt),
             ),
@@ -442,7 +436,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               child: Stack(children: [
                 for (final s in [1, 2, 3])
                   Align(
-                    alignment: _align(_rel((g.you + s) % 4)),
+                    // côtés : au-dessus de la ligne du pli (sinon recouverts
+                    // par les cartes d'Est/Ouest sur écran étroit)
+                    alignment: _rel((g.you + s) % 4) == 2
+                        ? Alignment.topCenter
+                        : Alignment(_rel((g.you + s) % 4) == 1 ? 1 : -1, -0.55),
                     child: Padding(
                         padding: const EdgeInsets.all(8),
                         child: _seatLabel((g.you + s) % 4)),
@@ -487,16 +485,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             height: 96,
             padding: const EdgeInsets.all(8),
             color: const Color(0xFF1C0F09),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                for (final card in _myCards)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: _card(card, playable: _playable(card)),
-                  ),
-              ],
-            ),
+            // les 8 cartes tiennent sur la largeur (pas de défilement)
+            child: LayoutBuilder(builder: (context, cons) {
+              final w = ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0);
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (final card in _myCards)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _card(card, playable: _playable(card), width: w),
+                    ),
+                ],
+              );
+            }),
           ),
         ]),
       ),

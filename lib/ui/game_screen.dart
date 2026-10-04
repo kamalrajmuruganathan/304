@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Card;
 import '../engine/engine.dart';
 import '../ai/bots.dart';
+import '../l10n/app_localizations.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
 const _feltA = Color(0xFF0F5A3C);
@@ -34,6 +35,9 @@ class _GameScreenState extends State<GameScreen> {
   List<TrickPlay>? _doneTrick;
   static const int human = 0;
 
+  AppLocalizations get l => AppLocalizations.of(context)!;
+  String _seat(int s) => [l.mSud, l.seatEast, l.seatNorth, l.seatWest][s];
+
   @override
   void initState() {
     super.initState();
@@ -60,17 +64,17 @@ class _GameScreenState extends State<GameScreen> {
     }
     if (e.eldest == human) {
       setState(() {
-        msg = 'Main faible (${e.handPoints(human)} pts, < 15). Redistribuer ?';
+        msg = l.weakHand(e.handPoints(human));
         actions = [
           _btn(
-              'Redistribuer',
+              l.redeal,
               () => setState(() {
                     e.redeal();
                     _handleRedeal(safety + 1);
                   }),
               primary: true),
           _btn(
-              'Garder',
+              l.keep,
               () => setState(() {
                     e.startBidding1();
                     _stepBid();
@@ -79,7 +83,7 @@ class _GameScreenState extends State<GameScreen> {
       });
     } else {
       setState(() {
-        msg = '${kSeatName[e.eldest]} redistribue (main faible)…';
+        msg = l.botRedeals(_seat(e.eldest));
         actions = [];
       });
       _bots(() {
@@ -92,7 +96,7 @@ class _GameScreenState extends State<GameScreen> {
   void _stepBid() {
     if (e.phase == 'allpass') {
       setState(() {
-        msg = 'Tout le monde a passé. Nouvelle donne.';
+        msg = l.allPass;
         actions = [];
       });
       _bots(_startHand);
@@ -105,14 +109,14 @@ class _GameScreenState extends State<GameScreen> {
     if (e.bidTurn == human) {
       final legal = e.legalBids();
       setState(() {
-        msg = '1er tour — à vous (${e.handPoints(human)} pts sur 4 cartes).';
+        msg = l.bid1You(e.handPoints(human));
         actions = [
           for (final v in legal)
             _btn('$v', () {
               e.placeBid(v);
               setState(_nextBid);
             }),
-          _btn('Passe', () {
+          _btn(l.pass, () {
             e.placeBid(null);
             setState(_nextBid);
           }),
@@ -120,7 +124,7 @@ class _GameScreenState extends State<GameScreen> {
       });
     } else {
       setState(() {
-        msg = '${kSeatName[e.bidTurn]} réfléchit…';
+        msg = l.thinking(_seat(e.bidTurn));
         actions = [];
       });
       _bots(() {
@@ -132,7 +136,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _nextBid() {
     if (e.phase == 'allpass') {
-      msg = 'Tout le monde a passé. Nouvelle donne.';
+      msg = l.allPass;
       actions = [];
       _bots(_startHand);
       return;
@@ -148,13 +152,12 @@ class _GameScreenState extends State<GameScreen> {
     final tm = e.trumpMaker1!;
     if (tm == human) {
       setState(() {
-        msg =
-            'Vous gagnez le 1er tour ! Touchez une carte : elle devient l\'atout (caché).';
+        msg = l.youWinR1;
         actions = [];
       });
     } else {
       setState(() {
-        msg = '${kSeatName[tm]} pose l\'atout…';
+        msg = l.botSetsTrump(_seat(tm));
         actions = [];
       });
       _bots(() {
@@ -173,7 +176,7 @@ class _GameScreenState extends State<GameScreen> {
       final legal = e.legalBids2();
       if (legal.isEmpty && !e.canPCC()) {
         setState(() {
-          msg = '2e tour : vous devez passer.';
+          msg = l.mustPass2;
           actions = [];
         });
         _bots(() {
@@ -183,7 +186,7 @@ class _GameScreenState extends State<GameScreen> {
         return;
       }
       setState(() {
-        msg = '2e tour (8 cartes, ${e.handPoints(human)} pts).';
+        msg = l.bid2You(e.handPoints(human));
         actions = [
           for (final v in legal.take(5))
             _btn('$v', () {
@@ -195,7 +198,7 @@ class _GameScreenState extends State<GameScreen> {
               e.placeBid2('PCC');
               setState(_stepBid2);
             }, gold: true),
-          _btn('Passe', () {
+          _btn(l.pass, () {
             e.placeBid2(null);
             setState(_stepBid2);
           }),
@@ -203,7 +206,7 @@ class _GameScreenState extends State<GameScreen> {
       });
     } else {
       setState(() {
-        msg = '${kSeatName[e.bid2Turn]} (2e tour)…';
+        msg = l.botRound2(_seat(e.bid2Turn));
         actions = [];
       });
       _bots(() {
@@ -218,12 +221,12 @@ class _GameScreenState extends State<GameScreen> {
       final tm = e.trumpMaker!;
       if (tm == human) {
         setState(() {
-          msg = 'Partner Close Caps ! Touchez votre carte d\'atout.';
+          msg = l.pccYou;
           actions = [];
         });
       } else {
         setState(() {
-          msg = '${kSeatName[tm]} annonce Partner Close Caps…';
+          msg = l.botPcc(_seat(tm));
           actions = [];
         });
         _bots(() {
@@ -237,12 +240,12 @@ class _GameScreenState extends State<GameScreen> {
       final tm = e.trumpMaker!;
       if (tm == human) {
         setState(() {
-          msg = 'Vous prenez au 2e tour ! Touchez votre nouvel atout.';
+          msg = l.youTakeR2;
           actions = [];
         });
       } else {
         setState(() {
-          msg = '${kSeatName[tm]} choisit un nouvel atout…';
+          msg = l.botNewTrump(_seat(tm));
           actions = [];
         });
         _bots(() {
@@ -259,18 +262,17 @@ class _GameScreenState extends State<GameScreen> {
     final tm = e.trumpMaker!;
     if (tm == human) {
       setState(() {
-        msg = 'Jeu fermé (atout caché) ou ouvert ?';
+        msg = l.openOrClosed;
         actions = [
-          _btn('Jeu fermé', () {
+          _btn(l.closedGame, () {
             e.startPlayClosed();
             setState(_stepPlay);
           }, primary: true),
-          _btn('Jeu ouvert', () {
+          _btn(l.openGame, () {
             e.startPlayOpen();
             if (e.phase == 'spoilt') {
               setState(() {
-                msg =
-                    'Atout gâché — aucun adversaire n\'a d\'atout. Redistribution.';
+                msg = l.spoilt;
                 actions = [];
               });
               _bots(_startHand);
@@ -291,7 +293,7 @@ class _GameScreenState extends State<GameScreen> {
     final seat = e.turn;
     if (e.hands[seat].isEmpty && seat == e.trumpMaker && e.indicatorOnTable) {
       setState(() {
-        msg = 'Dernier pli : le preneur joue son atout.';
+        msg = l.lastTrickTM;
         actions = [];
       });
       _bots(() => _afterPlay(e.playLastIndicator(seat)));
@@ -303,15 +305,15 @@ class _GameScreenState extends State<GameScreen> {
             !e.trumpOpen &&
             !e.hands[human].any((c) => c.suit == e.ledSuit);
         msg = e.currentTrick.isEmpty
-            ? 'À vous. Vous entamez.'
+            ? l.youLead
             : facedown
-                ? 'À vous. Vous ne pouvez pas suivre : jouez une carte (face cachée).'
-                : 'À vous. Suivez la couleur si possible.';
+                ? l.youFacedown
+                : l.youFollow;
         actions = [];
       });
     } else {
       setState(() {
-        msg = '${kSeatName[seat]} joue…';
+        msg = l.botPlays(_seat(seat));
         actions = [];
       });
       _bots(() {
@@ -393,10 +395,10 @@ class _GameScreenState extends State<GameScreen> {
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: _goldD)),
-        title: Text(nsWon ? 'Donne gagnée' : 'Donne perdue',
+        title: Text(nsWon ? l.dealWon : l.dealLost,
             style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
         content: Text(
-          '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 plis — ${s['success'] == true ? 'réussie' : 'ratée'}' : 'Enchère ${s['bid']} · ${s['tmPoints']} pts — ${s['success'] == true ? 'réussie' : 'chutée'}${s['caps'] == true ? ' · Caps !' : ''}'}\nJetons — Nous ${e.tokens['NS']} · Eux ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? '🏆 Partie gagnée !' : 'Partie perdue.'}' : ''}',
+          '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
           style: const TextStyle(color: _dim),
         ),
         actions: [
@@ -406,7 +408,7 @@ class _GameScreenState extends State<GameScreen> {
               if (over) e.tokens = {'NS': 11, 'EW': 11};
               _startHand();
             },
-            child: Text(over ? 'Rejouer' : 'Donne suivante'),
+            child: Text(over ? l.playAgain : l.nextDeal),
           ),
         ],
       ),
@@ -485,27 +487,22 @@ class _GameScreenState extends State<GameScreen> {
         ),
       );
 
-  Widget _pod(int seat) {
+  /// [compact] : avatar seul (écran étroit, évite le chevauchement avec la main).
+  Widget _pod(int seat, {bool compact = false}) {
     final active = _isActive(seat);
     final muted = e.soloMode && e.mutedSeat == seat;
-    final base = seat == 0
-        ? 'Vous'
-        : seat == 1
-            ? 'Est'
-            : seat == 2
-                ? 'Nord'
-                : 'Ouest';
+    final base = [l.seatYou, l.seatEast, l.seatNorth, l.seatWest][seat];
     var meta = seat == 0
-        ? 'Sud'
+        ? l.mSud
         : seat == 2
-            ? 'partenaire'
-            : 'IA';
-    if (e.trumpMaker == seat) meta = e.pcc ? 'solo' : 'preneur';
-    if (muted) meta = 'écarté';
+            ? l.mPartner
+            : l.mAI;
+    if (e.trumpMaker == seat) meta = e.pcc ? l.mSolo : l.mMaker;
+    if (muted) meta = l.mOut;
     return Opacity(
       opacity: muted ? 0.55 : 1,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(3, 3, 10, 3),
+        padding: EdgeInsets.fromLTRB(3, 3, compact ? 3 : 10, 3),
         decoration: BoxDecoration(
           color: const Color(0x52000000),
           borderRadius: BorderRadius.circular(22),
@@ -522,24 +519,30 @@ class _GameScreenState extends State<GameScreen> {
               shape: BoxShape.circle,
               gradient: const RadialGradient(
                   colors: [Color(0xFF2A3A52), Color(0xFF141B28)]),
-              border: Border.all(color: active ? _gold : _goldD, width: 2),
+              // avatar seul : bordure dorée épaisse = preneur
+              border: Border.all(
+                  color: active || (compact && e.trumpMaker == seat)
+                      ? _gold
+                      : _goldD,
+                  width: compact && e.trumpMaker == seat ? 3 : 2),
             ),
-            child: Text(base[0],
+            child: Text(base.characters.first,
                 style: const TextStyle(
                     color: _gold, fontWeight: FontWeight.bold, fontSize: 14)),
           ),
-          const SizedBox(width: 6),
-          Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(base, style: const TextStyle(color: _txt, fontSize: 12)),
-                Text(meta.toUpperCase(),
-                    style: TextStyle(
-                        color: e.trumpMaker == seat ? _gold : _dim,
-                        fontSize: 9,
-                        letterSpacing: 0.4)),
-              ]),
+          if (!compact) const SizedBox(width: 6),
+          if (!compact)
+            Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(base, style: const TextStyle(color: _txt, fontSize: 12)),
+                  Text(meta.toUpperCase(),
+                      style: TextStyle(
+                          color: e.trumpMaker == seat ? _gold : _dim,
+                          fontSize: 9,
+                          letterSpacing: 0.4)),
+                ]),
         ]),
       ),
     );
@@ -615,8 +618,9 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _trumpChip() {
     final t = e.trumpSuit;
-    final txt =
-        (t != null && e.trumpOpen) ? 'atout ${kSuitSym[t]}' : 'atout caché';
+    final txt = (t != null && e.trumpOpen)
+        ? '${l.trump} ${kSuitSym[t]}'
+        : l.trumpHidden;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -677,15 +681,15 @@ class _GameScreenState extends State<GameScreen> {
       trumpTxt = kSuitSym[t]!;
       trumpColor = (t == 'D' || t == 'H') ? const Color(0xFFE06666) : _txt;
     } else if (t != null) {
-      trumpTxt = 'fermé';
+      trumpTxt = l.closed;
     } else {
       trumpTxt = '—';
     }
     String tgtUs = '—', tgtThem = '—';
     if (e.bid != null && e.trumpMaker != null) {
       if (e.pcc) {
-        tgtUs = teamOf(e.trumpMaker!) == 'NS' ? '8 plis' : 'déf.';
-        tgtThem = teamOf(e.trumpMaker!) == 'EW' ? '8 plis' : 'déf.';
+        tgtUs = teamOf(e.trumpMaker!) == 'NS' ? l.eightTricks : l.def;
+        tgtThem = teamOf(e.trumpMaker!) == 'EW' ? l.eightTricks : l.def;
       } else {
         final us = teamOf(e.trumpMaker!) == 'NS' ? e.bid! : 305 - e.bid!;
         tgtUs = '$us';
@@ -702,30 +706,30 @@ class _GameScreenState extends State<GameScreen> {
       ),
       child: Column(children: [
         Row(children: [
-          _teamPanel('Nous', e.tokens['NS']!, _gold),
+          _teamPanel(l.us, e.tokens['NS']!, _gold),
           Expanded(
             // réduit l'ensemble sur les écrans étroits au lieu de déborder
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                _stat('Enchère', e.pcc ? 'PCC' : (e.bid?.toString() ?? '—')),
-                _stat('Atout', trumpTxt, color: trumpColor),
-                _stat('Plis', '${e.trickWinsNS}–${e.trickWinsEW}'),
+                _stat(l.bid, e.pcc ? 'PCC' : (e.bid?.toString() ?? '—')),
+                _stat(l.trump, trumpTxt, color: trumpColor),
+                _stat(l.tricks, '${e.trickWinsNS}–${e.trickWinsEW}'),
               ]),
             ),
           ),
-          _teamPanel('Eux', e.tokens['EW']!, const Color(0xFFE0C07A)),
+          _teamPanel(l.them, e.tokens['EW']!, const Color(0xFFE0C07A)),
         ]),
         const SizedBox(height: 4),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Flexible(
-            child: Text('Notre objectif $tgtUs',
+            child: Text('${l.tgtUs} $tgtUs',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: _dim, fontSize: 11)),
           ),
           const SizedBox(width: 8),
           Flexible(
-            child: Text('Objectif adverse $tgtThem',
+            child: Text('${l.tgtThem} $tgtThem',
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.right,
                 style: const TextStyle(color: _dim, fontSize: 11)),
@@ -751,26 +755,36 @@ class _GameScreenState extends State<GameScreen> {
                 color: Colors.black54, blurRadius: 16, offset: Offset(0, 8))
           ],
         ),
-        child: Stack(
-          children: [
-            Positioned(top: 10, left: 12, child: _trumpChip()),
-            Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                    padding: const EdgeInsets.only(top: 6), child: _pod(2))),
-            Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                    padding: const EdgeInsets.only(right: 6), child: _pod(1))),
-            Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                    padding: const EdgeInsets.only(left: 6), child: _pod(3))),
-            Align(alignment: Alignment.center, child: _trickArea()),
-            Positioned(left: 10, bottom: 8, child: _pod(0)),
-            Align(alignment: Alignment.bottomCenter, child: _handFan()),
-          ],
-        ),
+        child: LayoutBuilder(builder: (context, cons) {
+          // écran étroit : la pastille d'atout passe sous la rangée de Nord et
+          // le pion du joueur se réduit à son avatar (textes longs en ta/si)
+          final narrow = cons.maxWidth < 520;
+          return Stack(
+            children: [
+              Positioned(top: narrow ? 58 : 10, left: 12, child: _trumpChip()),
+              Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                      padding: const EdgeInsets.only(top: 6), child: _pod(2))),
+              Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: _pod(1, compact: narrow))),
+              Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: _pod(3, compact: narrow))),
+              Align(alignment: Alignment.center, child: _trickArea()),
+              Positioned(
+                  left: 10,
+                  bottom: narrow ? 126 : 8, // au-dessus de la main
+                  child: _pod(0, compact: narrow)),
+              Align(alignment: Alignment.bottomCenter, child: _handFan()),
+            ],
+          );
+        }),
       ),
     );
   }

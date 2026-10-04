@@ -12,6 +12,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/net/client.dart';
 import 'package:game304/ui/online_screen.dart';
 
@@ -32,16 +33,22 @@ Future<void> startServer() async {
   await ready.future.timeout(const Duration(seconds: 90));
 }
 
+/// Langue de l'interface pendant le test (non latine : repère tout oubli).
+const lang = 'ta';
+
 void main() {
   setUpAll(startServer);
   tearDownAll(() => server.kill());
 
-  testWidgets('en ligne : table créée, démarrée et 2 donnes jouées via l\'UI',
+  testWidgets(
+      'en ligne (tamoul) : table créée, démarrée, 2 donnes jouées via l\'UI',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844) * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     final rnd = Random(4);
+    final l = lookupAppLocalizations(const Locale(lang));
+    final leaks = <String>{};
     // flutter_test bloque le réseau par défaut (HttpOverrides) : ce test a
     // besoin d'une vraie connexion WebSocket vers le serveur local
     HttpOverrides.global = null;
@@ -71,8 +78,12 @@ void main() {
     }
     expect(c.seat, 0);
 
-    await tester.pumpWidget(MaterialApp(home: OnlineGameScreen(client: c)));
-    expect(find.textContaining('Partagez le code ${c.code}'), findsOneWidget);
+    await tester.pumpWidget(MaterialApp(
+        locale: const Locale(lang),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: OnlineGameScreen(client: c)));
+    expect(find.text(l.shareCode(c.code!)), findsOneWidget);
 
     var idle = 0, cards = 0;
     var sawLastTrick = false;
@@ -81,6 +92,14 @@ void main() {
           () => Future<void>.delayed(const Duration(milliseconds: 120)));
       await tester.pump();
       expect(tester.takeException(), isNull);
+      for (final e in find.byType(Text).evaluate()) {
+        final s = (e.widget as Text).data ?? '';
+        // aucun texte latin hors noms de jeu / joueurs / code de table
+        final rest = s
+            .replaceAll(RegExp(r'Partner Close Caps|AI|Testeur'), '')
+            .replaceAll(c.code!, '');
+        if (RegExp(r'[A-Za-z]{3,}').hasMatch(rest)) leaks.add(s);
+      }
       expect(errors, isEmpty, reason: 'erreur renvoyée par le serveur');
 
       final v = c.last!;
@@ -102,8 +121,7 @@ void main() {
             warnIfMissed: false);
         cards++;
       } else if (buttons.evaluate().isNotEmpty) {
-        final passe =
-            find.descendant(of: buttons, matching: find.text('Passe'));
+        final passe = find.descendant(of: buttons, matching: find.text(l.pass));
         await tester.tap(passe.evaluate().isNotEmpty && rnd.nextBool()
             ? passe.first
             : buttons.at(rnd.nextInt(buttons.evaluate().length)));
@@ -117,6 +135,7 @@ void main() {
           () => Future<void>.delayed(const Duration(milliseconds: 150)));
       await tester.pump();
     }
+    expect(leaks, isEmpty, reason: 'textes non traduits en $lang');
     expect(cards, greaterThan(4), reason: 'des cartes jouées depuis l\'UI');
     expect(sawLastTrick, isTrue, reason: 'dernier pli affiché entre 2 plis');
 

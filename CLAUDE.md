@@ -44,14 +44,15 @@ lib/
   net/client.dart          client WebSocket + GameView (vue rédigée reçue du serveur)
   ui/game_screen.dart      table « royale » solo vs 3 bots (UI Flutter)
   ui/online_screen.dart    salon (créer/rejoindre code) + table en ligne
-  main.dart                accueil : partie solo / table privée
-  l10n/app_{en,fr,ta,si}.arb  30 clés chacune (voir §9 : pas encore câblées dans l'UI)
+  main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
+  l10n/app_{en,fr,ta,si}.arb  87 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
 test/fixtures/prototype_trace.json.gz trace de référence produite par tools/diff-test/trace.js
 test/ui_solo_test.dart     test d'interface Flutter : donnes jouées via les boutons/cartes (3 tailles d'écran)
-test/ui_online_test.dart   test d'interface en ligne contre le vrai serveur (lancé par le test)
+test/ui_online_test.dart   test d'interface en ligne (en tamoul) contre le vrai serveur (lancé par le test)
+test/i18n_test.dart        cohérence des ARB + donnes jouées en en/ta/si sans texte français + sélecteur de langue
 tools/diff-test/trace.js   génère / vérifie (--check) la trace de référence du prototype
 android/ ios/ web/         générés par `flutter create` (org com.kjtech)
 prototype/304.html         PROTOTYPE WEB VALIDÉ — référence des règles, de l'IA et du design
@@ -60,6 +61,7 @@ deploy/server.sh           déploiement Cloud Run (une commande)
 deploy/web.sh              build Flutter web + Firebase Hosting
 deploy/mobile.sh           build .aab (Android) / .ipa (Mac)
 assets/                    icon.svg, logo.svg, card_back_royal.svg
+assets/fonts/Suits.ttf     ♠♣♦♥ seuls (sous-ensemble Noto Sans Symbols 2, 2,4 Ko, OFL) = police de secours du thème
 docs/
   RULES.md                 règles de référence
   ARCHITECTURE.md          ADR multijoueur
@@ -169,9 +171,10 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 31/31 (régression 300 parties, PCC, 24 parties différentielles, 4 tests d'interface) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 36/36 (régression 300 parties, PCC, 24 parties différentielles, tests d'interface solo/en ligne, i18n) ; `flutter analyze` : 0 remarque |
+| i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
-| UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). ⚠️ Rendu visuel jamais regardé par un humain (`flutter run -d chrome`) |
+| UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
 | UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. ⚠️ Salon (créer/rejoindre) non testé à l'écran |
 | Dockerfile, scripts deploy | ⚠️ Syntaxe vérifiée (`bash -n`), jamais exécutés |
 | CI GitHub | ✅ Verte sur la PR #1 (jobs `test` et `prototype-ui`) |
@@ -205,7 +208,7 @@ Après toute modification des règles ou de l'IA : modifier les deux côtés, re
    pour tester une table privée (créer → code → rejoindre → démarrer → jouer une donne).
 3. Pousser sur GitHub (`PUSH.md`), vérifier la CI, activer **Settings → Pages → GitHub Actions**.
 4. Déployer le serveur : `./deploy/server.sh <PROJET_GCP>`.
-5. Câbler l'i18n dans l'UI Flutter (§9), compléter les écrans.
+5. ✅ i18n câblée (04/10/2026). Reste : relecture native ta/si, compléter les écrans (§9).
 6. Stores (§10).
 
 ## 8. Commandes utiles
@@ -227,10 +230,14 @@ JS, blocage, ou texte non traduit après bascule de langue.
 
 ## 9. Lacunes connues (à traiter)
 
-- **i18n Flutter non câblée** : les ARB (30 clés, 4 langues) existent mais `AppLocalizations`
-  n'est pas utilisé ; les textes de `game_screen.dart`, `online_screen.dart` et `main.dart` sont en
-  **français en dur**. Le prototype, lui, est entièrement traduit (106 clés, dictionnaire `I18N`).
-  → Reprendre les 106 clés du prototype dans les ARB et câbler `AppLocalizations`.
+- ~~i18n Flutter non câblée~~ → **fait le 04/10/2026** : 87 clés (61 reprises du prototype, 25
+  nouvelles pour l'écran en ligne/l'accueil, + titre). Les 25 nouvelles sont listées dans
+  `docs/TRANSLATIONS.md` (traduction ta/si par Claude → **relecture native à faire**).
+- Messages d'erreur **du serveur** (`bin/server.dart` : « Ce n'est pas votre tour. », « Table
+  introuvable »…) encore en français ; ils s'affichent rarement (l'UI bloque les doubles envois)
+  mais devraient devenir des codes traduits côté client.
+- Web : les polices tamoule/cingalaise sont téléchargées par Flutter (fonts.gstatic.com) au premier
+  affichage ; Android/iOS ont des polices système. Les symboles ♠♣♦♥ sont embarqués (`Suits`).
 - **Tutoriel « Apprendre le 304 »** : FR et EN seulement (repli EN pour ta/si) — prototype.
 - **Traductions ta/si** : traductions machine vérifiées (clés, repères `{n} {p} {b} {s}`, balises,
   écritures Unicode) mais **relecture native recommandée** (vocabulaire du 304).
@@ -297,6 +304,17 @@ JS, blocage, ou texte non traduit après bascule de langue.
 - Nom de classe `Thuru304App` dans `main.dart` → renommé `Game304App`.
 - Tests d'interface : `flutter_test` bloque le réseau (`HttpOverrides`) → `HttpOverrides.global =
   null` dans le test en ligne ; les écouteurs de flux ne tournent qu'aux `pump()`.
+- Web : ♠♣♦♥ venaient de la police **Noto Color Emoji** téléchargée à la volée (lourde, échecs
+  réseau → carrés barrés, style incohérent). Corrigé : police `Suits` embarquée (`fontFamilyFallback`).
+- Boutons pleins : texte bleu foncé sur fond bleu (illisible) → `onPrimary: Colors.white`.
+- Petit écran / langues longues (ta, si) : pastille d'atout sur le pion de Nord, pion « Vous » sous
+  la main, cartes du pli sur les pions Est/Ouest → pions réduits à l'avatar (< 520 px de large).
+- En ligne : code de table tronqué dans la barre du haut (score à côté) → score dans le bandeau ;
+  score et plis affichés du point de vue de l'équipe du joueur (faux pour Est/Ouest) ; main de 8
+  cartes qui défilait → cartes redimensionnées ; étiquettes Est/Ouest recouvertes par le pli.
+- Captures d'écran du build web : `flutter build web --no-web-resources-cdn` (sinon CanvasKit vient
+  d'un CDN injoignable ici), Chromium via le proxy, accessibilité Flutter activée
+  (`flt-semantics-placeholder`) pour cliquer les boutons par leur texte.
 
 ## 12. Prototype — repères dans `prototype/304.html`
 

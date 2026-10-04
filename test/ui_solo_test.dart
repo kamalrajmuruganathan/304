@@ -8,38 +8,54 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
 
-/// Messages vus pendant les parties (pour vérifier la couverture des cas).
+/// Cas rencontrés pendant les parties (pour vérifier la couverture).
 final seen = <String>{};
 
+/// Joue [deals] donnes dans la langue [lang]. [onTexts] reçoit, à chaque pas,
+/// tous les textes affichés (contrôle des traductions).
 Future<int> playSolo(WidgetTester tester,
-    {required Size size, required int deals, required int seed}) async {
+    {required Size size,
+    required int deals,
+    required int seed,
+    String lang = 'fr',
+    void Function(List<String> texts)? onTexts}) async {
   tester.view.physicalSize = size * 3;
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
   final rnd = Random(seed);
+  final l = lookupAppLocalizations(Locale(lang));
+  String head(String s) => s.split(RegExp(r'[.!:(]')).first.trim();
+  final cases = {
+    'preneur 1er tour': head(l.youWinR1),
+    'fermé/ouvert': head(l.openOrClosed),
+    'face cachée': l.youFacedown,
+    'dernier pli atout posé': l.lastTrickTM,
+    'PCC': 'Partner Close Caps',
+  };
 
-  await tester.pumpWidget(const Game304App());
-  await tester.tap(find.text('Partie rapide contre les bots'));
+  await tester.pumpWidget(Game304App(locale: Locale(lang)));
+  await tester.tap(find.text(l.quickPlay));
   await tester.pumpAndSettle();
 
   var hands = 0, idle = 0, cardsPlayed = 0, bidsMade = 0;
   while (hands < deals) {
     await tester.pump(const Duration(milliseconds: 350));
     expect(tester.takeException(), isNull);
-    for (final m in const [
-      'Vous gagnez le 1er tour',
-      'Jeu fermé (atout caché) ou ouvert',
-      'Vous ne pouvez pas suivre',
-      'Dernier pli : le preneur joue son atout',
-      'Partner Close Caps',
-    ]) {
-      if (find.textContaining(m).evaluate().isNotEmpty) seen.add(m);
+    for (final c in cases.entries) {
+      if (find.textContaining(c.value).evaluate().isNotEmpty) seen.add(c.key);
+    }
+    if (onTexts != null) {
+      onTexts([
+        for (final e in find.byType(Text).evaluate())
+          (e.widget as Text).data ?? '',
+      ]);
     }
 
-    final next = find.text('Donne suivante');
-    final again = find.text('Rejouer');
+    final next = find.text(l.nextDeal);
+    final again = find.text(l.playAgain);
     if (next.evaluate().isNotEmpty || again.evaluate().isNotEmpty) {
       await tester.tap(next.evaluate().isNotEmpty ? next : again);
       await tester.pumpAndSettle();
@@ -65,7 +81,7 @@ Future<int> playSolo(WidgetTester tester,
             (w) => w is FilledButton || w is OutlinedButton));
     if (buttons.evaluate().isNotEmpty) {
       // surtout « Passe », parfois une enchère : le joueur devient aussi preneur
-      final passe = find.descendant(of: buttons, matching: find.text('Passe'));
+      final passe = find.descendant(of: buttons, matching: find.text(l.pass));
       final n = buttons.evaluate().length;
       if (passe.evaluate().isNotEmpty && rnd.nextInt(3) > 0) {
         await tester.tap(passe.first);
@@ -100,14 +116,15 @@ void main() {
     });
     return;
   }
+
   testWidgets('solo : 25 donnes jouées via l\'interface (téléphone 390×844)',
       (tester) async {
     expect(
         await playSolo(tester, size: const Size(390, 844), deals: 25, seed: 1),
         25);
     // le joueur a été preneur et a choisi son atout via l'interface
-    expect(seen, contains('Vous gagnez le 1er tour'));
-    expect(seen, contains('Jeu fermé (atout caché) ou ouvert'));
+    expect(seen, contains('preneur 1er tour'));
+    expect(seen, contains('fermé/ouvert'));
   });
 
   testWidgets('solo : 10 donnes sur petit écran (360×640)', (tester) async {

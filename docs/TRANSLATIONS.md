@@ -116,3 +116,38 @@ Pour corriger : modifier la case, me renvoyer le tableau, j'applique partout.
 | slow | Slow | மெதுவாக | සෙමින් |
 | normal | Normal | சாதாரண | සාමාන්‍ය |
 | fast | Fast | வேகமாக | වේගයෙන් |
+
+## App Flutter — clés ajoutées le 04/10/2026 (À FAIRE RELIRE PAR UN NATIF)
+
+Les 61 autres clés de `lib/l10n/app_*.arb` reprennent mot pour mot le dictionnaire `I18N` du
+prototype (balises `<b>` retirées). Les 25 clés ci-dessous sont nouvelles (écran en ligne, accueil) :
+traduction tamoule et cingalaise faite par Claude, vocabulaire aligné sur le prototype
+(துருப்பு / තුරුම්පුව, ஏலம் / ලංසුව, பகிர்வு / බෙදීම) — **relecture native recommandée**.
+
+| Clé | FR | EN | TA | SI |
+|---|---|---|---|---|
+| `privateTableFriends` | Table privée entre amis | Private table with friends | நண்பர்களுடன் தனிப்பட்ட மேசை | මිතුරන් සමඟ පෞද්ගලික මේසය |
+| `yourName` | Votre nom | Your name | உங்கள் பெயர் | ඔබේ නම |
+| `defaultPlayer` | Joueur | Player | வீரர் | ක්‍රීඩකයා |
+| `createTable` | Créer une table | Create a table | மேசையை உருவாக்கு | මේසයක් සාදන්න |
+| `tableCodeLabel` | Code de la table | Table code | மேசைக் குறியீடு | මේස කේතය |
+| `join` | Rejoindre | Join | சேர் | එක්වන්න |
+| `serverUnreachable` | Connexion au serveur impossible ({url}). | Cannot reach the server ({url}). | சேவையகத்துடன் இணைக்க முடியவில்லை ({url}). | සේවාදායකයට සම්බන්ධ විය නොහැක ({url}). |
+| `lobbyInfo` | Les sièges vides sont tenus par des bots : la partie démarre même à deux. Le 2ᵉ joueur devient votre partenaire. | Empty seats are played by bots, so the game starts even with two players. The second player becomes your partner. | காலியான இருக்கைகளில் கணினி வீரர்கள் விளையாடுவார்கள்; இருவர் இருந்தாலே ஆட்டம் தொடங்கும். இரண்டாவது வீரர் உங்கள் கூட்டாளி ஆவார். | හිස් ආසනවල බොට්ලා ක්‍රීඩා කරයි; දෙදෙනෙකු සිටියත් ක්‍රීඩාව ආරම්භ වේ. දෙවන ක්‍රීඩකයා ඔබේ සහකරු වේ. |
+| `tableTitle` | Table {code} | Table {code} | மேசை {code} | මේසය {code} |
+| `shareCode` | Partagez le code {code} puis démarrez. | Share the code {code}, then start. | {code} குறியீட்டைப் பகிர்ந்து, பின் தொடங்குங்கள். | {code} කේතය බෙදාගෙන, පසුව ආරම්භ කරන්න. |
+| `waitingHost` | En attente du démarrage par l'hôte… | Waiting for the host to start… | மேசையை உருவாக்கியவர் தொடங்குவதற்காகக் காத்திருக்கிறோம்… | මේසය සෑදූ අය ආරම්භ කරන තෙක් රැඳී සිටිමු… |
+| `youCanRestart` | Relancez quand vous voulez. | Start again whenever you like. | விரும்பும்போது மீண்டும் தொடங்குங்கள். | කැමති විටෙක නැවත ආරම්භ කරන්න. |
+| `hostCanRestart` | L'hôte peut relancer une partie. | The host can start a new game. | மேசையை உருவாக்கியவர் புதிய ஆட்டத்தைத் தொடங்கலாம். | මේසය සෑදූ අයට නව ක්‍රීඩාවක් ආරම්භ කළ හැක. |
+| `dealOverNext` | Donne terminée — la suivante arrive… | Deal over — the next one is coming… | பகிர்வு முடிந்தது — அடுத்தது வருகிறது… | බෙදීම අවසන් — ඊළඟ බෙදීම එයි… |
+| `othersTurn` | Au tour des autres joueurs… | Other players' turn… | மற்ற வீரர்களின் முறை… | අනෙක් ක්‍රීඩකයන්ගේ වාරය… |
+| `weakHandAsk` | Main faible : redistribuer ? | Weak hand: redeal? | பலவீனமான சீட்டுகள்: மீண்டும் பகிரவா? | දුර්වල කාඩ්: නැවත බෙදන්නද? |
+| `bid1Short` | 1er tour — votre enchère. | Round 1 — your bid. | 1ஆம் சுற்று — உங்கள் ஏலம். | 1 වන වටය — ඔබේ ලංසුව. |
+| `tapTrump` | Touchez la carte qui devient l'atout (face cachée). | Tap the card that becomes trump (face down). | துருப்பாக வைக்கும் சீட்டைத் தொடுங்கள் (கவிழ்த்து). | තුරුම්පුව වන කාඩ්පත ස්පර්ශ කරන්න (මුණින්). |
+| `bid2Short` | 2e tour — 250 ou plus, Partner Close Caps, ou passe. | Round 2 — 250 or more, Partner Close Caps, or pass. | 2ஆம் சுற்று — 250 அல்லது அதற்கு மேல், Partner Close Caps, அல்லது பாஸ். | 2 වන වටය — 250 හෝ ඊට වැඩි, Partner Close Caps, හෝ පාස්. |
+| `yourTurnPlay` | À vous de jouer. | Your turn to play. | உங்கள் முறை. | ඔබේ වාරය. |
+| `start` | Démarrer | Start | தொடங்கு | ආරම්භ කරන්න |
+| `newGame` | Nouvelle partie | New game | புதிய ஆட்டம் | නව ක්‍රීඩාව |
+| `connectionLost` | Connexion perdue. | Connection lost. | இணைப்பு துண்டிக்கப்பட்டது. | සම්බන්ධතාවය බිඳී ගියේය. |
+| `onlyYou` | (vous seul) | (you only) | (உங்களுக்கு மட்டும்) | (ඔබට පමණි) |
+| `pointsN` | {n} pts | {n} pts | {n} புள்ளிகள் | ලකුණු {n} |
