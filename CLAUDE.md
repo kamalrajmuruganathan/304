@@ -36,7 +36,8 @@ PUSH.md                    pousser sur GitHub
 pubspec.yaml               paquet game304 (Flutter ≥3.22, web_socket_channel, intl, l10n)
 analysis_options.yaml      flutter_lints (+ prefer_const_constructors, prefer_final_locals)
 l10n.yaml                  génération AppLocalizations depuis lib/l10n/*.arb
-Dockerfile / .dockerignore serveur -> binaire natif -> Cloud Run
+Dockerfile / .dockerignore serveur -> binaire natif -> Cloud Run (image dart, pubspec deploy/server.pubspec.yaml)
+.gcloudignore              fichiers envoyés par `gcloud run deploy --source`
 firebase.json              hosting de build/web (optionnel)
 lib/
   engine/engine.dart       MOTEUR (Dart pur, aucune dépendance Flutter) + snapshot/viewFor réseau
@@ -176,7 +177,8 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
 | UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. ⚠️ Salon (créer/rejoindre) non testé à l'écran |
-| Dockerfile, scripts deploy | ⚠️ Syntaxe vérifiée (`bash -n`), jamais exécutés |
+| Dockerfile serveur | ✅ Image construite et lancée (05/10/2026) : `dart:stable` + `deploy/server.pubspec.yaml` (Dart pur, sans Flutter), exécution `scratch`, **16,3 Mo** ; conteneur testé : `/health` ok, partie complète par WebSocket jusqu'à 0 jeton, relance, 20/20 coups illégaux rejetés |
+| Scripts deploy (`server.sh`, `web.sh`, `mobile.sh`) | ⚠️ Syntaxe vérifiée (`bash -n`), jamais exécutés (pas de compte GCP/Firebase dans la session Claude Code) |
 | CI GitHub | ✅ Verte sur la PR #1 (jobs `test` et `prototype-ui`) |
 
 Validation faite le 03/10/2026 (session Claude Code, branche `claude/game304-dart-compile-kj2ik4`).
@@ -312,6 +314,9 @@ JS, blocage, ou texte non traduit après bascule de langue.
 - En ligne : code de table tronqué dans la barre du haut (score à côté) → score dans le bandeau ;
   score et plis affichés du point de vue de l'équipe du joueur (faux pour Est/Ouest) ; main de 8
   cartes qui défilait → cartes redimensionnées ; étiquettes Est/Ouest recouvertes par le pli.
+- Dockerfile : partait de l'image Flutter (`ghcr.io/cirruslabs/flutter`, lourde) alors que le serveur
+  est en Dart pur → image `dart:stable` + pubspec réduit, binaire dans `scratch` (16 Mo).
+  `.gcloudignore` : n'envoie à Cloud Build que `bin/`, `lib/engine`, `lib/ai` et le Dockerfile.
 - Captures d'écran du build web : `flutter build web --no-web-resources-cdn` (sinon CanvasKit vient
   d'un CDN injoignable ici), Chromium via le proxy, accessibilité Flutter activée
   (`flt-semantics-placeholder`) pour cliquer les boutons par leur texte.

@@ -1,0 +1,13 @@
+# Fichiers envoyés à Cloud Build par `gcloud run deploy --source .` :
+# seulement ce que le Dockerfile utilise (serveur Dart pur).
+*
+!Dockerfile
+!.dockerignore
+!deploy/
+deploy/*
+!deploy/server.pubspec.yaml
+!bin/
+!lib/
+lib/*
+!lib/engine/
+!lib/ai/

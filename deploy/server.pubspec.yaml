@@ -1,0 +1,7 @@
+# pubspec réduit pour l'image du serveur : bin/server.dart n'utilise que le
+# moteur et les bots (Dart pur), pas Flutter -> image `dart` officielle, bien
+# plus légère et rapide à construire que l'image Flutter.
+name: game304
+publish_to: "none"
+environment:
+  sdk: ">=3.4.0 <4.0.0"
