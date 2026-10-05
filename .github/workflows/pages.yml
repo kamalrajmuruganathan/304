@@ -22,11 +22,24 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Construire l'app Flutter (web)
+        env:
+          # adresse du serveur multijoueur ; modifiable sans toucher au code via
+          # Settings → Secrets and variables → Actions → Variables → SERVER_URL
+          SERVER_URL: ${{ vars.SERVER_URL || 'wss://three04-bivu.onrender.com/ws' }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /304/app/ \
+            --dart-define=SERVER_URL="$SERVER_URL"
       - name: Préparer le site
         run: |
           mkdir -p _site
-          cp prototype/304.html _site/index.html
+          cp prototype/304.html _site/index.html     # prototype : /304/
           cp docs/privacy.html _site/privacy.html
+          cp -r build/web _site/app                  # app Flutter : /304/app/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

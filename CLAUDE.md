@@ -74,7 +74,8 @@ docs/
   privacy.html             politique de confidentialité FR/EN (placeholders [DATE], [EMAIL])
 .github/workflows/
   ci.yml                   flutter analyze --no-fatal-infos, flutter test, test UI prototype (en/ta/si)
-  pages.yml                publie prototype/304.html (index) + privacy.html sur GitHub Pages
+  pages.yml                GitHub Pages : prototype (/304/), app Flutter web (/304/app/, SERVER_URL = variable
+                           de dépôt `SERVER_URL` sinon wss://three04-bivu.onrender.com/ws), privacy.html
 ```
 
 ## 3. Règles exactes implémentées (identiques JS et Dart)
@@ -178,7 +179,9 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
 | UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. ⚠️ Salon (créer/rejoindre) non testé à l'écran |
 | Dockerfile serveur | ✅ Image construite et lancée (05/10/2026) : `dart:stable` + `deploy/server.pubspec.yaml` (Dart pur, sans Flutter), exécution `scratch`, **16,3 Mo** ; conteneur testé : `/health` ok, partie complète par WebSocket jusqu'à 0 jeton, relance, 20/20 coups illégaux rejetés |
-| Scripts deploy (`server.sh`, `web.sh`, `mobile.sh`) | ⚠️ Syntaxe vérifiée (`bash -n`), jamais exécutés (pas de compte GCP/Firebase dans la session Claude Code) |
+| Serveur en ligne | ✅ **Render.com, offre gratuite, sans carte bancaire** (05/10/2026) : service Docker `three04` sur la branche `claude/game304-dart-compile-kj2ik4`, https://three04-bivu.onrender.com (`/health`, WebSocket `wss://…/ws`). Build + démarrage OK dans les logs Render. ⚠️ Non testé depuis la session Claude Code (domaine bloqué par la politique réseau de l'environnement). S'endort après 15 min sans joueur (réveil ≈ 30–60 s ; le salon réveille le serveur à l'ouverture) |
+| GitHub Pages | ✅ Prototype publié : https://kamalrajmuruganathan.github.io/304/ ; app Flutter prévue sur /304/app/ (build vérifié localement sous ce chemin) |
+| Scripts deploy (`server.sh`, `web.sh`, `mobile.sh`) | ⚠️ Jamais exécutés : Kamal ne veut **pas de carte bancaire** → pas de Cloud Run/Firebase ; Render + GitHub Pages à la place |
 | CI GitHub | ✅ Verte sur la PR #1 (jobs `test` et `prototype-ui`) |
 
 Validation faite le 03/10/2026 (session Claude Code, branche `claude/game304-dart-compile-kj2ik4`).
@@ -209,7 +212,8 @@ Après toute modification des règles ou de l'IA : modifier les deux côtés, re
    `flutter run -d chrome --dart-define=SERVER_URL=ws://localhost:8080/ws` dans 2 onglets
    pour tester une table privée (créer → code → rejoindre → démarrer → jouer une donne).
 3. Pousser sur GitHub (`PUSH.md`), vérifier la CI, activer **Settings → Pages → GitHub Actions**.
-4. Déployer le serveur : `./deploy/server.sh <PROJET_GCP>`.
+4. ✅ Serveur déployé sur **Render** (gratuit, sans carte) — pas Cloud Run : Kamal refuse de renseigner une
+   carte bancaire (Cloud Run/Cloud Build l'exigent). Projet GCP `game304-kamal` créé sans facturation (inutile).
 5. ✅ i18n câblée (04/10/2026). Reste : relecture native ta/si, compléter les écrans (§9).
 6. Stores (§10).
 
