@@ -4,6 +4,7 @@ import '../ai/bots.dart';
 import '../l10n/app_localizations.dart';
 import '../settings.dart';
 import '../sound.dart';
+import 'anim.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
 const _gold = Color(0xFFE3C565);
@@ -50,6 +51,7 @@ class _GameScreenState extends State<GameScreen> {
   /// Pli terminé, affiché pendant la pause de fin de pli. Tant qu'il est non
   /// nul, aucune carte n'est jouable (sinon un 2e déroulé démarre en parallèle).
   List<TrickPlay>? _doneTrick;
+  int _doneWinner = 0; // gagnant du pli affiché pendant la pause
   static const int human = 0;
 
   AppLocalizations get l => AppLocalizations.of(context)!;
@@ -431,7 +433,10 @@ class _GameScreenState extends State<GameScreen> {
     playSfx(r['trickDone'] == true ? Sfx.trick : Sfx.card);
     if (r['trickDone'] == true) {
       _lastTrick = r;
-      setState(() => _doneTrick = r['cards'] as List<TrickPlay>);
+      setState(() {
+        _doneTrick = r['cards'] as List<TrickPlay>;
+        _doneWinner = r['winner'] as int;
+      });
       Future.delayed(botDelay(950), () {
         if (!mounted) return;
         setState(() => _doneTrick = null);
@@ -684,14 +689,22 @@ class _GameScreenState extends State<GameScreen> {
           for (final p in _doneTrick ?? e.currentTrick)
             Align(
               alignment: _seatAlign(p.seat),
-              child: (p.faceDown && !e.trumpOpen)
-                  ? _facedown()
-                  : _cardWidget(p.card, big: true),
+              child: _doneTrick == null
+                  ? _trickCard(p)
+                  : GatherTo(
+                      key: ValueKey('gather-${e.tricks.length}-${p.seat}'),
+                      toward: _seatAlign(_doneWinner),
+                      duration: botDelay(950),
+                      child: _trickCard(p)),
             ),
         ],
       ),
     );
   }
+
+  Widget _trickCard(TrickPlay p) => (p.faceDown && !e.trumpOpen)
+      ? _facedown()
+      : _cardWidget(p.card, big: true);
 
   Widget _handFan() {
     final h = e.hands[human];
@@ -710,18 +723,22 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             for (int i = 0; i < n; i++)
               Positioned(
+                key: ValueKey('deal-${h[i].key}'),
                 left: startX + i * spacing,
                 bottom: 6.0 + (mid - (i - mid).abs()) * 3.0,
-                child: Transform.rotate(
-                  angle: (i - mid) * 0.06,
-                  child: _cardWidget(
-                    h[i],
-                    key: ValueKey(
-                        '${_canPlay(h[i]) ? 'play' : 'hand'}-${h[i].key}'),
-                    big: true,
-                    playable: _canPlay(h[i]),
-                    hinted: _hinted == h[i].key,
-                    onTap: _canPlay(h[i]) ? () => _onHumanCard(h[i]) : null,
+                child: DealIn(
+                  index: i,
+                  child: Transform.rotate(
+                    angle: (i - mid) * 0.06,
+                    child: _cardWidget(
+                      h[i],
+                      key: ValueKey(
+                          '${_canPlay(h[i]) ? 'play' : 'hand'}-${h[i].key}'),
+                      big: true,
+                      playable: _canPlay(h[i]),
+                      hinted: _hinted == h[i].key,
+                      onTap: _canPlay(h[i]) ? () => _onHumanCard(h[i]) : null,
+                    ),
                   ),
                 ),
               ),

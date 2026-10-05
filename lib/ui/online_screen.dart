@@ -12,6 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../net/client.dart';
 import '../settings.dart';
 import '../sound.dart';
+import 'anim.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
@@ -643,13 +644,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                     // pli en cours ; s'il est vide, le dernier pli terminé
                     // reste visible jusqu'à l'entame suivante
                     child: Stack(children: [
-                      for (final p in g.currentTrick.isEmpty
-                          ? (g.lastTrick ?? const <TrickCardView>[])
-                          : g.currentTrick)
-                        Align(
-                          alignment: _align(_rel(p.seat)),
-                          child: p.card == null ? _back() : _card(p.card!),
-                        ),
+                      if (g.currentTrick.isNotEmpty)
+                        for (final p in g.currentTrick)
+                          Align(
+                            alignment: _align(_rel(p.seat)),
+                            child: p.card == null ? _back() : _card(p.card!),
+                          )
+                      else
+                        // pli terminé : visible pendant la pause du serveur,
+                        // puis ramassé vers le gagnant
+                        for (final p in g.lastTrick ?? const <TrickCardView>[])
+                          Align(
+                            alignment: _align(_rel(p.seat)),
+                            child: GatherTo(
+                              key: ValueKey(
+                                  'gather-${g.trickWinsNS + g.trickWinsEW}-${p.seat}'),
+                              toward: _align(_rel(g.lastTrickWinner ?? p.seat)),
+                              duration: const Duration(milliseconds: 1100),
+                              child: p.card == null ? _back() : _card(p.card!),
+                            ),
+                          ),
                     ]),
                   ),
                 ),
@@ -684,10 +698,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (final card in _myCards)
+                  for (final (i, card) in _myCards.indexed)
                     Padding(
+                      key: ValueKey('deal-${card.key}'),
                       padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: _card(card, playable: _playable(card), width: w),
+                      child: DealIn(
+                          index: i,
+                          child:
+                              _card(card, playable: _playable(card), width: w)),
                     ),
                 ],
               );

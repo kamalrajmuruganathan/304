@@ -90,7 +90,8 @@ void main() {
     while (scored < 2) {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 120)));
-      await tester.pump();
+      // l'horloge du test avance aussi : animations (distribution, ramassage)
+      await tester.pump(const Duration(milliseconds: 120));
       expect(tester.takeException(), isNull);
       for (final e in find.byType(Text).evaluate()) {
         final s = (e.widget as Text).data ?? '';
@@ -139,7 +140,7 @@ void main() {
       // laisse le temps au serveur de répondre avant le prochain geste
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 150)));
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
     }
     expect(leaks, isEmpty, reason: 'textes non traduits en $lang');
     expect(cards, greaterThan(4), reason: 'des cartes jouées depuis l\'UI');
