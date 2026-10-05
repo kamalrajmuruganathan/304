@@ -27,7 +27,24 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   final Engine e = Engine();
-  String msg = '';
+  String _msg = '';
+  String get msg => _msg;
+
+  /// Changer le message efface la ligne d'aide et le conseil affichés.
+  set msg(String v) {
+    _msg = v;
+    tip = '';
+    _hinted = null;
+  }
+
+  /// Ligne d'aide sous le message (comme le prototype).
+  String tip = '';
+
+  /// Carte mise en valeur par « 💡 Conseil ».
+  String? _hinted;
+
+  /// Dernier pli terminé de la donne (bouton « Dernier pli »).
+  Map<String, dynamic>? _lastTrick;
   List<Widget> actions = [];
 
   /// Pli terminé, affiché pendant la pause de fin de pli. Tant qu'il est non
@@ -52,6 +69,7 @@ class _GameScreenState extends State<GameScreen> {
 
   // ======================= déroulé d'une donne =======================
   void _startHand() {
+    _lastTrick = null;
     e.newHand();
     _handleRedeal(0);
   }
@@ -109,7 +127,9 @@ class _GameScreenState extends State<GameScreen> {
     if (e.bidTurn == human) {
       final legal = e.legalBids();
       setState(() {
-        msg = l.bid1You(e.handPoints(human));
+        msg =
+            '${l.bid1You(e.handPoints(human))} ${e.highBid != null ? l.bestBid('${e.highBid}', _seat(e.highBidder!)) : l.noBidYet}';
+        tip = l.bid1Hint;
         actions = [
           for (final v in legal)
             _btn('$v', () {
@@ -119,6 +139,10 @@ class _GameScreenState extends State<GameScreen> {
           _btn(l.pass, () {
             e.placeBid(null);
             setState(_nextBid);
+          }),
+          _btn(l.hint, () {
+            final v = botBid(e, human);
+            setState(() => tip = v != null ? l.hintBid('$v') : l.hintPass);
           }),
         ];
       });
@@ -153,6 +177,7 @@ class _GameScreenState extends State<GameScreen> {
     if (tm == human) {
       setState(() {
         msg = l.youWinR1;
+        tip = l.trumpTip;
         actions = [];
       });
     } else {
@@ -187,6 +212,7 @@ class _GameScreenState extends State<GameScreen> {
       }
       setState(() {
         msg = l.bid2You(e.handPoints(human));
+        tip = l.bid2Hint;
         actions = [
           for (final v in legal.take(5))
             _btn('$v', () {
@@ -201,6 +227,12 @@ class _GameScreenState extends State<GameScreen> {
           _btn(l.pass, () {
             e.placeBid2(null);
             setState(_stepBid2);
+          }),
+          _btn(l.hint, () {
+            final v = botBid2(e, human);
+            setState(() => tip = v == null
+                ? l.hintPass
+                : l.hintBid(v == 'PCC' ? 'Partner Close Caps' : '$v'));
           }),
         ];
       });
@@ -222,6 +254,7 @@ class _GameScreenState extends State<GameScreen> {
       if (tm == human) {
         setState(() {
           msg = l.pccYou;
+          tip = l.pccHint;
           actions = [];
         });
       } else {
@@ -241,6 +274,7 @@ class _GameScreenState extends State<GameScreen> {
       if (tm == human) {
         setState(() {
           msg = l.youTakeR2;
+          tip = l.trumpTip;
           actions = [];
         });
       } else {
@@ -263,6 +297,7 @@ class _GameScreenState extends State<GameScreen> {
     if (tm == human) {
       setState(() {
         msg = l.openOrClosed;
+        tip = l.openHint;
         actions = [
           _btn(l.closedGame, () {
             e.startPlayClosed();
@@ -309,11 +344,19 @@ class _GameScreenState extends State<GameScreen> {
             : facedown
                 ? l.youFacedown
                 : l.youFollow;
-        actions = [];
+        final t = e.trumpSuit;
+        tip = e.trumpOpen && t != null
+            ? l.trumpOpenHint('${kSuitSym[t]} ${_suitName(t)}')
+            : l.trumpHiddenHint;
+        actions = [
+          _btn(l.hint, _showPlayHint),
+          if (_lastTrick != null) _btn(l.lastTrickBtn, _openLastTrick),
+        ];
       });
     } else {
       setState(() {
         msg = l.botPlays(_seat(seat));
+        if (e.soloMode && e.mutedSeat == human) tip = l.pccOut;
         actions = [];
       });
       _bots(() {
@@ -326,8 +369,64 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  String _suitName(String s) =>
+      {'S': l.suitS, 'C': l.suitC, 'D': l.suitD, 'H': l.suitH}[s]!;
+
+  /// 💡 Conseil pendant le jeu : la carte que jouerait l'IA (comme le prototype).
+  void _showPlayHint() {
+    if (e.phase != 'play' || e.turn != human || e.hands[human].isEmpty) return;
+    final ch = botPlay(e, human);
+    setState(() {
+      if (ch is PlayIndicator) {
+        tip = l.hintDiscard;
+      } else {
+        _hinted = (ch as Card).key;
+        tip = l.hintPlay;
+      }
+    });
+  }
+
+  /// Dernier pli : les 4 cartes, le gagnant entouré d'or.
+  void _openLastTrick() {
+    final t = _lastTrick;
+    if (t == null) return;
+    final names = [l.seatYou, l.seatEast, l.seatNorth, l.seatWest];
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF211208),
+        title: Text(
+            l.lastTrickTitle(t['points'] as int, names[t['winner'] as int]),
+            style: const TextStyle(color: _gold, fontSize: 16)),
+        content: Wrap(spacing: 10, runSpacing: 10, children: [
+          for (final p in t['cards'] as List<TrickPlay>)
+            Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(names[p.seat],
+                  style: const TextStyle(color: _dim, fontSize: 11)),
+              const SizedBox(height: 4),
+              Container(
+                decoration: p.seat == t['winner']
+                    ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(color: _gold, width: 3))
+                    : null,
+                child: p.faceDown && !e.trumpOpen && p.seat != human
+                    ? _facedown()
+                    : _cardWidget(p.card, big: true),
+              ),
+            ]),
+        ]),
+        actions: [
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(), child: Text(l.close)),
+        ],
+      ),
+    );
+  }
+
   void _afterPlay(Map<String, dynamic> r) {
     if (r['trickDone'] == true) {
+      _lastTrick = r;
       setState(() => _doneTrick = r['cards'] as List<TrickPlay>);
       Future.delayed(const Duration(milliseconds: 950), () {
         if (!mounted) return;
@@ -361,6 +460,8 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     if (e.phase == 'play' && e.turn == human) {
+      setState(
+          () => actions = []); // plus de Conseil / Dernier pli une fois joué
       _afterPlay(e.playCard(human, c));
     }
   }
@@ -438,6 +539,7 @@ class _GameScreenState extends State<GameScreen> {
       {Key? key,
       bool big = false,
       bool playable = false,
+      bool hinted = false,
       VoidCallback? onTap}) {
     final red = c.suit == 'D' || c.suit == 'H';
     final w = big ? 52.0 : 46.0, h = big ? 74.0 : 66.0;
@@ -451,9 +553,16 @@ class _GameScreenState extends State<GameScreen> {
             colors: [Colors.white, _cream]),
         borderRadius: BorderRadius.circular(7),
         border: Border.all(
-            color: playable ? _gold : Colors.black26, width: playable ? 2 : 1),
-        boxShadow: const [
-          BoxShadow(color: Colors.black45, blurRadius: 5, offset: Offset(0, 2))
+            color: hinted
+                ? const Color(0xFF7FD7FF)
+                : playable
+                    ? _gold
+                    : Colors.black26,
+            width: hinted ? 3 : (playable ? 2 : 1)),
+        boxShadow: [
+          const BoxShadow(
+              color: Colors.black45, blurRadius: 5, offset: Offset(0, 2)),
+          if (hinted) const BoxShadow(color: Color(0xAA7FD7FF), blurRadius: 14),
         ],
       ),
       alignment: Alignment.center,
@@ -606,6 +715,7 @@ class _GameScreenState extends State<GameScreen> {
                         '${_canPlay(h[i]) ? 'play' : 'hand'}-${h[i].key}'),
                     big: true,
                     playable: _canPlay(h[i]),
+                    hinted: _hinted == h[i].key,
                     onTap: _canPlay(h[i]) ? () => _onHumanCard(h[i]) : null,
                   ),
                 ),
@@ -805,6 +915,10 @@ class _GameScreenState extends State<GameScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(msg, style: const TextStyle(color: _txt, fontSize: 13)),
+          if (tip.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(tip, style: const TextStyle(color: _dim, fontSize: 11.5)),
+          ],
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: actions),
         ],
