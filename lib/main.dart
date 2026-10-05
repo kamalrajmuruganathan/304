@@ -102,6 +102,18 @@ class HomeScreen extends StatelessWidget {
                 Text('three-nought-four',
                     style:
                         TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                ValueListenableBuilder(
+                  valueListenable: stats,
+                  builder: (context, st, _) => st.played == 0
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(l.statsLine(st.played, st.won, st.lost),
+                              key: const ValueKey('stats'),
+                              style: TextStyle(
+                                  color: Colors.grey.shade400, fontSize: 13)),
+                        ),
+                ),
                 const SizedBox(height: 40),
                 FilledButton(
                   onPressed: () => Navigator.of(context).push(

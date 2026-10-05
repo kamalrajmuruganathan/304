@@ -252,5 +252,19 @@
   "normal": "Normal",
   "fast": "Fast",
   "learn304": "Learn 304",
-  "gotIt": "Got it!"
+  "gotIt": "Got it!",
+  "statsLine": "Deals: {played} · won {won} · lost {lost}",
+  "@statsLine": {
+    "placeholders": {
+      "played": {
+        "type": "int"
+      },
+      "won": {
+        "type": "int"
+      },
+      "lost": {
+        "type": "int"
+      }
+    }
+  }
 }

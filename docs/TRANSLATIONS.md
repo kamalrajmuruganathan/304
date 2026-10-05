@@ -159,3 +159,4 @@ traduction tamoule et cingalaise faite par Claude, vocabulaire aligné sur le pr
 | `errSessionExpired` | Session expirée : recréez ou rejoignez une table. | Session expired: create or join a table again. | அமர்வு காலாவதியானது: மீண்டும் மேசையை உருவாக்குங்கள் அல்லது சேருங்கள். | සැසිය කල් ඉකුත් විය: නැවත මේසයක් සාදන්න හෝ එක්වන්න. |
 
 Tutoriel « Apprendre le 304 » (`lib/ui/tutorial_screen.dart`) : sections TA/SI traduites par Claude — relecture native à faire.
+| `statsLine` | Donnes : {played} · gagnées {won} · perdues {lost} | Deals: {played} · won {won} · lost {lost} | பகிர்வுகள்: {played} · வெற்றி {won} · தோல்வி {lost} | බෙදීම්: {played} · ජය {won} · පරාජය {lost} |

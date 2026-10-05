@@ -488,6 +488,7 @@ class _GameScreenState extends State<GameScreen> {
     final nsWon =
         s['success'] == true ? s['tmTeam'] == 'NS' : s['tmTeam'] == 'EW';
     final over = r['gameOver'] == true;
+    recordDeal(won: nsWon);
     showDialog<void>(
       context: context,
       barrierDismissible: false,

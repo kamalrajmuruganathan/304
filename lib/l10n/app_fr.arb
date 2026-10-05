@@ -120,5 +120,6 @@
   "normal": "Normale",
   "fast": "Rapide",
   "learn304": "Apprendre le 304",
-  "gotIt": "Compris !"
+  "gotIt": "Compris !",
+  "statsLine": "Donnes : {played} · gagnées {won} · perdues {lost}"
 }

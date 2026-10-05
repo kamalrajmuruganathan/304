@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
+import 'package:game304/settings.dart';
 
 /// Cas rencontrés pendant les parties (pour vérifier la couverture).
 final seen = <String>{};
@@ -111,6 +112,9 @@ Future<int> playSolo(WidgetTester tester,
   await tester.pumpWidget(const SizedBox());
   await tester.pump(const Duration(seconds: 2));
   expect(cardsPlayed, greaterThan(deals), reason: 'des cartes ont été jouées');
+  // chaque donne terminée est comptée (statistiques de l'accueil)
+  expect(stats.value.played, greaterThanOrEqualTo(deals));
+  expect(stats.value.won + stats.value.lost, stats.value.played);
   expect(bidsMade, greaterThan(0), reason: 'des choix ont été faits');
   return hands;
 }
