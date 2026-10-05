@@ -64,6 +64,7 @@ deploy/web.sh              build Flutter web + Firebase Hosting
 deploy/mobile.sh           build .aab (Android) / .ipa (Mac)
 assets/                    icon.svg, logo.svg, card_back_royal.svg
 assets/fonts/Suits.ttf     ♠♣♦♥ seuls (sous-ensemble Noto Sans Symbols 2, 2,4 Ko, OFL) = police de secours du thème
+assets/fonts/Lang*.ttf     « தமிழ் » / « සිංහල » seuls (sous-ensembles Noto Sans Tamil/Sinhala, ~4 Ko, OFL) : sélecteur de langue
 docs/
   RULES.md                 règles de référence
   ARCHITECTURE.md          ADR multijoueur
@@ -248,9 +249,9 @@ JS, blocage, ou texte non traduit après bascule de langue.
   pénalités −2/−3/−4 ; ta/si par Claude → relecture native). Le prototype reste FR/EN.
 - **Traductions ta/si** : traductions machine vérifiées (clés, repères `{n} {p} {b} {s}`, balises,
   écritures Unicode) mais **relecture native recommandée** (vocabulaire du 304).
-- **UI Flutter** : Conseil, Dernier pli, lignes d'aide, vitesse des bots, tutoriel → **faits**. Manquent encore
-  (présents dans le prototype) : sons, cosmétiques (dos de cartes, tapis), statistiques sur l'accueil,
-  animations de distribution/ramassage.
+- **UI Flutter** : Conseil, Dernier pli, lignes d'aide, vitesse des bots, tutoriel, statistiques, dos de cartes
+  et tapis → **faits**. Manquent encore (présents dans le prototype) : sons, animations de distribution/ramassage.
+- Web : pas d'emoji dans les boutons (police emoji téléchargée à la volée → carrés) : icônes Material à la place.
 - **Écran en ligne** : pas d'écran de fin de donne détaillé (le serveur repasse en donne suivante
   après 1,2 s), pas de chat, pas de voice chat (prévu : WebRTC via signaling serveur).
 - Personne (solo comme en ligne) ne peut couper avec l'atout posé (`playIndicatorToCut`) depuis

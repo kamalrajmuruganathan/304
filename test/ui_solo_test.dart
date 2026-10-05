@@ -154,7 +154,7 @@ void main() {
     for (var i = 0; i < 3000 && !(bidHint && playHint && lastTrick); i++) {
       await tester.pump(const Duration(milliseconds: 350));
       expect(tester.takeException(), isNull);
-      final hint = find.text(l.hint);
+      final hint = find.text(l.hint.replaceAll('💡', '').trim());
       final last = find.text(l.lastTrickBtn);
       final playable = find.byWidgetPredicate((w) =>
           w.key is ValueKey<String> &&

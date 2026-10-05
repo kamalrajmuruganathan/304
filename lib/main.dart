@@ -11,6 +11,9 @@ final ValueNotifier<Locale?> appLocale = ValueNotifier<Locale?>(null);
 const _kLangPref = 'lang304'; // même nom que dans le prototype
 
 /// Langues proposées, chacune écrite dans sa propre langue.
+/// Polices embarquées pour les noms de langue (assets/fonts/Lang*.ttf).
+const _kLangFont = <String, String>{'ta': 'LangTamil', 'si': 'LangSinhala'};
+
 const kLanguages = <String, String>{
   'fr': 'Français',
   'en': 'English',
@@ -136,10 +139,11 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextButton(
+                TextButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const TutorialScreen())),
-                  child: Text('📖 ${l.learn304}'),
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: Text(l.learn304),
                 ),
                 const SizedBox(height: 24),
                 Text(l.language,
@@ -154,12 +158,35 @@ class HomeScreen extends StatelessWidget {
                     for (final e in kLanguages.entries)
                       ChoiceChip(
                         key: ValueKey('lang-${e.key}'),
-                        label: Text(e.value),
+                        label: Text(e.value,
+                            style: TextStyle(fontFamily: _kLangFont[e.key])),
                         selected: current == e.key,
                         onSelected: (_) => setAppLanguage(e.key),
                       ),
                   ],
                 ),
+                const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.cardBack,
+                    notifier: cardBack,
+                    options: {
+                      'royal': l.royal,
+                      'classic': l.classic,
+                      'dark': l.dark
+                    },
+                    onSelect: setCardBack,
+                    keyPrefix: 'back'),
+                const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.tableFelt,
+                    notifier: felt,
+                    options: {
+                      'green': l.green,
+                      'blue': l.blue,
+                      'violet': l.violet
+                    },
+                    onSelect: setFelt,
+                    keyPrefix: 'felt'),
                 const SizedBox(height: 20),
                 Text(l.speed,
                     style:
@@ -191,5 +218,45 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Ligne de réglage à choix unique (dos de cartes, tapis).
+class _OptionRow extends StatelessWidget {
+  const _OptionRow(
+      {required this.label,
+      required this.notifier,
+      required this.options,
+      required this.onSelect,
+      required this.keyPrefix});
+  final String label;
+  final ValueNotifier<String> notifier;
+  final Map<String, String> options;
+  final Future<void> Function(String) onSelect;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+      const SizedBox(height: 8),
+      ValueListenableBuilder<String>(
+        valueListenable: notifier,
+        builder: (context, v, _) => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final e in options.entries)
+              ChoiceChip(
+                key: ValueKey('$keyPrefix-${e.key}'),
+                label: Text(e.value),
+                selected: v == e.key,
+                onSelected: (_) => onSelect(e.key),
+              ),
+          ],
+        ),
+      ),
+    ]);
   }
 }

@@ -5,8 +5,6 @@ import '../l10n/app_localizations.dart';
 import '../settings.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
-const _feltA = Color(0xFF0F5A3C);
-const _feltB = Color(0xFF063421);
 const _gold = Color(0xFFE3C565);
 const _goldD = Color(0xFFA5822F);
 const _woodB = Color(0xFF160A06);
@@ -140,7 +138,7 @@ class _GameScreenState extends State<GameScreen> {
             e.placeBid(null);
             setState(_nextBid);
           }),
-          _btn(l.hint, () {
+          _btn(_hintLabel, () {
             final v = botBid(e, human);
             setState(() => tip = v != null ? l.hintBid('$v') : l.hintPass);
           }),
@@ -228,7 +226,7 @@ class _GameScreenState extends State<GameScreen> {
             e.placeBid2(null);
             setState(_stepBid2);
           }),
-          _btn(l.hint, () {
+          _btn(_hintLabel, () {
             final v = botBid2(e, human);
             setState(() => tip = v == null
                 ? l.hintPass
@@ -349,7 +347,7 @@ class _GameScreenState extends State<GameScreen> {
             ? l.trumpOpenHint('${kSuitSym[t]} ${_suitName(t)}')
             : l.trumpHiddenHint;
         actions = [
-          _btn(l.hint, _showPlayHint),
+          _btn(_hintLabel, _showPlayHint),
           if (_lastTrick != null) _btn(l.lastTrickBtn, _openLastTrick),
         ];
       });
@@ -368,6 +366,10 @@ class _GameScreenState extends State<GameScreen> {
       });
     }
   }
+
+  /// Libellé « Conseil » sans l'emoji 💡 du prototype (rendu par une police
+  /// emoji téléchargée à la volée sur le web) : l'ampoule est mise en icône.
+  String get _hintLabel => l.hint.replaceAll('💡', '').trim();
 
   String _suitName(String s) =>
       {'S': l.suitS, 'C': l.suitC, 'D': l.suitD, 'H': l.suitH}[s]!;
@@ -520,6 +522,12 @@ class _GameScreenState extends State<GameScreen> {
   // ============================ widgets ============================
   Widget _btn(String label, VoidCallback onTap,
       {bool primary = false, bool gold = false}) {
+    if (label == _hintLabel) {
+      return OutlinedButton.icon(
+          onPressed: onTap,
+          icon: const Icon(Icons.lightbulb_outline, size: 18),
+          label: Text(label));
+    }
     if (gold) {
       return FilledButton(
           onPressed: onTap,
@@ -587,14 +595,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _facedown({bool big = true}) => Container(
         width: big ? 52 : 24,
         height: big ? 74 : 34,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(7),
-          gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF8A6A2E), Color(0xFF6B5122)]),
-          border: Border.all(color: const Color(0xFF4A370F)),
-        ),
+        decoration: cardBackDecoration(), // dos choisi dans les réglages
       );
 
   /// [compact] : avatar seul (écran étroit, évite le chevauchement avec la main).
@@ -855,10 +856,10 @@ class _GameScreenState extends State<GameScreen> {
       padding: const EdgeInsets.all(8),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const RadialGradient(
-              center: Alignment(0, -0.1),
+          gradient: RadialGradient(
+              center: const Alignment(0, -0.1),
               radius: 0.95,
-              colors: [_feltA, _feltB]),
+              colors: [feltColors.$1, feltColors.$2]), // tapis choisi
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: _goldD, width: 2),
           boxShadow: const [

@@ -121,5 +121,13 @@
   "fast": "වේගයෙන්",
   "learn304": "304 ඉගෙන ගන්න",
   "gotIt": "තේරුණා!",
-  "statsLine": "බෙදීම්: {played} · ජය {won} · පරාජය {lost}"
+  "statsLine": "බෙදීම්: {played} · ජය {won} · පරාජය {lost}",
+  "cardBack": "කාඩ්පතේ පිටුපස",
+  "tableFelt": "මේසය",
+  "royal": "රාජකීය",
+  "classic": "සම්භාව්‍ය",
+  "dark": "අඳුරු",
+  "green": "කොළ",
+  "blue": "නිල්",
+  "violet": "දම්"
 }

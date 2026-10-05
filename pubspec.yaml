@@ -33,3 +33,12 @@ flutter:
     - family: Suits
       fonts:
         - asset: assets/fonts/Suits.ttf
+    # libellés « தமிழ் » et « සිංහල » du sélecteur de langue (sous-ensembles de
+    # Noto Sans Tamil / Sinhala, OFL) : lisibles même avant le téléchargement
+    # des polices tamoule/cingalaise sur le web
+    - family: LangTamil
+      fonts:
+        - asset: assets/fonts/LangTamil.ttf
+    - family: LangSinhala
+      fonts:
+        - asset: assets/fonts/LangSinhala.ttf

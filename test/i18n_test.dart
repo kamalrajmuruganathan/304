@@ -73,7 +73,7 @@ void main() {
     testWidgets('tutoriel en $lang : complet, traduit, se referme', (t) async {
       final l = lookupAppLocalizations(Locale(lang));
       await t.pumpWidget(Game304App(locale: Locale(lang)));
-      await t.tap(find.text('📖 ${l.learn304}'));
+      await t.tap(find.text(l.learn304));
       await t.pumpAndSettle();
       expect(t.takeException(), isNull);
       final sections = kTutorial[lang]!;
@@ -97,13 +97,31 @@ void main() {
     });
   }
 
+  testWidgets('accueil : dos de cartes et tapis', (t) async {
+    addTearDown(() {
+      cardBack.value = 'royal';
+      felt.value = 'green';
+    });
+    await t.pumpWidget(const Game304App(locale: Locale('fr')));
+    await t.ensureVisible(find.byKey(const ValueKey('back-dark')));
+    await t.tap(find.byKey(const ValueKey('back-dark')));
+    await t.ensureVisible(find.byKey(const ValueKey('felt-violet')));
+    await t.tap(find.byKey(const ValueKey('felt-violet')));
+    await t.pumpAndSettle();
+    expect(cardBack.value, 'dark');
+    expect(feltColors, kFeltColors['violet']);
+    expect(cardBackDecoration().gradient, isNotNull);
+  });
+
   testWidgets('accueil : vitesse des bots', (t) async {
     addTearDown(() => botSpeed.value = 1);
     await t.pumpWidget(const Game304App(locale: Locale('fr')));
+    await t.ensureVisible(find.byKey(const ValueKey('speed-0.5')));
     await t.tap(find.byKey(const ValueKey('speed-0.5')));
     await t.pumpAndSettle();
     expect(botSpeed.value, 0.5);
     expect(botDelay(600), const Duration(milliseconds: 300));
+    await t.ensureVisible(find.byKey(const ValueKey('speed-1.6')));
     await t.tap(find.byKey(const ValueKey('speed-1.6')));
     await t.pumpAndSettle();
     expect(botDelay(600), const Duration(milliseconds: 960));

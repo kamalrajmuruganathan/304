@@ -121,5 +121,13 @@
   "fast": "Rapide",
   "learn304": "Apprendre le 304",
   "gotIt": "Compris !",
-  "statsLine": "Donnes : {played} · gagnées {won} · perdues {lost}"
+  "statsLine": "Donnes : {played} · gagnées {won} · perdues {lost}",
+  "cardBack": "Dos de cartes",
+  "tableFelt": "Table",
+  "royal": "Royal",
+  "classic": "Classique",
+  "dark": "Sombre",
+  "green": "Verte",
+  "blue": "Bleue",
+  "violet": "Violette"
 }

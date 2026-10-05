@@ -266,5 +266,13 @@
         "type": "int"
       }
     }
-  }
+  },
+  "cardBack": "Card back",
+  "tableFelt": "Table",
+  "royal": "Royal",
+  "classic": "Classic",
+  "dark": "Dark",
+  "green": "Green",
+  "blue": "Blue",
+  "violet": "Purple"
 }

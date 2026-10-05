@@ -10,14 +10,13 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../engine/engine.dart';
 import '../l10n/app_localizations.dart';
 import '../net/client.dart';
+import '../settings.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
 
 const _gold = Color(0xFFE3C565);
 const _goldD = Color(0xFFA5822F);
-const _feltA = Color(0xFF0F5A3C);
-const _feltB = Color(0xFF063421);
 const _cream = Color(0xFFF6F1E2);
 const _ink = Color(0xFF1A160F);
 const _red = Color(0xFFB12B2B);
@@ -403,11 +402,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   Widget _back() => Container(
         width: 50,
         height: 72,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(7),
-          gradient: const LinearGradient(
-              colors: [Color(0xFF8A6A2E), Color(0xFF6B5122)]),
-        ),
+        decoration: cardBackDecoration(), // dos choisi dans les réglages
       );
 
   Widget _seatLabel(int seat) {
@@ -511,7 +506,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: const RadialGradient(colors: [_feltA, _feltB]),
+                gradient: RadialGradient(
+                    colors: [feltColors.$1, feltColors.$2]), // tapis choisi
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: _goldD, width: 2),
               ),
