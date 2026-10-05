@@ -20,7 +20,7 @@ Contexte complet pour reprendre le projet dans Claude Code. À lire en entier av
 Implémentation du **304**, jeu de plis par équipes populaire à Jaffna (Sri Lanka) et en Inde du
 Sud, famille du Jass. Objectif : **publication** sur Android, iOS et web.
 
-- Repo GitHub : `https://github.com/kamalrajmuruganathan/304` (le code n'y est pas encore poussé).
+- Repo GitHub : `https://github.com/kamalrajmuruganathan/304` (code poussé, `main` = version publiée).
 - Paquet Dart : **`game304`** (renommé depuis `thuru304`, nom trop proche du concurrent).
 - Concurrent : **Thuru 304** (Shamrocks Games / Shamil Niyas) — iPhone uniquement, anglais
   uniquement, tables privées, voice chat, bots, tutoriel, cosmétiques.
@@ -44,9 +44,13 @@ lib/
   ai/bots.dart             IA v3 : est4/botBid, botBid2, botChooseTrump, botPlay (mémoire)
   net/client.dart          client WebSocket + GameView (vue rédigée reçue du serveur)
   ui/game_screen.dart      table « royale » solo vs 3 bots (UI Flutter)
-  ui/online_screen.dart    salon (créer/rejoindre code) + table en ligne
+  ui/online_screen.dart    salon (créer/rejoindre code, reprise de table) + table en ligne (chat, bandeau de reconnexion)
+  ui/tutorial_screen.dart  tutoriel « Apprendre le 304 » en 4 langues
+  ui/anim.dart             animations : DealIn (distribution en cascade), GatherTo (pli ramassé vers le gagnant)
+  settings.dart            préférences mémorisées (vitesse, son, dos de cartes, tapis, stats, table en cours)
+  sound.dart               sons (playSfx) : assets/sounds/{card,trick,win,lose}.wav, bips du prototype
   main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
-  l10n/app_{en,fr,ta,si}.arb  87 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
+  l10n/app_{en,fr,ta,si}.arb  138 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
@@ -175,11 +179,11 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 42/42 (+6 serveur) (régression 300 parties, PCC, 24 parties différentielles, tests d'interface solo/en ligne, i18n) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 55/55 (régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
-| UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. ⚠️ Salon (créer/rejoindre) non testé à l'écran |
+| UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. Coupure réseau simulée → bandeau puis reconnexion automatique ; envoi d'un message de chat. ⚠️ Salon (créer/rejoindre) non testé à l'écran |
 | Dockerfile serveur | ✅ Image construite et lancée (05/10/2026) : `dart:stable` + `deploy/server.pubspec.yaml` (Dart pur, sans Flutter), exécution `scratch`, **16,3 Mo** ; conteneur testé : `/health` ok, partie complète par WebSocket jusqu'à 0 jeton, relance, 20/20 coups illégaux rejetés |
 | Serveur en ligne | ✅ **Render.com, offre gratuite, sans carte bancaire** (05/10/2026) : service Docker `three04` sur la branche `claude/game304-dart-compile-kj2ik4`, https://three04-bivu.onrender.com (`/health`, WebSocket `wss://…/ws`). Build + démarrage OK dans les logs Render. **À faire par Kamal : dans Render, passer la branche du service sur `main`.** ⚠️ Non testé depuis la session Claude Code (domaine bloqué par la politique réseau de l'environnement). S'endort après 15 min sans joueur (réveil ≈ 30–60 s ; le salon réveille le serveur à l'ouverture) |
 | GitHub Pages | ✅ Prototype https://kamalrajmuruganathan.github.io/304/ et **app Flutter https://kamalrajmuruganathan.github.io/304/app/** publiés par `pages.yml` (05/10/2026) |
@@ -251,10 +255,14 @@ JS, blocage, ou texte non traduit après bascule de langue.
 - **Traductions ta/si** : traductions machine vérifiées (clés, repères `{n} {p} {b} {s}`, balises,
   écritures Unicode) mais **relecture native recommandée** (vocabulaire du 304).
 - **UI Flutter** : Conseil, Dernier pli, lignes d'aide, vitesse des bots, tutoriel, statistiques, dos de cartes
-  et tapis → **faits**. Manquent encore (présents dans le prototype) : sons, animations de distribution/ramassage.
+  et tapis → **faits**. Sons (carte, pli, gagné/perdu ; réglage Son, clé `sound304`) et animations de distribution /
+  ramassage → **faits (05/10/2026)**, en solo et en ligne. Sur le web, le son ne démarre qu'après un premier geste
+  (règle des navigateurs) ; dans `flutter test`, le son est coupé (`test/flutter_test_config.dart`).
 - Web : pas d'emoji dans les boutons (police emoji téléchargée à la volée → carrés) : icônes Material à la place.
-- **Écran en ligne** : pas d'écran de fin de donne détaillé (le serveur repasse en donne suivante
-  après 1,2 s), pas de chat, pas de voice chat (prévu : WebRTC via signaling serveur).
+- **Écran en ligne** : résultat de chaque donne affiché 4 s, **chat de table** (1 ligne, 200 caractères max,
+  nettoyé par le serveur), **reconnexion automatique** après coupure (bandeau, nouvelles tentatives à 1/2/4/8 s,
+  jeton de reprise ; table mémorisée `table304` → bouton « Reprendre » au salon) → faits (05/10/2026).
+  Pas de voice chat (prévu : WebRTC via signaling serveur).
 - Personne (solo comme en ligne) ne peut couper avec l'atout posé (`playIndicatorToCut`) depuis
   l'UI — seuls les bots le font. Identique au prototype ; à décider.
 - ~~Tables jamais nettoyées~~ → **fait** : table sans joueur connecté supprimée après `ROOM_TTL_SECONDS`

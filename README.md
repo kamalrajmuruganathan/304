@@ -29,13 +29,13 @@ Le 304 a déjà des joueurs (diaspora sri-lankaise / sud-indienne), mais l'offre
 |---|---|
 | Moteur de règles Dart (`lib/engine`) | ✅ **identique au prototype coup par coup** (test différentiel, 1 074 donnes) |
 | IA v3 (`lib/ai`) | ✅ portée, même trace que le prototype |
-| App Flutter solo | ✅ table royale, Conseil, Dernier pli, lignes d'aide, vitesse des bots, tutoriel |
-| Tables privées en ligne | ✅ créer/rejoindre par code, partenaire = 2ᵉ joueur, bots sur les sièges vides, résultat de chaque donne, relance |
+| App Flutter solo | ✅ table royale, Conseil, Dernier pli, lignes d'aide, vitesse des bots, tutoriel, sons, animations |
+| Tables privées en ligne | ✅ créer/rejoindre par code, partenaire = 2ᵉ joueur, bots sur les sièges vides, résultat de chaque donne, relance, chat, reconnexion automatique |
 | Serveur autoritatif (`bin/server.dart`) | ✅ valide chaque coup, codes d'erreur traduits, tables abandonnées supprimées ; image Docker 16 Mo |
 | 4 langues | ✅ FR · EN · தமிழ் · සිංහල (ta/si : relecture native bienvenue, voir `docs/TRANSLATIONS.md`) |
 | Tests | ✅ `flutter test` : moteur, différentiel, serveur WebSocket, interface solo/en ligne, i18n ; CI GitHub |
 | Android / iOS | 🟡 APK de test construit par la CI ; stores : à faire (voir `docs/MISE_EN_LIGNE.md`) |
-| Voice chat, sons, cosmétiques | ⏳ roadmap |
+| Voice chat | ⏳ roadmap |
 
 Le détail des règles : [`docs/RULES.md`](docs/RULES.md). Le contexte complet du projet : [`CLAUDE.md`](CLAUDE.md).
 
