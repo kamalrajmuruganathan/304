@@ -1,0 +1,50 @@
+name: APK Android
+
+# Construit un APK installable (signé avec la clé de debug : pour les tests,
+# PAS pour le Play Store). Sur main, il est publié comme release GitHub :
+#   https://github.com/kamalrajmuruganathan/304/releases/latest/download/304.apk
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Construire l'APK
+        env:
+          SERVER_URL: ${{ vars.SERVER_URL || 'wss://three04-bivu.onrender.com/ws' }}
+        run: |
+          flutter pub get
+          flutter build apk --release --dart-define=SERVER_URL="$SERVER_URL"
+          cp build/app/outputs/flutter-apk/app-release.apk 304.apk
+          ls -la 304.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 304-apk
+          path: 304.apk
+      - name: Publier la release (main uniquement)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-${{ github.run_number }}
+          name: 304 Android (test) n°${{ github.run_number }}
+          body: |
+            APK de test, signé avec la clé de debug (pas pour le Play Store).
+            Sur Android : télécharger 304.apk, l'ouvrir, autoriser l'installation
+            depuis cette source. Serveur : ${{ vars.SERVER_URL || 'wss://three04-bivu.onrender.com/ws' }}
+          files: 304.apk
+          make_latest: true
