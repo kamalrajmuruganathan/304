@@ -146,3 +146,29 @@ Future<void> recordDeal({required bool won}) async {
         }));
   } catch (_) {}
 }
+
+/// Table en ligne en cours (code + jeton), pour la reprendre après un
+/// rechargement de la page ou un arrêt de l'app. Effacée en quittant la table.
+Future<({String code, String token})?> loadSavedTable() async {
+  try {
+    final raw = (await SharedPreferences.getInstance()).getString('table304');
+    if (raw == null) return null;
+    final m = jsonDecode(raw) as Map;
+    return (code: m['code'] as String, token: m['token'] as String);
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> saveTable(String code, String token) async {
+  try {
+    await (await SharedPreferences.getInstance())
+        .setString('table304', jsonEncode({'code': code, 'token': token}));
+  } catch (_) {}
+}
+
+Future<void> clearSavedTable() async {
+  try {
+    await (await SharedPreferences.getInstance()).remove('table304');
+  } catch (_) {}
+}

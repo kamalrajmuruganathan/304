@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:game304/net/client.dart';
 
 late Process server;
 late int port;
@@ -173,5 +174,74 @@ void main() {
     expect((await b.next('joined'))['seat'], 2);
     await a.ws.close();
     await b.ws.close();
+  });
+
+  test('chat : relayé à la table, nettoyé (une ligne, 200 car.), nom joint',
+      () async {
+    final a = await C.open();
+    a.send({'t': 'create', 'name': 'Ana'});
+    final code = (await a.next('joined'))['code'];
+    final b = await C.open();
+    b.send({'t': 'join', 'code': code, 'name': 'Bala'});
+    await b.next('joined');
+    a.send({'t': 'chat', 'text': '   '}); // vide : ignoré
+    a.send({'t': 'chat', 'text': '  vanakkam\n  à   tous ${'x' * 300}'});
+    final m = await b.next('chat');
+    expect(m['seat'], 0);
+    expect(m['name'], 'Ana');
+    expect((m['text'] as String).startsWith('vanakkam à tous x'), isTrue);
+    expect((m['text'] as String).length, 200);
+    expect((await a.next('chat'))['text'], m['text']); // l'auteur le voit aussi
+    await a.ws.close();
+    await b.ws.close();
+  });
+
+  /// Attend un événement du client réseau de l'app.
+  Future<Map> event(GameClient c, String t) => c.events
+      .firstWhere((m) => m['t'] == t)
+      .timeout(const Duration(seconds: 15));
+
+  test('reconnexion automatique après coupure : même siège, état reçu',
+      () async {
+    final c = GameClient('ws://127.0.0.1:$port/ws')..connect();
+    final joined = event(c, 'joined');
+    c.create('Kamal');
+    final j = await joined;
+    expect(j['seat'], 0);
+    final code = c.code;
+    final reco = event(c, 'reconnecting');
+    final back = event(c, 'reconnected');
+    c.debugDropConnection(); // coupure réseau simulée
+    await reco;
+    final r = await back;
+    expect(r['seat'], 0);
+    expect(r['code'], code);
+    await c.states.first.timeout(const Duration(seconds: 5)); // l'état revient
+    c.dispose();
+  });
+
+  test('reprise par un nouveau client avec le jeton mémorisé', () async {
+    final a = GameClient('ws://127.0.0.1:$port/ws')..connect();
+    final joined = event(a, 'joined');
+    a.create('Kamal');
+    await joined;
+    final token = a.token!, code = a.code;
+    final b = GameClient('ws://127.0.0.1:$port/ws');
+    final back = event(b, 'reconnected');
+    b.resume(token);
+    final r = await back;
+    expect(r['code'], code);
+    expect(r['seat'], 0);
+    a.dispose();
+    b.dispose();
+  });
+
+  test('jeton périmé : sessionExpired et le client abandonne', () async {
+    final c = GameClient('ws://127.0.0.1:$port/ws');
+    final err = event(c, 'error');
+    c.resume('inconnu');
+    expect((await err)['code'], 'sessionExpired');
+    expect(c.token, isNull);
+    c.dispose();
   });
 }

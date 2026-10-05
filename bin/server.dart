@@ -421,12 +421,17 @@ void handleMessage(WebSocket ws, String data) {
     return;
   }
   if (t == 'chat') {
-    for (var i = 0; i < 4; i++) {
-      final s = room.seats[i];
-      if (s.connected) {
-        s.socket!
-            .add(jsonEncode({'t': 'chat', 'seat': seat, 'text': msg['text']}));
-      }
+    // texte nettoyé : une ligne, 200 caractères au plus, jamais vide
+    final text = '${msg['text'] ?? ''}'.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (text.isEmpty) return;
+    final out = jsonEncode({
+      't': 'chat',
+      'seat': seat,
+      'name': room.seats[seat].name,
+      'text': text.length > 200 ? text.substring(0, 200) : text,
+    });
+    for (final s in room.seats) {
+      if (s.connected) s.socket!.add(out);
     }
     return;
   }

@@ -129,5 +129,10 @@
   "dark": "Sombre",
   "green": "Verte",
   "blue": "Bleue",
-  "violet": "Violette"
+  "violet": "Violette",
+  "reconnecting": "Connexion perdue — reconnexion…",
+  "resumeTable": "Reprendre la table {code}",
+  "chat": "Discussion",
+  "chatHint": "Message…",
+  "send": "Envoyer"
 }
