@@ -86,5 +86,6 @@
   "newGame": "Nouvelle partie",
   "connectionLost": "Connexion perdue.",
   "onlyYou": "(vous seul)",
-  "pointsN": "{n} pts"
+  "pointsN": "{n} pts",
+  "serverWaking": "Le serveur gratuit se réveille : la première connexion peut prendre jusqu'à une minute."
 }

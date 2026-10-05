@@ -151,3 +151,4 @@ traduction tamoule et cingalaise faite par Claude, vocabulaire aligné sur le pr
 | `connectionLost` | Connexion perdue. | Connection lost. | இணைப்பு துண்டிக்கப்பட்டது. | සම්බන්ධතාවය බිඳී ගියේය. |
 | `onlyYou` | (vous seul) | (you only) | (உங்களுக்கு மட்டும்) | (ඔබට පමණි) |
 | `pointsN` | {n} pts | {n} pts | {n} புள்ளிகள் | ලකුණු {n} |
+| `serverWaking` | Le serveur gratuit se réveille : la première connexion peut prendre jusqu'à une minute. | The free server is waking up: the first connection can take up to a minute. | இலவச சேவையகம் விழித்தெழுகிறது: முதல் இணைப்புக்கு ஒரு நிமிடம் வரை ஆகலாம். | නොමිලේ සේවාදායකය අවදි වෙමින් පවතී: පළමු සම්බන්ධතාවයට මිනිත්තුවක් දක්වා ගත විය හැක. |

@@ -184,5 +184,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "serverWaking": "The free server is waking up: the first connection can take up to a minute."
 }

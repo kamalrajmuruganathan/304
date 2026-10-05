@@ -6,6 +6,7 @@
 // ============================================================================
 import 'dart:async';
 import 'package:flutter/material.dart' hide Card;
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../engine/engine.dart';
 import '../l10n/app_localizations.dart';
 import '../net/client.dart';
@@ -34,13 +35,32 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   final _name = TextEditingController();
   final _code = TextEditingController();
   StreamSubscription<Map>? _sub;
+  bool _slow =
+      false; // connexion lente : serveur gratuit en train de se réveiller
+
+  @override
+  void initState() {
+    super.initState();
+    // Réveille le serveur dès l'ouverture du salon (hébergement gratuit qui
+    // s'endort) : il est prêt quand le joueur a fini de taper son nom.
+    try {
+      final ch = WebSocketChannel.connect(Uri.parse(kServerUrl));
+      ch.stream.listen((_) {}, onError: (_) {}, cancelOnError: true);
+      ch.ready.then((_) => ch.sink.close(), onError: (_) {});
+    } catch (_) {}
+  }
+
   String? _error;
   bool _busy = false;
 
   void _connect(void Function(GameClient c) then) {
     setState(() {
       _busy = true;
+      _slow = false;
       _error = null;
+    });
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted && _busy) setState(() => _slow = true);
     });
     final c = GameClient(kServerUrl)..connect();
     _sub = c.events.listen((m) {
@@ -108,6 +128,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             if (_busy) ...[
               const SizedBox(height: 20),
               const Center(child: CircularProgressIndicator()),
+              if (_slow) ...[
+                const SizedBox(height: 12),
+                Text(l.serverWaking,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: _dim, fontSize: 12)),
+              ],
             ],
             if (_error != null) ...[
               const SizedBox(height: 16),
