@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
 import 'package:game304/settings.dart';
+import 'package:game304/ui/anim.dart';
 
 /// Cas rencontrés pendant les parties (pour vérifier la couverture).
 final seen = <String>{};
@@ -73,6 +74,19 @@ Future<int> playSolo(WidgetTester tester,
       hands++;
       idle = 0;
       continue;
+    }
+
+    // coupe à l'atout posé : proposée seulement au preneur en jeu fermé
+    final cut = find.byKey(const ValueKey('cut-indicator'));
+    if (cut.evaluate().isNotEmpty) {
+      seen.add('bouton coupe atout posé');
+      if (rnd.nextBool()) {
+        await tester.tap(cut);
+        seen.add('coupe atout posé (joueur)');
+        cardsPlayed++;
+        idle = 0;
+        continue;
+      }
     }
 
     final playable = find.byWidgetPredicate((w) =>
@@ -215,6 +229,32 @@ void main() {
     expect([bidHint, playHint, lastTrick], [true, true, true]);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('solo : animation de distribution', (tester) async {
+    final l = lookupAppLocalizations(const Locale('fr'));
+    await tester.pumpWidget(const Game304App(locale: Locale('fr')));
+    await tester.tap(find.text(l.quickPlay));
+    List<double> opacities() => [
+          for (final e in find
+              .descendant(
+                  of: find.byType(DealIn), matching: find.byType(Opacity))
+              .evaluate())
+            (e.widget as Opacity).opacity
+        ];
+    // attend la distribution (cartes à l'écran), sans laisser finir l'animation
+    for (var i = 0; i < 50 && opacities().length < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    // les 4 cartes arrivent en cascade : en cours d'apparition…
+    expect(opacities(), hasLength(4));
+    expect(opacities().where((o) => o < 1), isNotEmpty);
+    await tester.pump(const Duration(seconds: 1));
+    // … puis toutes posées
+    expect(opacities().every((o) => o == 1), isTrue);
+    // écran quitté : laisse expirer les minuteurs des bots
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 10));
   });
 
   testWidgets('solo : 10 donnes sur petit écran (360×640)', (tester) async {

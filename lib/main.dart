@@ -188,6 +188,13 @@ class HomeScreen extends StatelessWidget {
                     onSelect: setFelt,
                     keyPrefix: 'felt'),
                 const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.sound,
+                    notifier: sound,
+                    options: {'on': l.on, 'off': l.off},
+                    onSelect: setSound,
+                    keyPrefix: 'sound'),
+                const SizedBox(height: 20),
                 Text(l.speed,
                     style:
                         TextStyle(color: Colors.grey.shade500, fontSize: 13)),

@@ -8,6 +8,7 @@ environment:
   flutter: ">=3.22.0"
 
 dependencies:
+  audioplayers: ^6.8.1
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -26,6 +27,7 @@ flutter:
   generate: true   # génère les classes de localisation depuis lib/l10n/*.arb
   assets:
     - assets/
+    - assets/sounds/
   fonts:
     # ♠ ♣ ♦ ♥ (sous-ensemble de Noto Sans Symbols 2, licence OFL :
     # assets/fonts/OFL-NotoSansSymbols2.txt) — évite de dépendre du

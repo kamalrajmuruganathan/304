@@ -13,7 +13,7 @@ const dom=new JSDOM(html,{runScripts:'dangerously',url:'https://example.org/',pr
   beforeParse(w){ const nodeST=setTimeout; w.setTimeout=(f)=>nodeST(()=>{try{f()}catch(e){errors.push('timer: '+e.stack.split('\n').slice(0,3).join(' | '))}},0);
     w.confirm=()=>true; w.onerror=(m,s,l,c,e)=>errors.push('onerror: '+m+' @'+l+' STACK: '+(e&&e.stack?e.stack.split('\n').slice(0,6).join(' <- '):'')); }});
 const w=dom.window, d=w.document;
-let hands=0, lastSig='', idle=0, clicks=0, hints=0, lastTricks=0, settings=0, frMsgsInEN=[], langSwitched=false;
+let hands=0, lastSig='', idle=0, clicks=0, hints=0, lastTricks=0, settings=0, cuts=0, frMsgsInEN=[], langSwitched=false;
 const FRENCH=/À vous|réfléchit|Enchère|Meilleure|Personne|Vous gagnez|pose l'atout|choisit un|Preneur :|Dernier pli :|Suivez|entamez|Atout encore|Tout le monde/;
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function step(){
@@ -28,6 +28,10 @@ function step(){
   if(aux.length && Math.random()<0.15){ const b=pick(aux); if(b.onclick===w.openLastTrick) lastTricks++; else hints++; b.click(); return true; }
   if(Math.random()<0.01){ w.openSettings(); settings++; return true; }
   const hand=[...d.querySelectorAll('#seat-S .card.play')];
+  // coupe à l'atout posé : une fois sur deux, sinon une carte de la main
+  const cut=act.find(b=>b.onclick===w.humanCutIndicator);
+  if(cut && (!hand.length || Math.random()<0.5)){ cut.click(); cuts++; clicks++; return true; }
+  if(cut && hand.length){ pick(hand).click(); clicks++; return true; }
   if(hand.length && !act.length){ pick(hand).click(); clicks++; return true; }
   if(act.length){ // évite PCC la plupart du temps
     const nonPcc=act.filter(b=>!/Partner Close Caps/.test(b.textContent));
@@ -45,7 +49,7 @@ function loop(){
 }
 function done(){
   console.log(`Donnes terminées via l'interface : ${hands}`);
-  console.log(`Clics : ${clicks} | Conseils : ${hints} | Dernier pli : ${lastTricks} | Réglages ouverts : ${settings}`);
+  console.log(`Clics : ${clicks} | Conseils : ${hints} | Dernier pli : ${lastTricks} | Réglages ouverts : ${settings} | Coupes à l'atout posé : ${cuts}`);
   console.log(idle>400 ? 'BLOCAGE détecté ! msg = '+d.getElementById('msg').textContent : 'Aucun blocage ✓');
   console.log(errors.length? 'ERREURS :\n  '+[...new Set(errors)].slice(0,8).join('\n  ') : 'Aucune erreur JavaScript ✓');
   const uniq=[...new Set(frMsgsInEN)];

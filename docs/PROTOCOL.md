@@ -23,7 +23,7 @@ Chaque message est un objet JSON avec un champ `t` (type). Transport : WebSocket
 | `chooseTrump2` | `{card}` | `chooseTrump2(card)` |
 | `chooseTrumpPCC` | `{card}` | `chooseTrumpPCC(card)` |
 | `open` | `{open:bool}` | `startPlayOpen()` / `startPlayClosed()` |
-| `play` | `{card}` ou `{indicator:true}` | `playCard()` / `playIndicatorToCut()` |
+| `play` | `{card}` ou `{indicator:true}` | `playCard()` / `playIndicatorToCut()` (refusé si `canCutWithIndicator` est faux ; la vue indique `canCut`) |
 
 Une carte est toujours `{"s":"S|C|D|H","r":"7|8|9|10|J|Q|K|A"}`.
 
@@ -53,7 +53,7 @@ Une carte est toujours `{"s":"S|C|D|H","r":"7|8|9|10|J|Q|K|A"}`.
              {"count": 8}, {"count": 8}, {"count": 8} ],  // les autres = compte
   "currentTrick": [ {"seat":3,"faceDown":false,"card":{"s":"S","r":"9"}},
                     {"seat":0,"faceDown":true,"card":null} ],  // face cachée = card null
-  "legalBids": [], "canPCC": false
+  "legalBids": [], "canPCC": false, "canCut": false
 }
 ```
 

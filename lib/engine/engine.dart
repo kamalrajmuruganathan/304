@@ -471,6 +471,17 @@ class Engine {
     return {'played': true, 'faceDown': faceDown};
   }
 
+  /// Le preneur peut-il couper avec l'atout posé ? (jeu fermé, son tour,
+  /// pli entamé, ne peut pas fournir la couleur demandée)
+  bool canCutWithIndicator(int seat) =>
+      phase == 'play' &&
+      turn == seat &&
+      seat == trumpMaker &&
+      indicatorOnTable &&
+      !trumpOpen &&
+      currentTrick.isNotEmpty &&
+      !hands[seat].any((c) => c.suit == ledSuit);
+
   Map<String, dynamic> playIndicatorToCut(int seat) {
     currentTrick
         .add(TrickPlay(seat, indicator!, faceDown: true, isIndicator: true));
@@ -723,6 +734,7 @@ class Engine {
           ? legalBids()
           : (phase == 'bid2' ? legalBids2() : <int>[]),
       'canPCC': phase == 'bid2' ? canPCC() : false,
+      'canCut': forSeat != null && canCutWithIndicator(forSeat),
       'yourTurn': forSeat != null && _isSeatToAct(forSeat),
       'lastScore': phase == 'scored' ? lastScore : null,
     };

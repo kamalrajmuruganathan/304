@@ -274,5 +274,22 @@
   "dark": "Dark",
   "green": "Green",
   "blue": "Blue",
-  "violet": "Purple"
+  "violet": "Purple",
+  "reconnecting": "Connection lost — reconnecting…",
+  "resumeTable": "Resume table {code}",
+  "chat": "Chat",
+  "chatHint": "Message…",
+  "send": "Send",
+  "@resumeTable": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "sound": "Sound",
+  "on": "On",
+  "off": "Off",
+  "cutIndicator": "Cut with the face-down trump",
+  "hintCut": "Hint: cut with the face-down trump."
 }

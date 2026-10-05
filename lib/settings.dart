@@ -94,9 +94,21 @@ Future<void> setFelt(String v) async {
   } catch (_) {}
 }
 
+/// Son activé ('on') ou coupé ('off'), comme `sound304` du prototype.
+final ValueNotifier<String> sound = ValueNotifier<String>('on');
+bool get soundEnabled => sound.value == 'on';
+
+Future<void> setSound(String v) async {
+  sound.value = v;
+  try {
+    await (await SharedPreferences.getInstance()).setString('sound304', v);
+  } catch (_) {}
+}
+
 Future<void> loadSettings() async {
   try {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('sound304') == 'off') sound.value = 'off';
     final b = prefs.getString('back304');
     if (b != null && kBacks.contains(b)) cardBack.value = b;
     final f = prefs.getString('felt304');
@@ -144,5 +156,31 @@ Future<void> recordDeal({required bool won}) async {
           'won': stats.value.won,
           'lost': stats.value.lost,
         }));
+  } catch (_) {}
+}
+
+/// Table en ligne en cours (code + jeton), pour la reprendre après un
+/// rechargement de la page ou un arrêt de l'app. Effacée en quittant la table.
+Future<({String code, String token})?> loadSavedTable() async {
+  try {
+    final raw = (await SharedPreferences.getInstance()).getString('table304');
+    if (raw == null) return null;
+    final m = jsonDecode(raw) as Map;
+    return (code: m['code'] as String, token: m['token'] as String);
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> saveTable(String code, String token) async {
+  try {
+    await (await SharedPreferences.getInstance())
+        .setString('table304', jsonEncode({'code': code, 'token': token}));
+  } catch (_) {}
+}
+
+Future<void> clearSavedTable() async {
+  try {
+    await (await SharedPreferences.getInstance()).remove('table304');
   } catch (_) {}
 }

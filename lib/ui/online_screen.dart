@@ -11,6 +11,8 @@ import '../engine/engine.dart';
 import '../l10n/app_localizations.dart';
 import '../net/client.dart';
 import '../settings.dart';
+import '../sound.dart';
+import 'anim.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
@@ -55,9 +57,15 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   bool _slow =
       false; // connexion lente : serveur gratuit en train de se réveiller
 
+  /// Table en cours mémorisée (rechargement de page, app fermée par le système).
+  ({String code, String token})? _saved;
+
   @override
   void initState() {
     super.initState();
+    loadSavedTable().then((t) {
+      if (mounted) setState(() => _saved = t);
+    });
     // Réveille le serveur dès l'ouverture du salon (hébergement gratuit qui
     // s'endort) : il est prêt quand le joueur a fini de taper son nom.
     try {
@@ -79,15 +87,19 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted && _busy) setState(() => _slow = true);
     });
-    final c = GameClient(kServerUrl)..connect();
+    final c = GameClient(kServerUrl);
     _sub = c.events.listen((m) {
       if (!mounted) return;
-      if (m['t'] == 'joined') {
+      if (m['t'] == 'joined' || m['t'] == 'reconnected') {
         _sub?.cancel();
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => OnlineGameScreen(client: c)));
       } else if (m['t'] == 'error' || m['t'] == 'disconnected') {
+        _sub?.cancel();
+        c.dispose();
+        if (m['code'] == 'sessionExpired') clearSavedTable(); // table disparue
         setState(() {
+          if (m['code'] == 'sessionExpired') _saved = null;
           _busy = false;
           _error = m['t'] == 'error'
               ? serverErrorText(AppLocalizations.of(context)!, m)
@@ -122,9 +134,24 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               decoration: InputDecoration(
                   labelText: l.yourName, hintText: l.defaultPlayer),
             ),
+            if (_saved != null) ...[
+              const SizedBox(height: 20),
+              FilledButton.tonalIcon(
+                key: const ValueKey('resume'),
+                onPressed: _busy
+                    ? null
+                    : () => _connect((c) => c.resume(_saved!.token)),
+                icon: const Icon(Icons.replay),
+                label: Text(l.resumeTable(_saved!.code)),
+              ),
+            ],
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: _busy ? null : () => _connect((c) => c.create(name)),
+              onPressed: _busy
+                  ? null
+                  : () => _connect((c) => c
+                    ..connect()
+                    ..create(name)),
               child: Text(l.createTable),
             ),
             const SizedBox(height: 28),
@@ -138,8 +165,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             OutlinedButton(
               onPressed: _busy || _code.text.trim().length != 4
                   ? null
-                  : () => _connect(
-                      (c) => c.join(_code.text.trim().toUpperCase(), name)),
+                  : () => _connect((c) => c
+                    ..connect()
+                    ..join(_code.text.trim().toUpperCase(), name)),
               child: Text(l.join),
             ),
             if (_busy) ...[
@@ -180,6 +208,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   GameView? v;
   bool _waiting = false; // action envoyée, réponse du serveur attendue
   Timer? _unlock;
+  bool _offline = false; // connexion perdue, reconnexion automatique en cours
+
+  /// Messages du chat de table (siège, nom, texte) et non lus.
+  final ValueNotifier<List<(int, String, String)>> _chat = ValueNotifier([]);
+  int _unread = 0;
+  bool _chatOpen = false;
   late final StreamSubscription<GameView> _s1;
   late final StreamSubscription<Map> _s2;
 
@@ -190,11 +224,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   void initState() {
     super.initState();
     v = c.last;
+    if (c.code != null && c.token != null) saveTable(c.code!, c.token!);
     _s1 = c.states.listen((view) {
+      _sounds(v, view);
       if (mounted) {
         setState(() {
           v = view;
           _waiting = false;
+          _offline = false;
         });
       }
     });
@@ -204,9 +241,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         setState(() => _waiting = false);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(serverErrorText(l, m))));
+      } else if (m['t'] == 'reconnecting') {
+        setState(() => _offline = true);
+      } else if (m['t'] == 'reconnected') {
+        setState(() {
+          _offline = false;
+          _waiting = false;
+        });
       } else if (m['t'] == 'disconnected') {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(AppLocalizations.of(context)!.connectionLost)));
+      } else if (m['t'] == 'chat') {
+        _chat.value = [
+          ..._chat.value,
+          (m['seat'] as int, '${m['name'] ?? ''}', '${m['text']}')
+        ];
+        if (!_chatOpen) setState(() => _unread++);
       }
     });
   }
@@ -216,8 +266,50 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     _s1.cancel();
     _s2.cancel();
     _unlock?.cancel();
+    _chat.dispose();
     c.dispose();
+    clearSavedTable(); // quitter la table : plus rien à reprendre
     super.dispose();
+  }
+
+  /// Sons d'après l'évolution de la vue (carte posée, pli ramassé, résultat).
+  void _sounds(GameView? old, GameView now) {
+    final before = old?.currentTrick.length ?? 0;
+    final after = now.currentTrick.length;
+    if (now.phase == 'scored' && old?.phase != 'scored') {
+      final sc = now.lastScore;
+      if (sc != null) {
+        final us = now.you % 2 == 0 ? 'NS' : 'EW';
+        final ok = sc['success'] == true;
+        playSfx((ok ? sc['tmTeam'] == us : sc['tmTeam'] != us)
+            ? Sfx.win
+            : Sfx.lose);
+      }
+    } else if (after > before) {
+      playSfx(Sfx.card);
+    } else if (after == 0 && before > 0) {
+      playSfx(Sfx.trick);
+    }
+  }
+
+  /// Chat de table : feuille du bas avec l'historique et un champ de saisie.
+  Future<void> _openChat() async {
+    setState(() {
+      _chatOpen = true;
+      _unread = 0;
+    });
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1C0F09),
+      builder: (ctx) => _ChatSheet(
+        messages: _chat,
+        you: v?.you,
+        nameOf: _playerName,
+        onSend: c.chat,
+      ),
+    );
+    if (mounted) setState(() => _chatOpen = false);
   }
 
   // siège réel -> position à l'écran (0 bas, 1 droite, 2 haut, 3 gauche)
@@ -358,6 +450,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           OutlinedButton(
               onPressed: () => _send(() => c.bid2(null)), child: Text(l.pass)),
         ];
+      case 'play':
+        return [
+          if (g.canCut)
+            FilledButton(
+                key: const ValueKey('cut-indicator'),
+                onPressed: () => _send(c.playIndicator),
+                child: Text(l.cutIndicator)),
+        ];
       case 'preplay':
         return [
           FilledButton(
@@ -484,9 +584,31 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       appBar: AppBar(
         // le code de table reste toujours lisible (il se partage)
         title: Text(l.tableTitle(g.code ?? '')),
+        actions: [
+          IconButton(
+            key: const ValueKey('chat-open'),
+            tooltip: l.chat,
+            onPressed: _openChat,
+            icon: Badge(
+              isLabelVisible: _unread > 0,
+              label: Text('$_unread'),
+              child: const Icon(Icons.chat_bubble_outline),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(children: [
+          if (_offline)
+            Container(
+              key: const ValueKey('offline'),
+              width: double.infinity,
+              padding: const EdgeInsets.all(6),
+              color: const Color(0xFF8A4B12),
+              child: Text(l.reconnecting,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white)),
+            ),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(6),
@@ -530,13 +652,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                     // pli en cours ; s'il est vide, le dernier pli terminé
                     // reste visible jusqu'à l'entame suivante
                     child: Stack(children: [
-                      for (final p in g.currentTrick.isEmpty
-                          ? (g.lastTrick ?? const <TrickCardView>[])
-                          : g.currentTrick)
-                        Align(
-                          alignment: _align(_rel(p.seat)),
-                          child: p.card == null ? _back() : _card(p.card!),
-                        ),
+                      if (g.currentTrick.isNotEmpty)
+                        for (final p in g.currentTrick)
+                          Align(
+                            alignment: _align(_rel(p.seat)),
+                            child: p.card == null ? _back() : _card(p.card!),
+                          )
+                      else
+                        // pli terminé : visible pendant la pause du serveur,
+                        // puis ramassé vers le gagnant
+                        for (final p in g.lastTrick ?? const <TrickCardView>[])
+                          Align(
+                            alignment: _align(_rel(p.seat)),
+                            child: GatherTo(
+                              key: ValueKey(
+                                  'gather-${g.trickWinsNS + g.trickWinsEW}-${p.seat}'),
+                              toward: _align(_rel(g.lastTrickWinner ?? p.seat)),
+                              duration: const Duration(milliseconds: 1100),
+                              child: p.card == null ? _back() : _card(p.card!),
+                            ),
+                          ),
                     ]),
                   ),
                 ),
@@ -571,10 +706,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (final card in _myCards)
+                  for (final (i, card) in _myCards.indexed)
                     Padding(
+                      key: ValueKey('deal-${card.key}'),
                       padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: _card(card, playable: _playable(card), width: w),
+                      child: DealIn(
+                          index: i,
+                          child:
+                              _card(card, playable: _playable(card), width: w)),
                     ),
                 ],
               );
@@ -582,6 +721,100 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           ),
         ]),
       ),
+    );
+  }
+}
+
+/// Feuille du chat : possède son champ de saisie (libéré avec elle, après
+/// l'animation de fermeture).
+class _ChatSheet extends StatefulWidget {
+  const _ChatSheet(
+      {required this.messages,
+      required this.you,
+      required this.nameOf,
+      required this.onSend});
+  final ValueNotifier<List<(int, String, String)>> messages;
+  final int? you;
+  final String Function(int seat) nameOf;
+  final void Function(String text) onSend;
+
+  @override
+  State<_ChatSheet> createState() => _ChatSheetState();
+}
+
+class _ChatSheetState extends State<_ChatSheet> {
+  final _input = TextEditingController();
+
+  @override
+  void dispose() {
+    _input.dispose();
+    super.dispose();
+  }
+
+  void _send() {
+    final t = _input.text.trim();
+    if (t.isEmpty) return;
+    widget.onSend(t);
+    _input.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    return Padding(
+      padding: EdgeInsets.only(
+          left: 12,
+          right: 12,
+          top: 12,
+          bottom: 12 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(l.chat,
+            style: const TextStyle(
+                color: _gold, fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 260),
+          child: ValueListenableBuilder<List<(int, String, String)>>(
+            valueListenable: widget.messages,
+            builder: (_, msgs, __) => ListView(
+              shrinkWrap: true,
+              reverse: true,
+              children: [
+                for (final (seat, name, text) in msgs.reversed)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Text.rich(TextSpan(children: [
+                      TextSpan(
+                          text:
+                              '${name.isEmpty ? widget.nameOf(seat) : name} : ',
+                          style: TextStyle(
+                              color: seat == widget.you ? _gold : _dim,
+                              fontWeight: FontWeight.bold)),
+                      TextSpan(text: text, style: const TextStyle(color: _txt)),
+                    ])),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              key: const ValueKey('chat-input'),
+              controller: _input,
+              maxLength: 200,
+              decoration:
+                  InputDecoration(hintText: l.chatHint, counterText: ''),
+              onSubmitted: (_) => _send(),
+            ),
+          ),
+          IconButton(
+              key: const ValueKey('chat-send'),
+              tooltip: l.send,
+              onPressed: _send,
+              icon: const Icon(Icons.send)),
+        ]),
+      ]),
     );
   }
 }

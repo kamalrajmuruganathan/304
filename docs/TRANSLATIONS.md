@@ -160,3 +160,10 @@ traduction tamoule et cingalaise faite par Claude, vocabulaire aligné sur le pr
 
 Tutoriel « Apprendre le 304 » (`lib/ui/tutorial_screen.dart`) : sections TA/SI traduites par Claude — relecture native à faire.
 | `statsLine` | Donnes : {played} · gagnées {won} · perdues {lost} | Deals: {played} · won {won} · lost {lost} | பகிர்வுகள்: {played} · வெற்றி {won} · தோல்வி {lost} | බෙදීම්: {played} · ජය {won} · පරාජය {lost} |
+| `reconnecting` | Connexion perdue — reconnexion… | Connection lost — reconnecting… | இணைப்பு துண்டிக்கப்பட்டது — மீண்டும் இணைக்கிறது… | සම්බන්ධතාවය බිඳී ගියේය — නැවත සම්බන්ධ වෙමින්… |
+| `resumeTable` | Reprendre la table {code} | Resume table {code} | மேசை {code}-க்குத் திரும்பு | මේසය {code} වෙත නැවත යන්න |
+| `chat` | Discussion | Chat | அரட்டை | කතාබහ |
+| `chatHint` | Message… | Message… | செய்தி… | පණිවිඩය… |
+| `send` | Envoyer | Send | அனுப்பு | යවන්න |
+| `cutIndicator` | Couper avec l'atout posé | Cut with the face-down trump | வைத்த துருப்பால் வெட்டு | තැබූ තුරුම්පුවෙන් කපන්න |
+| `hintCut` | Conseil : coupez avec l'atout posé. | Hint: cut with the face-down trump. | குறிப்பு: வைத்த துருப்பால் வெட்டுங்கள். | ඉඟිය: තැබූ තුරුම්පුවෙන් කපන්න. |

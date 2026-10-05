@@ -2,14 +2,20 @@
 // Tests du moteur 304 — équivalents Dart des simulations JS validées.
 // Lancer :  flutter test    (ou : dart test)
 // ============================================================================
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/engine/engine.dart';
 import 'package:game304/ai/bots.dart';
 
 /// Déroule une donne complète, tous sièges pilotés par l'IA.
 /// [forcePCC] : si non nul, ce siège annonce Partner Close Caps quand il peut.
+/// [cutRnd] : si non nul, le preneur coupe aussi avec l'atout posé au hasard
+/// chaque fois que c'est permis (comme un joueur humain via le bouton) ;
+/// [cuts] compte les coupes à l'atout posé.
 /// Renvoie 'allpass', 'pcc' ou 'normal'.
-String fullHand(Engine e, {int? forcePCC}) {
+int cuts = 0;
+String fullHand(Engine e, {int? forcePCC, Random? cutRnd}) {
   e.newHand();
   var rc = 0;
   while (e.canRedeal() && rc < 8) {
@@ -59,6 +65,12 @@ String fullHand(Engine e, {int? forcePCC}) {
     } else {
       final c = botPlay(e, s);
       if (c is PlayIndicator) {
+        expect(e.canCutWithIndicator(s), isTrue,
+            reason: 'l\'IA ne coupe à l\'atout posé que si c\'est permis');
+      }
+      if (c is PlayIndicator ||
+          (cutRnd != null && e.canCutWithIndicator(s) && cutRnd.nextBool())) {
+        cuts++;
         e.playIndicatorToCut(s);
       } else {
         e.playCard(s, c as Card);
@@ -78,6 +90,42 @@ String fullHand(Engine e, {int? forcePCC}) {
 }
 
 void main() {
+  test('Coupe à l\'atout posé (bouton du joueur) : 300 parties, invariants',
+      () {
+    final rnd = Random(304);
+    cuts = 0;
+    var hands = 0;
+    for (var g = 0; g < 300; g++) {
+      final e = Engine(seed: 1000 + g);
+      var safety = 0;
+      while (e.tokens['NS']! > 0 && e.tokens['EW']! > 0) {
+        if (++safety > 1000) fail('partie sans fin');
+        if (fullHand(e, cutRnd: rnd) != 'allpass') hands++;
+        expect(e.tokens['NS']! + e.tokens['EW']!, 22, reason: 'somme jetons');
+      }
+    }
+    expect(hands, greaterThan(0));
+    expect(cuts, greaterThan(50), reason: 'des coupes ont eu lieu');
+  });
+
+  test('canCutWithIndicator : seulement le preneur, à son tour, jeu fermé', () {
+    var checked = 0;
+    for (var g = 0; g < 100; g++) {
+      final e = Engine(seed: g);
+      if (!fullHandUntilPlay(e)) continue;
+      checked++;
+      for (var s = 0; s < 4; s++) {
+        if (s != e.turn || s != e.trumpMaker) {
+          expect(e.canCutWithIndicator(s), isFalse);
+        }
+      }
+      // entame : impossible de couper sur un pli vide
+      expect(e.canCutWithIndicator(e.turn), isFalse);
+      expect(e.snapshot(forSeat: e.turn)['canCut'], isFalse);
+    }
+    expect(checked, greaterThan(0));
+  });
+
   test('Régression : 300 parties complètes, invariants respectés', () {
     var hands = 0, allpass = 0;
     for (var g = 0; g < 300; g++) {
@@ -123,4 +171,25 @@ void main() {
     }
     expect(pccPlayed, greaterThan(0), reason: 'au moins une donne PCC jouée');
   });
+}
+
+/// Amène une donne jusqu'au début du jeu des plis (false si tout le monde passe).
+bool fullHandUntilPlay(Engine e) {
+  e.newHand();
+  e.startBidding1();
+  while (e.phase == 'bid1') {
+    e.placeBid(botBid(e, e.bidTurn));
+    if (e.phase == 'allpass') return false;
+  }
+  e.chooseTrump1(botChooseTrump(e, e.trumpMaker1!));
+  while (e.phase == 'bid2') {
+    e.placeBid2(botBid2(e, e.bid2Turn));
+  }
+  if (e.phase == 'chooseTrumpPCC') {
+    e.chooseTrumpPCC(botChooseTrump(e, e.trumpMaker!));
+  } else if (e.phase == 'chooseTrump2') {
+    e.chooseTrump2(botChooseTrump(e, e.trumpMaker!));
+  }
+  if (e.phase == 'preplay') e.startPlayClosed();
+  return e.phase == 'play';
 }

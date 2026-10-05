@@ -3,6 +3,8 @@ import '../engine/engine.dart';
 import '../ai/bots.dart';
 import '../l10n/app_localizations.dart';
 import '../settings.dart';
+import '../sound.dart';
+import 'anim.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
 const _gold = Color(0xFFE3C565);
@@ -49,6 +51,7 @@ class _GameScreenState extends State<GameScreen> {
   /// Pli terminé, affiché pendant la pause de fin de pli. Tant qu'il est non
   /// nul, aucune carte n'est jouable (sinon un 2e déroulé démarre en parallèle).
   List<TrickPlay>? _doneTrick;
+  int _doneWinner = 0; // gagnant du pli affiché pendant la pause
   static const int human = 0;
 
   AppLocalizations get l => AppLocalizations.of(context)!;
@@ -349,6 +352,9 @@ class _GameScreenState extends State<GameScreen> {
         actions = [
           _btn(_hintLabel, _showPlayHint),
           if (_lastTrick != null) _btn(l.lastTrickBtn, _openLastTrick),
+          if (e.canCutWithIndicator(human))
+            _btn(l.cutIndicator, _humanCutIndicator,
+                primary: true, key: const ValueKey('cut-indicator')),
         ];
       });
     } else {
@@ -367,6 +373,13 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  /// Le joueur (preneur, jeu fermé) coupe avec l'atout posé.
+  void _humanCutIndicator() {
+    if (!e.canCutWithIndicator(human) || _doneTrick != null) return;
+    setState(() => actions = []);
+    _afterPlay(e.playIndicatorToCut(human));
+  }
+
   /// Libellé « Conseil » sans l'emoji 💡 du prototype (rendu par une police
   /// emoji téléchargée à la volée sur le web) : l'ampoule est mise en icône.
   String get _hintLabel => l.hint.replaceAll('💡', '').trim();
@@ -380,7 +393,7 @@ class _GameScreenState extends State<GameScreen> {
     final ch = botPlay(e, human);
     setState(() {
       if (ch is PlayIndicator) {
-        tip = l.hintDiscard;
+        tip = e.canCutWithIndicator(human) ? l.hintCut : l.hintDiscard;
       } else {
         _hinted = (ch as Card).key;
         tip = l.hintPlay;
@@ -427,9 +440,13 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _afterPlay(Map<String, dynamic> r) {
+    playSfx(r['trickDone'] == true ? Sfx.trick : Sfx.card);
     if (r['trickDone'] == true) {
       _lastTrick = r;
-      setState(() => _doneTrick = r['cards'] as List<TrickPlay>);
+      setState(() {
+        _doneTrick = r['cards'] as List<TrickPlay>;
+        _doneWinner = r['winner'] as int;
+      });
       Future.delayed(botDelay(950), () {
         if (!mounted) return;
         setState(() => _doneTrick = null);
@@ -491,6 +508,7 @@ class _GameScreenState extends State<GameScreen> {
         s['success'] == true ? s['tmTeam'] == 'NS' : s['tmTeam'] == 'EW';
     final over = r['gameOver'] == true;
     recordDeal(won: nsWon);
+    playSfx(nsWon ? Sfx.win : Sfx.lose);
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -521,7 +539,7 @@ class _GameScreenState extends State<GameScreen> {
 
   // ============================ widgets ============================
   Widget _btn(String label, VoidCallback onTap,
-      {bool primary = false, bool gold = false}) {
+      {bool primary = false, bool gold = false, Key? key}) {
     if (label == _hintLabel) {
       return OutlinedButton.icon(
           onPressed: onTap,
@@ -535,7 +553,9 @@ class _GameScreenState extends State<GameScreen> {
               backgroundColor: _gold, foregroundColor: const Color(0xFF2A1C06)),
           child: Text(label));
     }
-    if (primary) return FilledButton(onPressed: onTap, child: Text(label));
+    if (primary) {
+      return FilledButton(key: key, onPressed: onTap, child: Text(label));
+    }
     return OutlinedButton(onPressed: onTap, child: Text(label));
   }
 
@@ -681,14 +701,22 @@ class _GameScreenState extends State<GameScreen> {
           for (final p in _doneTrick ?? e.currentTrick)
             Align(
               alignment: _seatAlign(p.seat),
-              child: (p.faceDown && !e.trumpOpen)
-                  ? _facedown()
-                  : _cardWidget(p.card, big: true),
+              child: _doneTrick == null
+                  ? _trickCard(p)
+                  : GatherTo(
+                      key: ValueKey('gather-${e.tricks.length}-${p.seat}'),
+                      toward: _seatAlign(_doneWinner),
+                      duration: botDelay(950),
+                      child: _trickCard(p)),
             ),
         ],
       ),
     );
   }
+
+  Widget _trickCard(TrickPlay p) => (p.faceDown && !e.trumpOpen)
+      ? _facedown()
+      : _cardWidget(p.card, big: true);
 
   Widget _handFan() {
     final h = e.hands[human];
@@ -707,18 +735,22 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             for (int i = 0; i < n; i++)
               Positioned(
+                key: ValueKey('deal-${h[i].key}'),
                 left: startX + i * spacing,
                 bottom: 6.0 + (mid - (i - mid).abs()) * 3.0,
-                child: Transform.rotate(
-                  angle: (i - mid) * 0.06,
-                  child: _cardWidget(
-                    h[i],
-                    key: ValueKey(
-                        '${_canPlay(h[i]) ? 'play' : 'hand'}-${h[i].key}'),
-                    big: true,
-                    playable: _canPlay(h[i]),
-                    hinted: _hinted == h[i].key,
-                    onTap: _canPlay(h[i]) ? () => _onHumanCard(h[i]) : null,
+                child: DealIn(
+                  index: i,
+                  child: Transform.rotate(
+                    angle: (i - mid) * 0.06,
+                    child: _cardWidget(
+                      h[i],
+                      key: ValueKey(
+                          '${_canPlay(h[i]) ? 'play' : 'hand'}-${h[i].key}'),
+                      big: true,
+                      playable: _canPlay(h[i]),
+                      hinted: _hinted == h[i].key,
+                      onTap: _canPlay(h[i]) ? () => _onHumanCard(h[i]) : null,
+                    ),
                   ),
                 ),
               ),

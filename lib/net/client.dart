@@ -52,6 +52,8 @@ class GameView {
       lastScore; // résultat de la donne (phase scored), calculé par le moteur
   final List<int> legalBids;
   final bool canPCC;
+  final bool
+      canCut; // je peux couper avec l'atout posé (calculé par le serveur)
   final String? code;
   final bool started;
   final List<Map> players; // [{name, bot, online}] par siège
@@ -79,6 +81,7 @@ class GameView {
     required this.lastScore,
     required this.legalBids,
     required this.canPCC,
+    required this.canCut,
     required this.code,
     required this.started,
     required this.players,
@@ -133,6 +136,7 @@ class GameView {
       lastScore: j['lastScore'] as Map?,
       legalBids: (j['legalBids'] as List).map((e) => e as int).toList(),
       canPCC: (j['canPCC'] as bool?) ?? false,
+      canCut: (j['canCut'] as bool?) ?? false,
       code: j['code'] as String?,
       started: (j['started'] as bool?) ?? false,
       players: ((j['players'] as List?) ?? const []).cast<Map>(),
@@ -156,17 +160,63 @@ class GameClient {
   final _states = StreamController<GameView>.broadcast();
   final _events = StreamController<Map>.broadcast();
   Stream<GameView> get states => _states.stream;
-  Stream<Map> get events =>
-      _events.stream; // joined / error / chat / handResult
+
+  /// joined / error / chat / disconnected / reconnecting / reconnected
+  Stream<Map> get events => _events.stream;
+
+  bool _disposed = false;
+  bool _reconnecting = false; // un `reconnect` est en cours
+  int _retry = 0;
+  Timer? _retryTimer;
 
   GameClient(this.url);
 
-  void connect() {
-    _ch = WebSocketChannel.connect(Uri.parse(url));
-    _ch!.stream.listen(_onMessage,
-        onError: (e) => _events.add({'t': 'error', 'msg': '$e'}),
-        onDone: () => _events.add({'t': 'disconnected'}));
+  void connect() => _open();
+
+  /// Ouvre une socket. Les messages envoyés avant l'ouverture sont mis en
+  /// file par web_socket_channel. Après une coupure, si une place est déjà
+  /// acquise (jeton), on la reprend automatiquement.
+  void _open() {
+    final ch = WebSocketChannel.connect(Uri.parse(url));
+    _ch = ch;
+    ch.stream.listen(_onMessage,
+        onError: (e) {
+          // pendant une reconnexion, les échecs sont silencieux (on réessaie)
+          if (token == null && !_disposed) {
+            _events.add({'t': 'error', 'msg': '$e'});
+          }
+        },
+        onDone: () => _onClosed(ch));
+    if (token != null) {
+      _reconnecting = true;
+      ch.sink.add(jsonEncode({'t': 'reconnect', 'token': token}));
+    }
   }
+
+  void _onClosed(WebSocketChannel ch) {
+    if (_disposed || !identical(ch, _ch)) return;
+    if (token == null) {
+      // jamais entré à une table : rien à reprendre
+      _events.add({'t': 'disconnected'});
+      return;
+    }
+    _events.add({'t': 'reconnecting'});
+    final delay = Duration(seconds: [1, 2, 4, 8][_retry.clamp(0, 3)]);
+    _retry++;
+    _retryTimer?.cancel();
+    _retryTimer = Timer(delay, () {
+      if (!_disposed) _open();
+    });
+  }
+
+  /// Reprend une place connue (jeton mémorisé) sur une nouvelle connexion.
+  void resume(String savedToken) {
+    token = savedToken;
+    _open();
+  }
+
+  /// Coupe la connexion comme le ferait le réseau (tests de reconnexion).
+  void debugDropConnection() => _ch?.sink.close();
 
   void _onMessage(dynamic data) {
     final Map m = jsonDecode(data as String) as Map;
@@ -175,11 +225,25 @@ class GameClient {
         seat = m['seat'] as int?;
         code = m['code'] as String?;
         token = m['token'] as String?;
-        _events.add(m);
+        _retry = 0;
+        if (_reconnecting) {
+          _reconnecting = false;
+          _events.add({...m, 't': 'reconnected'});
+        } else {
+          _events.add(m);
+        }
         break;
       case 'state':
         last = GameView.fromJson(m['view'] as Map, m['you'] as int);
         _states.add(last!);
+        break;
+      case 'error':
+        if (_reconnecting && m['code'] == 'sessionExpired') {
+          // la table n'existe plus : inutile de réessayer
+          _reconnecting = false;
+          token = null;
+        }
+        _events.add(m);
         break;
       default:
         _events.add(m);
@@ -190,7 +254,6 @@ class GameClient {
   void create(String name) => _send({'t': 'create', 'name': name});
   void join(String code, String name) =>
       _send({'t': 'join', 'code': code, 'name': name});
-  void reconnect(String token) => _send({'t': 'reconnect', 'token': token});
   void start() => _send({'t': 'start'});
   void chat(String text) => _send({'t': 'chat', 'text': text});
 
@@ -216,6 +279,8 @@ class GameClient {
   void _send(Map m) => _ch?.sink.add(jsonEncode(m));
 
   void dispose() {
+    _disposed = true;
+    _retryTimer?.cancel();
     _ch?.sink.close();
     _states.close();
     _events.close();

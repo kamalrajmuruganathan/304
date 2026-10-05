@@ -90,7 +90,8 @@ void main() {
     while (scored < 2) {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 120)));
-      await tester.pump();
+      // l'horloge du test avance aussi : animations (distribution, ramassage)
+      await tester.pump(const Duration(milliseconds: 120));
       expect(tester.takeException(), isNull);
       for (final e in find.byType(Text).evaluate()) {
         final s = (e.widget as Text).data ?? '';
@@ -122,7 +123,11 @@ void main() {
           of: find.byType(Wrap),
           matching: find.byWidgetPredicate(
               (w) => w is FilledButton || w is OutlinedButton));
-      if (playable.evaluate().isNotEmpty) {
+      final cut = find.byKey(const ValueKey('cut-indicator'));
+      if (cut.evaluate().isNotEmpty && rnd.nextBool()) {
+        await tester.tap(cut); // coupe à l'atout posé (validée par le serveur)
+        cards++;
+      } else if (playable.evaluate().isNotEmpty) {
         await tester.tap(playable.at(rnd.nextInt(playable.evaluate().length)),
             warnIfMissed: false);
         cards++;
@@ -139,12 +144,47 @@ void main() {
       // laisse le temps au serveur de répondre avant le prochain geste
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 150)));
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
     }
     expect(leaks, isEmpty, reason: 'textes non traduits en $lang');
     expect(cards, greaterThan(4), reason: 'des cartes jouées depuis l\'UI');
     expect(sawLastTrick, isTrue, reason: 'dernier pli affiché entre 2 plis');
     expect(sawScore, isTrue, reason: 'résultat de la donne affiché');
+
+    // coupure réseau en pleine partie : bandeau, puis reconnexion automatique
+    c.debugDropConnection();
+    var sawOffline = false, back = false;
+    for (var i = 0; i < 100 && !back; i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump();
+      final offline = find.byKey(const ValueKey('offline'));
+      if (offline.evaluate().isNotEmpty) sawOffline = true;
+      if (sawOffline && offline.evaluate().isEmpty) back = true;
+    }
+    expect(sawOffline, isTrue, reason: 'bandeau de reconnexion affiché');
+    expect(back, isTrue, reason: 'reconnecté automatiquement');
+
+    // chat : message envoyé depuis l'écran, relayé par le serveur, affiché
+    await tester.tap(find.byKey(const ValueKey('chat-open')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('chat-input')), 'vanakkam');
+    await tester.tap(find.byKey(const ValueKey('chat-send')));
+    var shown = false;
+    for (var i = 0; i < 50 && !shown; i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump();
+      shown = find
+          .textContaining('vanakkam', findRichText: true)
+          .evaluate()
+          .isNotEmpty;
+    }
+    expect(shown, isTrue, reason: 'message de chat affiché');
+    Navigator.of(tester.element(find.byKey(const ValueKey('chat-input'))))
+        .pop();
+    await tester.pumpAndSettle();
 
     await tester.pumpWidget(const SizedBox()); // dispose -> ferme la socket
     await tester.runAsync(
