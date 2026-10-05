@@ -152,3 +152,8 @@ traduction tamoule et cingalaise faite par Claude, vocabulaire aligné sur le pr
 | `onlyYou` | (vous seul) | (you only) | (உங்களுக்கு மட்டும்) | (ඔබට පමණි) |
 | `pointsN` | {n} pts | {n} pts | {n} புள்ளிகள் | ලකුණු {n} |
 | `serverWaking` | Le serveur gratuit se réveille : la première connexion peut prendre jusqu'à une minute. | The free server is waking up: the first connection can take up to a minute. | இலவச சேவையகம் விழித்தெழுகிறது: முதல் இணைப்புக்கு ஒரு நிமிடம் வரை ஆகலாம். | නොමිලේ සේවාදායකය අවදි වෙමින් පවතී: පළමු සම්බන්ධතාවයට මිනිත්තුවක් දක්වා ගත විය හැක. |
+| `errNotYourTurn` | Ce n'est pas votre tour. | It's not your turn. | இது உங்கள் முறை அல்ல. | මෙය ඔබේ වාරය නොවේ. |
+| `errInvalidAction` | Coup refusé par le serveur. | Move rejected by the server. | சேவையகம் இந்த நகர்வை ஏற்கவில்லை. | සේවාදායකය මෙම පියවර ප්‍රතික්ෂේප කළේය. |
+| `errTableNotFound` | Table introuvable : vérifiez le code. | Table not found: check the code. | மேசை கிடைக்கவில்லை: குறியீட்டைச் சரிபாருங்கள். | මේසය හමු නොවීය: කේතය පරීක්ෂා කරන්න. |
+| `errTableFull` | Cette table est complète. | This table is full. | இந்த மேசை நிரம்பிவிட்டது. | මෙම මේසය පිරී ඇත. |
+| `errSessionExpired` | Session expirée : recréez ou rejoignez une table. | Session expired: create or join a table again. | அமர்வு காலாவதியானது: மீண்டும் மேசையை உருவாக்குங்கள் அல்லது சேருங்கள். | සැසිය කල් ඉකුත් විය: නැවත මේසයක් සාදන්න හෝ එක්වන්න. |

@@ -185,5 +185,10 @@
       }
     }
   },
-  "serverWaking": "The free server is waking up: the first connection can take up to a minute."
+  "serverWaking": "The free server is waking up: the first connection can take up to a minute.",
+  "errNotYourTurn": "It's not your turn.",
+  "errInvalidAction": "Move rejected by the server.",
+  "errTableNotFound": "Table not found: check the code.",
+  "errTableFull": "This table is full.",
+  "errSessionExpired": "Session expired: create or join a table again."
 }

@@ -87,5 +87,10 @@
   "connectionLost": "Connexion perdue.",
   "onlyYou": "(vous seul)",
   "pointsN": "{n} pts",
-  "serverWaking": "Le serveur gratuit se réveille : la première connexion peut prendre jusqu'à une minute."
+  "serverWaking": "Le serveur gratuit se réveille : la première connexion peut prendre jusqu'à une minute.",
+  "errNotYourTurn": "Ce n'est pas votre tour.",
+  "errInvalidAction": "Coup refusé par le serveur.",
+  "errTableNotFound": "Table introuvable : vérifiez le code.",
+  "errTableFull": "Cette table est complète.",
+  "errSessionExpired": "Session expirée : recréez ou rejoignez une table."
 }

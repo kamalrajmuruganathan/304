@@ -24,6 +24,24 @@ const _red = Color(0xFFB12B2B);
 const _txt = Color(0xFFF3EAD6);
 const _dim = Color(0xFFC9B48A);
 
+/// Message d'erreur du serveur dans la langue du joueur (`code` stable envoyé
+/// par bin/server.dart ; `msg` en repli pour un code inconnu).
+String serverErrorText(AppLocalizations l, Map m) {
+  switch (m['code']) {
+    case 'notYourTurn':
+      return l.errNotYourTurn;
+    case 'invalidAction':
+      return l.errInvalidAction;
+    case 'tableNotFound':
+      return l.errTableNotFound;
+    case 'tableFull':
+      return l.errTableFull;
+    case 'sessionExpired':
+      return l.errSessionExpired;
+  }
+  return '${m['msg']}';
+}
+
 // ------------------------------- SALON --------------------------------------
 class OnlineLobbyScreen extends StatefulWidget {
   const OnlineLobbyScreen({super.key});
@@ -73,7 +91,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         setState(() {
           _busy = false;
           _error = m['t'] == 'error'
-              ? '${m['msg']}'
+              ? serverErrorText(AppLocalizations.of(context)!, m)
               : AppLocalizations.of(context)!.serverUnreachable(kServerUrl);
         });
       }
@@ -186,7 +204,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       if (m['t'] == 'error') {
         setState(() => _waiting = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${m['msg']}')));
+            .showSnackBar(SnackBar(content: Text(serverErrorText(l, m))));
       } else if (m['t'] == 'disconnected') {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(AppLocalizations.of(context)!.connectionLost)));

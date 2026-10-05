@@ -53,6 +53,7 @@ test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup
 test/fixtures/prototype_trace.json.gz trace de référence produite par tools/diff-test/trace.js
 test/ui_solo_test.dart     test d'interface Flutter : donnes jouées via les boutons/cartes (3 tailles d'écran)
 test/ui_online_test.dart   test d'interface en ligne (en tamoul) contre le vrai serveur (lancé par le test)
+test/server_test.dart      serveur par WebSocket : codes d'erreur, table complète, ordre des sièges, nettoyage
 test/i18n_test.dart        cohérence des ARB + donnes jouées en en/ta/si sans texte français + sélecteur de langue
 tools/diff-test/trace.js   génère / vérifie (--check) la trace de référence du prototype
 android/ ios/ web/         générés par `flutter create` (org com.kjtech)
@@ -173,7 +174,7 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 36/36 (régression 300 parties, PCC, 24 parties différentielles, tests d'interface solo/en ligne, i18n) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 42/42 (+6 serveur) (régression 300 parties, PCC, 24 parties différentielles, tests d'interface solo/en ligne, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
@@ -239,9 +240,8 @@ JS, blocage, ou texte non traduit après bascule de langue.
 - ~~i18n Flutter non câblée~~ → **fait le 04/10/2026** : 87 clés (61 reprises du prototype, 25
   nouvelles pour l'écran en ligne/l'accueil, + titre). Les 25 nouvelles sont listées dans
   `docs/TRANSLATIONS.md` (traduction ta/si par Claude → **relecture native à faire**).
-- Messages d'erreur **du serveur** (`bin/server.dart` : « Ce n'est pas votre tour. », « Table
-  introuvable »…) encore en français ; ils s'affichent rarement (l'UI bloque les doubles envois)
-  mais devraient devenir des codes traduits côté client.
+- ~~Messages d'erreur du serveur en français~~ → **fait** : le serveur envoie un `code`
+  (notYourTurn, invalidAction, tableNotFound, tableFull, sessionExpired) traduit par l'app.
 - Web : les polices tamoule/cingalaise sont téléchargées par Flutter (fonts.gstatic.com) au premier
   affichage ; Android/iOS ont des polices système. Les symboles ♠♣♦♥ sont embarqués (`Suits`).
 - **Tutoriel « Apprendre le 304 »** : FR et EN seulement (repli EN pour ta/si) — prototype.
@@ -253,9 +253,11 @@ JS, blocage, ou texte non traduit après bascule de langue.
   après 1,2 s), pas de chat, pas de voice chat (prévu : WebRTC via signaling serveur).
 - Personne (solo comme en ligne) ne peut couper avec l'atout posé (`playIndicatorToCut`) depuis
   l'UI — seuls les bots le font. Identique au prototype ; à décider.
-- Serveur : tables jamais nettoyées (fuite mémoire si beaucoup de tables) ; une seule instance.
-- `docs/privacy.html` : remplacer `[DATE]` et `[EMAIL DE CONTACT]`.
-- Icônes PNG à générer depuis `assets/icon.svg` (ex. `flutter_launcher_icons`).
+- ~~Tables jamais nettoyées~~ → **fait** : table sans joueur connecté supprimée après `ROOM_TTL_SECONDS`
+  (1800 par défaut, balayage toutes les `ROOM_SWEEP_SECONDS`=300). Toujours une seule instance.
+- ~~privacy.html à compléter~~ → fait (date, hébergeurs Render/GitHub Pages/Google Fonts, contact = issues GitHub ;
+  pas d'e-mail publié — à ajouter si Kamal le souhaite, les stores demandent souvent un e-mail).
+- ~~Icônes PNG~~ → faites depuis `assets/icon.svg` (web, Android 5 densités, iOS carré opaque) ; nom affiché « 304 ».
 
 ## 10. Publication — pièges déjà identifiés
 
