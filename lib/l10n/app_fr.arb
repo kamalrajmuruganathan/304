@@ -134,5 +134,8 @@
   "resumeTable": "Reprendre la table {code}",
   "chat": "Discussion",
   "chatHint": "Message…",
-  "send": "Envoyer"
+  "send": "Envoyer",
+  "sound": "Son",
+  "on": "Activé",
+  "off": "Coupé"
 }

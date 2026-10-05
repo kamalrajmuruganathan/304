@@ -113,6 +113,18 @@ void main() {
     expect(cardBackDecoration().gradient, isNotNull);
   });
 
+  testWidgets('accueil : réglage du son', (t) async {
+    addTearDown(() => sound.value = 'off');
+    await t.pumpWidget(const Game304App(locale: Locale('fr')));
+    await t.ensureVisible(find.byKey(const ValueKey('sound-on')));
+    await t.tap(find.byKey(const ValueKey('sound-on')));
+    await t.pumpAndSettle();
+    expect(soundEnabled, isTrue);
+    await t.tap(find.byKey(const ValueKey('sound-off')));
+    await t.pumpAndSettle();
+    expect(soundEnabled, isFalse);
+  });
+
   testWidgets('accueil : vitesse des bots', (t) async {
     addTearDown(() => botSpeed.value = 1);
     await t.pumpWidget(const Game304App(locale: Locale('fr')));

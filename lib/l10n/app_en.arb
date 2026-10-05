@@ -286,5 +286,8 @@
         "type": "String"
       }
     }
-  }
+  },
+  "sound": "Sound",
+  "on": "On",
+  "off": "Off"
 }

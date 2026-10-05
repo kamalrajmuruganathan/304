@@ -94,9 +94,21 @@ Future<void> setFelt(String v) async {
   } catch (_) {}
 }
 
+/// Son activé ('on') ou coupé ('off'), comme `sound304` du prototype.
+final ValueNotifier<String> sound = ValueNotifier<String>('on');
+bool get soundEnabled => sound.value == 'on';
+
+Future<void> setSound(String v) async {
+  sound.value = v;
+  try {
+    await (await SharedPreferences.getInstance()).setString('sound304', v);
+  } catch (_) {}
+}
+
 Future<void> loadSettings() async {
   try {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('sound304') == 'off') sound.value = 'off';
     final b = prefs.getString('back304');
     if (b != null && kBacks.contains(b)) cardBack.value = b;
     final f = prefs.getString('felt304');

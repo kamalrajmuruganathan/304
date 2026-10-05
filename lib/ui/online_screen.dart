@@ -11,6 +11,7 @@ import '../engine/engine.dart';
 import '../l10n/app_localizations.dart';
 import '../net/client.dart';
 import '../settings.dart';
+import '../sound.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
@@ -224,6 +225,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     v = c.last;
     if (c.code != null && c.token != null) saveTable(c.code!, c.token!);
     _s1 = c.states.listen((view) {
+      _sounds(v, view);
       if (mounted) {
         setState(() {
           v = view;
@@ -267,6 +269,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     c.dispose();
     clearSavedTable(); // quitter la table : plus rien à reprendre
     super.dispose();
+  }
+
+  /// Sons d'après l'évolution de la vue (carte posée, pli ramassé, résultat).
+  void _sounds(GameView? old, GameView now) {
+    final before = old?.currentTrick.length ?? 0;
+    final after = now.currentTrick.length;
+    if (now.phase == 'scored' && old?.phase != 'scored') {
+      final sc = now.lastScore;
+      if (sc != null) {
+        final us = now.you % 2 == 0 ? 'NS' : 'EW';
+        final ok = sc['success'] == true;
+        playSfx((ok ? sc['tmTeam'] == us : sc['tmTeam'] != us)
+            ? Sfx.win
+            : Sfx.lose);
+      }
+    } else if (after > before) {
+      playSfx(Sfx.card);
+    } else if (after == 0 && before > 0) {
+      playSfx(Sfx.trick);
+    }
   }
 
   /// Chat de table : feuille du bas avec l'historique et un champ de saisie.

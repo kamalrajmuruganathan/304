@@ -3,6 +3,7 @@ import '../engine/engine.dart';
 import '../ai/bots.dart';
 import '../l10n/app_localizations.dart';
 import '../settings.dart';
+import '../sound.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
 const _gold = Color(0xFFE3C565);
@@ -427,6 +428,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _afterPlay(Map<String, dynamic> r) {
+    playSfx(r['trickDone'] == true ? Sfx.trick : Sfx.card);
     if (r['trickDone'] == true) {
       _lastTrick = r;
       setState(() => _doneTrick = r['cards'] as List<TrickPlay>);
@@ -491,6 +493,7 @@ class _GameScreenState extends State<GameScreen> {
         s['success'] == true ? s['tmTeam'] == 'NS' : s['tmTeam'] == 'EW';
     final over = r['gameOver'] == true;
     recordDeal(won: nsWon);
+    playSfx(nsWon ? Sfx.win : Sfx.lose);
     showDialog<void>(
       context: context,
       barrierDismissible: false,
