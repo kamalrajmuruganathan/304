@@ -289,5 +289,7 @@
   },
   "sound": "Sound",
   "on": "On",
-  "off": "Off"
+  "off": "Off",
+  "cutIndicator": "Cut with the face-down trump",
+  "hintCut": "Hint: cut with the face-down trump."
 }

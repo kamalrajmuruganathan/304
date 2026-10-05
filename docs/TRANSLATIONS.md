@@ -165,3 +165,5 @@ Tutoriel « Apprendre le 304 » (`lib/ui/tutorial_screen.dart`) : sections TA/SI
 | `chat` | Discussion | Chat | அரட்டை | කතාබහ |
 | `chatHint` | Message… | Message… | செய்தி… | පණිවිඩය… |
 | `send` | Envoyer | Send | அனுப்பு | යවන්න |
+| `cutIndicator` | Couper avec l'atout posé | Cut with the face-down trump | வைத்த துருப்பால் வெட்டு | තැබූ තුරුම්පුවෙන් කපන්න |
+| `hintCut` | Conseil : coupez avec l'atout posé. | Hint: cut with the face-down trump. | குறிப்பு: வைத்த துருப்பால் வெட்டுங்கள். | ඉඟිය: තැබූ තුරුම්පුවෙන් කපන්න. |

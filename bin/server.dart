@@ -282,12 +282,9 @@ class Room {
           // le serveur fait autorité : un coup illégal envoyé par un client
           // (couleur non fournie, coupe à l'atout posé injustifiée) est rejeté
           if (action['indicator'] == true) {
-            final canCut = seat == e.trumpMaker &&
-                e.indicatorOnTable &&
-                !e.trumpOpen &&
-                e.currentTrick.isNotEmpty &&
-                !e.hands[seat].any((x) => x.suit == e.ledSuit);
-            if (!canCut) throw StateError('coupe à l\'atout impossible');
+            if (!e.canCutWithIndicator(seat)) {
+              throw StateError('coupe à l\'atout impossible');
+            }
             e.playIndicatorToCut(seat);
           } else {
             final c = card();

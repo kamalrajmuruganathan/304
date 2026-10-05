@@ -137,5 +137,7 @@
   "send": "Envoyer",
   "sound": "Son",
   "on": "Activé",
-  "off": "Coupé"
+  "off": "Coupé",
+  "cutIndicator": "Couper avec l'atout posé",
+  "hintCut": "Conseil : coupez avec l'atout posé."
 }

@@ -352,6 +352,9 @@ class _GameScreenState extends State<GameScreen> {
         actions = [
           _btn(_hintLabel, _showPlayHint),
           if (_lastTrick != null) _btn(l.lastTrickBtn, _openLastTrick),
+          if (e.canCutWithIndicator(human))
+            _btn(l.cutIndicator, _humanCutIndicator,
+                primary: true, key: const ValueKey('cut-indicator')),
         ];
       });
     } else {
@@ -370,6 +373,13 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  /// Le joueur (preneur, jeu fermé) coupe avec l'atout posé.
+  void _humanCutIndicator() {
+    if (!e.canCutWithIndicator(human) || _doneTrick != null) return;
+    setState(() => actions = []);
+    _afterPlay(e.playIndicatorToCut(human));
+  }
+
   /// Libellé « Conseil » sans l'emoji 💡 du prototype (rendu par une police
   /// emoji téléchargée à la volée sur le web) : l'ampoule est mise en icône.
   String get _hintLabel => l.hint.replaceAll('💡', '').trim();
@@ -383,7 +393,7 @@ class _GameScreenState extends State<GameScreen> {
     final ch = botPlay(e, human);
     setState(() {
       if (ch is PlayIndicator) {
-        tip = l.hintDiscard;
+        tip = e.canCutWithIndicator(human) ? l.hintCut : l.hintDiscard;
       } else {
         _hinted = (ch as Card).key;
         tip = l.hintPlay;
@@ -529,7 +539,7 @@ class _GameScreenState extends State<GameScreen> {
 
   // ============================ widgets ============================
   Widget _btn(String label, VoidCallback onTap,
-      {bool primary = false, bool gold = false}) {
+      {bool primary = false, bool gold = false, Key? key}) {
     if (label == _hintLabel) {
       return OutlinedButton.icon(
           onPressed: onTap,
@@ -543,7 +553,9 @@ class _GameScreenState extends State<GameScreen> {
               backgroundColor: _gold, foregroundColor: const Color(0xFF2A1C06)),
           child: Text(label));
     }
-    if (primary) return FilledButton(onPressed: onTap, child: Text(label));
+    if (primary) {
+      return FilledButton(key: key, onPressed: onTap, child: Text(label));
+    }
     return OutlinedButton(onPressed: onTap, child: Text(label));
   }
 

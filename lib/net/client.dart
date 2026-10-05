@@ -52,6 +52,8 @@ class GameView {
       lastScore; // résultat de la donne (phase scored), calculé par le moteur
   final List<int> legalBids;
   final bool canPCC;
+  final bool
+      canCut; // je peux couper avec l'atout posé (calculé par le serveur)
   final String? code;
   final bool started;
   final List<Map> players; // [{name, bot, online}] par siège
@@ -79,6 +81,7 @@ class GameView {
     required this.lastScore,
     required this.legalBids,
     required this.canPCC,
+    required this.canCut,
     required this.code,
     required this.started,
     required this.players,
@@ -133,6 +136,7 @@ class GameView {
       lastScore: j['lastScore'] as Map?,
       legalBids: (j['legalBids'] as List).map((e) => e as int).toList(),
       canPCC: (j['canPCC'] as bool?) ?? false,
+      canCut: (j['canCut'] as bool?) ?? false,
       code: j['code'] as String?,
       started: (j['started'] as bool?) ?? false,
       players: ((j['players'] as List?) ?? const []).cast<Map>(),

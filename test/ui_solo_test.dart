@@ -76,6 +76,19 @@ Future<int> playSolo(WidgetTester tester,
       continue;
     }
 
+    // coupe à l'atout posé : proposée seulement au preneur en jeu fermé
+    final cut = find.byKey(const ValueKey('cut-indicator'));
+    if (cut.evaluate().isNotEmpty) {
+      seen.add('bouton coupe atout posé');
+      if (rnd.nextBool()) {
+        await tester.tap(cut);
+        seen.add('coupe atout posé (joueur)');
+        cardsPlayed++;
+        idle = 0;
+        continue;
+      }
+    }
+
     final playable = find.byWidgetPredicate((w) =>
         w.key is ValueKey<String> &&
         (w.key as ValueKey<String>).value.startsWith('play-'));

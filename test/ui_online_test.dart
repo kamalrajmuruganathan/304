@@ -123,7 +123,11 @@ void main() {
           of: find.byType(Wrap),
           matching: find.byWidgetPredicate(
               (w) => w is FilledButton || w is OutlinedButton));
-      if (playable.evaluate().isNotEmpty) {
+      final cut = find.byKey(const ValueKey('cut-indicator'));
+      if (cut.evaluate().isNotEmpty && rnd.nextBool()) {
+        await tester.tap(cut); // coupe à l'atout posé (validée par le serveur)
+        cards++;
+      } else if (playable.evaluate().isNotEmpty) {
         await tester.tap(playable.at(rnd.nextInt(playable.evaluate().length)),
             warnIfMissed: false);
         cards++;

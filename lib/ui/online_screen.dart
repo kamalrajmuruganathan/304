@@ -450,6 +450,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           OutlinedButton(
               onPressed: () => _send(() => c.bid2(null)), child: Text(l.pass)),
         ];
+      case 'play':
+        return [
+          if (g.canCut)
+            FilledButton(
+                key: const ValueKey('cut-indicator'),
+                onPressed: () => _send(c.playIndicator),
+                child: Text(l.cutIndicator)),
+        ];
       case 'preplay':
         return [
           FilledButton(

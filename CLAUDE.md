@@ -50,7 +50,7 @@ lib/
   settings.dart            préférences mémorisées (vitesse, son, dos de cartes, tapis, stats, table en cours)
   sound.dart               sons (playSfx) : assets/sounds/{card,trick,win,lose}.wav, bips du prototype
   main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
-  l10n/app_{en,fr,ta,si}.arb  138 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
+  l10n/app_{en,fr,ta,si}.arb  140 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
@@ -179,7 +179,7 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 55/55 (régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 57/57 (coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
@@ -263,8 +263,11 @@ JS, blocage, ou texte non traduit après bascule de langue.
   nettoyé par le serveur), **reconnexion automatique** après coupure (bandeau, nouvelles tentatives à 1/2/4/8 s,
   jeton de reprise ; table mémorisée `table304` → bouton « Reprendre » au salon) → faits (05/10/2026).
   Pas de voice chat (prévu : WebRTC via signaling serveur).
-- Personne (solo comme en ligne) ne peut couper avec l'atout posé (`playIndicatorToCut`) depuis
-  l'UI — seuls les bots le font. Identique au prototype ; à décider.
+- ~~Personne ne peut couper avec l'atout posé depuis l'UI~~ → **fait (05/10/2026, décision de Kamal)** :
+  bouton « Couper avec l'atout posé » (prototype, solo, en ligne) affiché seulement si
+  `canCutWithIndicator(seat)` (moteur JS + Dart : phase play, son tour, preneur, atout posé sur la table,
+  jeu fermé, pli entamé, ne peut pas fournir). En ligne, la vue contient `canCut` et le serveur
+  valide avec la même fonction. Le Conseil propose la coupe quand l'IA la jouerait (avant : « défaussez »).
 - ~~Tables jamais nettoyées~~ → **fait** : table sans joueur connecté supprimée après `ROOM_TTL_SECONDS`
   (1800 par défaut, balayage toutes les `ROOM_SWEEP_SECONDS`=300). Toujours une seule instance.
 - ~~privacy.html à compléter~~ → fait (date, hébergeurs Render/GitHub Pages/Google Fonts, contact = issues GitHub ;

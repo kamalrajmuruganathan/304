@@ -266,6 +266,7 @@ const I18N = {
       suitS:'Pique', suitC:'Trèfle', suitD:'Carreau', suitH:'Cœur',
       hint:'💡 Conseil', hintBid:'Conseil : annoncer {b}.', hintPass:'Conseil : passer.', hintPlay:'Conseil : la carte en surbrillance.',
       hintDiscard:'Conseil : défaussez votre plus petite carte.',
+      cutIndicator:'Couper avec l\'atout posé', hintCut:'Conseil : coupez avec l\'atout posé.',
       lastTrickBtn:'Dernier pli', lastTrickTitle:'Dernier pli — remporté par {p} (+{n})',
       language:'Langue', cardBack:'Dos de cartes', table:'Table', royal:'Royal', classic:'Classique', dark:'Sombre',
       green:'Verte', blue:'Bleue', violet:'Violette', learn:'Apprendre le 304', close:'Fermer',
@@ -309,6 +310,7 @@ const I18N = {
       suitS:'Spades', suitC:'Clubs', suitD:'Diamonds', suitH:'Hearts',
       hint:'💡 Hint', hintBid:'Hint: bid {b}.', hintPass:'Hint: pass.', hintPlay:'Hint: the highlighted card.',
       hintDiscard:'Hint: discard your lowest card.',
+      cutIndicator:'Cut with the face-down trump', hintCut:'Hint: cut with the face-down trump.',
       lastTrickBtn:'Last trick', lastTrickTitle:'Last trick — won by {p} (+{n})',
       language:'Language', cardBack:'Card back', table:'Table', royal:'Royal', classic:'Classic', dark:'Dark',
       green:'Green', blue:'Blue', violet:'Purple', learn:'Learn 304', close:'Close',
@@ -400,6 +402,7 @@ const I18N = {
       hintPass:'குறிப்பு: பாஸ் செய்யுங்கள்.',
       hintPlay:'குறிப்பு: ஒளிரும் சீட்டு.',
       hintDiscard:'குறிப்பு: உங்கள் சிறிய சீட்டைக் கழியுங்கள்.',
+      cutIndicator:'வைத்த துருப்பால் வெட்டு', hintCut:'குறிப்பு: வைத்த துருப்பால் வெட்டுங்கள்.',
       lastTrickBtn:'கடைசிக் கை',
       lastTrickTitle:'கடைசிக் கை — வென்றவர் {p} (+{n})',
       language:'மொழி',
@@ -507,6 +510,7 @@ const I18N = {
       hintPass:'ඉඟිය: පාස් කරන්න.',
       hintPlay:'ඉඟිය: ආලෝකමත් කළ කාඩ්පත.',
       hintDiscard:'ඉඟිය: ඔබේ කුඩාම කාඩ්පත ඉවත දමන්න.',
+      cutIndicator:'තැබූ තුරුම්පුවෙන් කපන්න', hintCut:'ඉඟිය: තැබූ තුරුම්පුවෙන් කපන්න.',
       lastTrickBtn:'අවසාන අත',
       lastTrickTitle:'අවසාන අත — දිනුවේ {p} (+{n})',
       language:'භාෂාව',
@@ -804,6 +808,12 @@ class Engine{
     this.advanceTurn();
     if(this.currentTrick.length===this.trickSize) return this.resolveTrick();
     return {played:true,faceDown};
+  }
+  // le preneur peut-il couper avec l'atout posé ? (jeu fermé, ne peut pas suivre)
+  canCutWithIndicator(seat){
+    return this.phase==='play' && this.turn===seat && seat===this.trumpMaker &&
+      this.indicatorOnTable && !this.trumpOpen && this.currentTrick.length>0 &&
+      !this.hands[seat].some(c=>c.s===this.ledSuit);
   }
   // TM joue l'indicator pour couper (face cachée) quand il ne peut pas suivre
   playIndicatorToCut(seat){
@@ -1346,6 +1356,7 @@ function stepPlay(){
     clearControls();
     btn(t('hint'),'',showPlayHint);
     if(LAST_TRICK) btn(t('lastTrickBtn'),'',openLastTrick);
+    if(eng.canCutWithIndicator(0)) btn(t('cutIndicator'),'primary',humanCutIndicator);
     setHint(eng.trumpOpen?tf('trumpOpenHint',{s:suitName(eng.trumpSuit)}):t('trumpHiddenHint'));
   }else{
     setMsgL(()=>tf('botPlays',{p:seatName(seat)})); clearControls();
@@ -1357,6 +1368,11 @@ function humanPlay(c){
   clearControls();                       // Conseil / Dernier pli disparaissent une fois la carte jouée
   const r=eng.playCard(0,c);
   afterPlay(r);
+}
+function humanCutIndicator(){
+  if(!eng.canCutWithIndicator(0)) return;
+  clearControls();
+  afterPlay(eng.playIndicatorToCut(0));
 }
 function botTurn(seat){
   const choice=botPlay(eng,seat);
@@ -1493,7 +1509,7 @@ function showPlayHint(){
   if(eng.phase!=='play' || eng.turn!==0 || !eng.hands[0].length) return;
   const ch=botPlay(eng,0);
   if(!ch) return;
-  if(ch && ch.indicator){ setHintL(()=>t('hintDiscard')); return; }
+  if(ch && ch.indicator){ setHintL(()=>t(eng.canCutWithIndicator(0)?'hintCut':'hintDiscard')); return; }
   const c=(ch&&ch.card)||ch;
   document.querySelectorAll('#seat-S .card.hinted').forEach(el=>el.classList.remove('hinted'));
   const el=document.querySelector('#seat-S .handrow [data-k="'+cardKey(c)+'"]');
