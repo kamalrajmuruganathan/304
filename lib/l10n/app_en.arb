@@ -185,5 +185,94 @@
       }
     }
   },
-  "serverWaking": "The free server is waking up: the first connection can take up to a minute."
+  "serverWaking": "The free server is waking up: the first connection can take up to a minute.",
+  "errNotYourTurn": "It's not your turn.",
+  "errInvalidAction": "Move rejected by the server.",
+  "errTableNotFound": "Table not found: check the code.",
+  "errTableFull": "This table is full.",
+  "errSessionExpired": "Session expired: create or join a table again.",
+  "hint": "💡 Hint",
+  "hintBid": "Hint: bid {b}.",
+  "@hintBid": {
+    "placeholders": {
+      "b": {
+        "type": "String"
+      }
+    }
+  },
+  "hintPass": "Hint: pass.",
+  "hintPlay": "Hint: the highlighted card.",
+  "hintDiscard": "Hint: discard your lowest card.",
+  "lastTrickBtn": "Last trick",
+  "lastTrickTitle": "Last trick — won by {p} (+{n})",
+  "@lastTrickTitle": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "close": "Close",
+  "bestBid": "Highest bid: {b} ({p}).",
+  "@bestBid": {
+    "placeholders": {
+      "b": {
+        "type": "String"
+      },
+      "p": {
+        "type": "String"
+      }
+    }
+  },
+  "noBidYet": "No one has bid yet.",
+  "bid1Hint": "Bid = minimum points your team promises (min 160). The winner sets the trump face down.",
+  "bid2Hint": "250+ ≈ 7-8 tricks (+3/−4). Partner Close Caps = all 8 tricks alone (+4/−5). Otherwise, pass.",
+  "trumpTip": "Tip: set a low card from your longest/strongest suit — keep your masters in hand.",
+  "openHint": "Closed = opponents don't know the trump, usually best. Open = trump visible from the start.",
+  "pccHint": "You lead the first trick. The trump is revealed after it. You must win all 8 tricks.",
+  "pccOut": "Partner Close Caps: you sit out this deal — your partner plays alone against both opponents.",
+  "trumpOpenHint": "Trump is open: {s}.",
+  "@trumpOpenHint": {
+    "placeholders": {
+      "s": {
+        "type": "String"
+      }
+    }
+  },
+  "trumpHiddenHint": "Trump still hidden.",
+  "suitS": "Spades",
+  "suitC": "Clubs",
+  "suitD": "Diamonds",
+  "suitH": "Hearts",
+  "speed": "Bot speed",
+  "slow": "Slow",
+  "normal": "Normal",
+  "fast": "Fast",
+  "learn304": "Learn 304",
+  "gotIt": "Got it!",
+  "statsLine": "Deals: {played} · won {won} · lost {lost}",
+  "@statsLine": {
+    "placeholders": {
+      "played": {
+        "type": "int"
+      },
+      "won": {
+        "type": "int"
+      },
+      "lost": {
+        "type": "int"
+      }
+    }
+  },
+  "cardBack": "Card back",
+  "tableFelt": "Table",
+  "royal": "Royal",
+  "classic": "Classic",
+  "dark": "Dark",
+  "green": "Green",
+  "blue": "Blue",
+  "violet": "Purple"
 }

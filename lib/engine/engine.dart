@@ -631,7 +631,12 @@ class Engine {
     tokens['EW'] = tokens['EW']!.clamp(0, 22);
   }
 
+  /// Résultat de la dernière donne (`res['score']`), exposé dans la vue réseau
+  /// pendant la phase `scored` : l'écran en ligne l'affiche sans recalculer.
+  Map<String, dynamic>? lastScore;
+
   void _finishHand(Map<String, dynamic> res) {
+    lastScore = res['score'] as Map<String, dynamic>;
     res['gameOver'] = tokens['NS']! <= 0 || tokens['EW']! <= 0;
     if (res['gameOver'] == true) {
       res['gameWinner'] = tokens['NS']! <= 0 ? 'EW' : 'NS';
@@ -719,6 +724,7 @@ class Engine {
           : (phase == 'bid2' ? legalBids2() : <int>[]),
       'canPCC': phase == 'bid2' ? canPCC() : false,
       'yourTurn': forSeat != null && _isSeatToAct(forSeat),
+      'lastScore': phase == 'scored' ? lastScore : null,
     };
   }
 

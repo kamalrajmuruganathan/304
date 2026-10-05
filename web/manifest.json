@@ -1,11 +1,11 @@
 {
-    "name": "game304",
-    "short_name": "game304",
+    "name": "304 — Jaffna card game",
+    "short_name": "304",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0D1117",
+    "theme_color": "#160A06",
+    "description": "304, the trick-taking card game from Jaffna: play against bots or with friends. Jeu de cartes de Jaffna : contre des bots ou entre amis.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

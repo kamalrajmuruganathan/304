@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
+import 'package:game304/settings.dart';
+import 'package:game304/ui/tutorial_screen.dart';
 
 import 'ui_solo_test.dart' show playSolo;
 
@@ -66,6 +68,64 @@ void main() {
       expect(leaks, isEmpty, reason: 'textes non traduits en $lang');
     });
   }
+
+  for (final lang in langs) {
+    testWidgets('tutoriel en $lang : complet, traduit, se referme', (t) async {
+      final l = lookupAppLocalizations(Locale(lang));
+      await t.pumpWidget(Game304App(locale: Locale(lang)));
+      await t.tap(find.text(l.learn304));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      final sections = kTutorial[lang]!;
+      expect(sections.length, kTutorial['fr']!.length);
+      for (final (title, body) in sections) {
+        await t.scrollUntilVisible(find.text(title), 200);
+        expect(find.text(title), findsOneWidget);
+        if (lang != 'fr') {
+          expect(french.hasMatch(body), isFalse, reason: body);
+        }
+        // valeurs exactes des cartes et du barème dans toutes les langues
+        if (body.contains('304')) {
+          expect(body, contains('J > 9 > A > 10 > K > Q > 8 > 7'));
+        }
+      }
+      expect(sections.map((s) => s.$2).join(), contains('−2, −3'));
+      await t.scrollUntilVisible(find.text(l.gotIt), 300);
+      await t.tap(find.text(l.gotIt));
+      await t.pumpAndSettle();
+      expect(find.text(l.quickPlay), findsOneWidget);
+    });
+  }
+
+  testWidgets('accueil : dos de cartes et tapis', (t) async {
+    addTearDown(() {
+      cardBack.value = 'royal';
+      felt.value = 'green';
+    });
+    await t.pumpWidget(const Game304App(locale: Locale('fr')));
+    await t.ensureVisible(find.byKey(const ValueKey('back-dark')));
+    await t.tap(find.byKey(const ValueKey('back-dark')));
+    await t.ensureVisible(find.byKey(const ValueKey('felt-violet')));
+    await t.tap(find.byKey(const ValueKey('felt-violet')));
+    await t.pumpAndSettle();
+    expect(cardBack.value, 'dark');
+    expect(feltColors, kFeltColors['violet']);
+    expect(cardBackDecoration().gradient, isNotNull);
+  });
+
+  testWidgets('accueil : vitesse des bots', (t) async {
+    addTearDown(() => botSpeed.value = 1);
+    await t.pumpWidget(const Game304App(locale: Locale('fr')));
+    await t.ensureVisible(find.byKey(const ValueKey('speed-0.5')));
+    await t.tap(find.byKey(const ValueKey('speed-0.5')));
+    await t.pumpAndSettle();
+    expect(botSpeed.value, 0.5);
+    expect(botDelay(600), const Duration(milliseconds: 300));
+    await t.ensureVisible(find.byKey(const ValueKey('speed-1.6')));
+    await t.tap(find.byKey(const ValueKey('speed-1.6')));
+    await t.pumpAndSettle();
+    expect(botDelay(600), const Duration(milliseconds: 960));
+  });
 
   testWidgets('accueil : le sélecteur change la langue', (t) async {
     addTearDown(() => appLocale.value = null);

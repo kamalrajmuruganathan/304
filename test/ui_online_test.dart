@@ -86,7 +86,7 @@ void main() {
     expect(find.text(l.shareCode(c.code!)), findsOneWidget);
 
     var idle = 0, cards = 0;
-    var sawLastTrick = false;
+    var sawLastTrick = false, sawScore = false;
     while (scored < 2) {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 120)));
@@ -103,6 +103,12 @@ void main() {
       expect(errors, isEmpty, reason: 'erreur renvoyée par le serveur');
 
       final v = c.last!;
+      if (v.phase == 'scored' && v.lastScore != null) {
+        // le résultat de la donne s'affiche (calculé par le moteur serveur)
+        if (find.byKey(const ValueKey('score-card')).evaluate().isNotEmpty) {
+          sawScore = true;
+        }
+      }
       if (v.phase == 'play' &&
           v.currentTrick.isEmpty &&
           (v.lastTrick?.length ?? 0) >= 3) {
@@ -138,6 +144,7 @@ void main() {
     expect(leaks, isEmpty, reason: 'textes non traduits en $lang');
     expect(cards, greaterThan(4), reason: 'des cartes jouées depuis l\'UI');
     expect(sawLastTrick, isTrue, reason: 'dernier pli affiché entre 2 plis');
+    expect(sawScore, isTrue, reason: 'résultat de la donne affiché');
 
     await tester.pumpWidget(const SizedBox()); // dispose -> ferme la socket
     await tester.runAsync(

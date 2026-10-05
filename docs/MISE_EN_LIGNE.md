@@ -1,5 +1,14 @@
 # Mise en ligne — le guide pas à pas
 
+> **État au 05/10/2026** — étapes 1 et 2 faites (dépôt, CI, GitHub Pages : prototype sur `/304/`, app Flutter
+> sur `/304/app/`). Étape 3 faite **sans carte bancaire** : serveur sur **Render** (offre gratuite) au lieu de
+> Cloud Run — service Docker relié au dépôt, URL `https://three04-bivu.onrender.com` (WebSocket `wss://…/ws`).
+> L'adresse du serveur utilisée par l'app web et l'APK se change sans toucher au code :
+> **Settings → Secrets and variables → Actions → Variables → `SERVER_URL`**.
+> Un APK Android de test est publié à chaque mise à jour de `main` :
+> https://github.com/kamalrajmuruganathan/304/releases/latest/download/304.apk
+> La section Cloud Run ci-dessous reste valable si un jour une carte bancaire est utilisée.
+
 Tout le code et les scripts sont prêts. Ce qui reste demande **tes comptes** et **un ordinateur**.
 Les étapes sont dans l'ordre ; chacune débloque la suivante.
 

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
+import 'settings.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
+import 'ui/tutorial_screen.dart';
 
 /// Langue choisie par le joueur (null = langue de l'appareil, repli anglais).
 final ValueNotifier<Locale?> appLocale = ValueNotifier<Locale?>(null);
 const _kLangPref = 'lang304'; // même nom que dans le prototype
 
 /// Langues proposées, chacune écrite dans sa propre langue.
+/// Polices embarquées pour les noms de langue (assets/fonts/Lang*.ttf).
+const _kLangFont = <String, String>{'ta': 'LangTamil', 'si': 'LangSinhala'};
+
 const kLanguages = <String, String>{
   'fr': 'Français',
   'en': 'English',
@@ -26,6 +31,7 @@ Future<void> main() async {
   } catch (_) {
     // préférences indisponibles : langue de l'appareil
   }
+  await loadSettings();
   runApp(const Game304App());
 }
 
@@ -99,6 +105,18 @@ class HomeScreen extends StatelessWidget {
                 Text('three-nought-four',
                     style:
                         TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                ValueListenableBuilder(
+                  valueListenable: stats,
+                  builder: (context, st, _) => st.played == 0
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(l.statsLine(st.played, st.won, st.lost),
+                              key: const ValueKey('stats'),
+                              style: TextStyle(
+                                  color: Colors.grey.shade400, fontSize: 13)),
+                        ),
+                ),
                 const SizedBox(height: 40),
                 FilledButton(
                   onPressed: () => Navigator.of(context).push(
@@ -120,7 +138,14 @@ class HomeScreen extends StatelessWidget {
                         textAlign: TextAlign.center),
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const TutorialScreen())),
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: Text(l.learn304),
+                ),
+                const SizedBox(height: 24),
                 Text(l.language,
                     style:
                         TextStyle(color: Colors.grey.shade500, fontSize: 13)),
@@ -133,11 +158,59 @@ class HomeScreen extends StatelessWidget {
                     for (final e in kLanguages.entries)
                       ChoiceChip(
                         key: ValueKey('lang-${e.key}'),
-                        label: Text(e.value),
+                        label: Text(e.value,
+                            style: TextStyle(fontFamily: _kLangFont[e.key])),
                         selected: current == e.key,
                         onSelected: (_) => setAppLanguage(e.key),
                       ),
                   ],
+                ),
+                const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.cardBack,
+                    notifier: cardBack,
+                    options: {
+                      'royal': l.royal,
+                      'classic': l.classic,
+                      'dark': l.dark
+                    },
+                    onSelect: setCardBack,
+                    keyPrefix: 'back'),
+                const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.tableFelt,
+                    notifier: felt,
+                    options: {
+                      'green': l.green,
+                      'blue': l.blue,
+                      'violet': l.violet
+                    },
+                    onSelect: setFelt,
+                    keyPrefix: 'felt'),
+                const SizedBox(height: 20),
+                Text(l.speed,
+                    style:
+                        TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                const SizedBox(height: 8),
+                ValueListenableBuilder<double>(
+                  valueListenable: botSpeed,
+                  builder: (context, speed, _) => Wrap(
+                    spacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      for (final (v, label) in [
+                        (1.6, l.slow),
+                        (1.0, l.normal),
+                        (0.5, l.fast),
+                      ])
+                        ChoiceChip(
+                          key: ValueKey('speed-$v'),
+                          label: Text(label),
+                          selected: speed == v,
+                          onSelected: (_) => setBotSpeed(v),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -145,5 +218,45 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Ligne de réglage à choix unique (dos de cartes, tapis).
+class _OptionRow extends StatelessWidget {
+  const _OptionRow(
+      {required this.label,
+      required this.notifier,
+      required this.options,
+      required this.onSelect,
+      required this.keyPrefix});
+  final String label;
+  final ValueNotifier<String> notifier;
+  final Map<String, String> options;
+  final Future<void> Function(String) onSelect;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+      const SizedBox(height: 8),
+      ValueListenableBuilder<String>(
+        valueListenable: notifier,
+        builder: (context, v, _) => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final e in options.entries)
+              ChoiceChip(
+                key: ValueKey('$keyPrefix-${e.key}'),
+                label: Text(e.value),
+                selected: v == e.key,
+                onSelected: (_) => onSelect(e.key),
+              ),
+          ],
+        ),
+      ),
+    ]);
   }
 }

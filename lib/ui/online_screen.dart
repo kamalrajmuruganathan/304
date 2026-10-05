@@ -10,19 +10,36 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../engine/engine.dart';
 import '../l10n/app_localizations.dart';
 import '../net/client.dart';
+import '../settings.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
 
 const _gold = Color(0xFFE3C565);
 const _goldD = Color(0xFFA5822F);
-const _feltA = Color(0xFF0F5A3C);
-const _feltB = Color(0xFF063421);
 const _cream = Color(0xFFF6F1E2);
 const _ink = Color(0xFF1A160F);
 const _red = Color(0xFFB12B2B);
 const _txt = Color(0xFFF3EAD6);
 const _dim = Color(0xFFC9B48A);
+
+/// Message d'erreur du serveur dans la langue du joueur (`code` stable envoyé
+/// par bin/server.dart ; `msg` en repli pour un code inconnu).
+String serverErrorText(AppLocalizations l, Map m) {
+  switch (m['code']) {
+    case 'notYourTurn':
+      return l.errNotYourTurn;
+    case 'invalidAction':
+      return l.errInvalidAction;
+    case 'tableNotFound':
+      return l.errTableNotFound;
+    case 'tableFull':
+      return l.errTableFull;
+    case 'sessionExpired':
+      return l.errSessionExpired;
+  }
+  return '${m['msg']}';
+}
 
 // ------------------------------- SALON --------------------------------------
 class OnlineLobbyScreen extends StatefulWidget {
@@ -73,7 +90,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         setState(() {
           _busy = false;
           _error = m['t'] == 'error'
-              ? '${m['msg']}'
+              ? serverErrorText(AppLocalizations.of(context)!, m)
               : AppLocalizations.of(context)!.serverUnreachable(kServerUrl);
         });
       }
@@ -186,7 +203,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       if (m['t'] == 'error') {
         setState(() => _waiting = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${m['msg']}')));
+            .showSnackBar(SnackBar(content: Text(serverErrorText(l, m))));
       } else if (m['t'] == 'disconnected') {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(AppLocalizations.of(context)!.connectionLost)));
@@ -385,11 +402,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   Widget _back() => Container(
         width: 50,
         height: 72,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(7),
-          gradient: const LinearGradient(
-              colors: [Color(0xFF8A6A2E), Color(0xFF6B5122)]),
-        ),
+        decoration: cardBackDecoration(), // dos choisi dans les réglages
       );
 
   Widget _seatLabel(int seat) {
@@ -409,6 +422,44 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       child: Text(
           '${_playerName(seat)}${g.trumpMaker == seat ? ' · ${l.mMaker}' : ''}  ($cnt)',
           style: const TextStyle(color: _txt, fontSize: 12)),
+    );
+  }
+
+  /// Résultat de la donne (calculé par le moteur côté serveur), vu de MON
+  /// équipe — même présentation que le dialogue de fin de donne en solo.
+  Widget _scoreCard(GameView g) {
+    final sc = g.lastScore!;
+    final us = g.you % 2 == 0 ? 'NS' : 'EW';
+    final success = sc['success'] == true;
+    final weWon = success ? sc['tmTeam'] == us : sc['tmTeam'] != us;
+    final detail = sc['pcc'] == true
+        ? 'Partner Close Caps · ${sc['tricks']}/8 — '
+            '${success ? l.succeeded : l.failedPcc}'
+        : '${l.bid} ${sc['bid']} · ${l.pointsN(sc['tmPoints'] as int)} — '
+            '${success ? l.succeeded : l.failedBid}'
+            '${sc['caps'] == true ? ' · ${l.caps}' : ''}';
+    return Container(
+      key: const ValueKey('score-card'),
+      margin: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xEE211208),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _goldD),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(weWon ? l.dealWon : l.dealLost,
+            style: const TextStyle(
+                color: _gold, fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(detail,
+            textAlign: TextAlign.center, style: const TextStyle(color: _dim)),
+        const SizedBox(height: 6),
+        Text(
+            '${l.tokens} — ${l.us} ${g.tokens[us]} · '
+            '${l.them} ${g.tokens[us == 'NS' ? 'EW' : 'NS']}',
+            style: const TextStyle(color: _txt)),
+      ]),
     );
   }
 
@@ -455,7 +506,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: const RadialGradient(colors: [_feltA, _feltB]),
+                gradient: RadialGradient(
+                    colors: [feltColors.$1, feltColors.$2]), // tapis choisi
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: _goldD, width: 2),
               ),
@@ -493,6 +545,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                     child: Padding(
                         padding: const EdgeInsets.all(8),
                         child: _seatLabel(g.you))),
+                if (g.phase == 'scored' && g.lastScore != null)
+                  Center(child: _scoreCard(g)),
               ]),
             ),
           ),

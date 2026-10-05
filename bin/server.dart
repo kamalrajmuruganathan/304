@@ -9,6 +9,7 @@
 // ACTIONS ; le serveur valide, applique, puis diffuse à chacun SA vue rédigée
 // (engine.viewFor(seat)). Voir docs/ARCHITECTURE.md et docs/PROTOCOL.md.
 // ============================================================================
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -16,6 +17,31 @@ import 'package:game304/engine/engine.dart';
 import 'package:game304/ai/bots.dart';
 
 final Map<String, Room> rooms = {};
+
+/// Erreur envoyée au client : `code` stable (traduit par l'app), `msg` lisible
+/// (journaux, anciens clients). Codes : notYourTurn, invalidAction,
+/// tableNotFound, tableFull, sessionExpired.
+Map<String, String> err(String code, String msg) =>
+    {'t': 'error', 'code': code, 'msg': msg};
+
+/// Une table sans aucun joueur connecté depuis [roomTtl] est supprimée
+/// (sinon la mémoire grossit indéfiniment). Réglable pour les tests.
+final Duration roomTtl = Duration(
+    seconds: int.parse(Platform.environment['ROOM_TTL_SECONDS'] ?? '1800'));
+final Duration sweepEvery = Duration(
+    seconds: int.parse(Platform.environment['ROOM_SWEEP_SECONDS'] ?? '300'));
+
+void sweepRooms() {
+  final now = DateTime.now();
+  rooms.removeWhere((code, r) {
+    if (r.seats.any((s) => s.connected)) {
+      r.lastSeen = now;
+      return false;
+    }
+    return now.difference(r.lastSeen) > roomTtl;
+  });
+}
+
 final Random _rng = Random();
 
 String genCode() {
@@ -41,6 +67,7 @@ class Room {
   ];
   bool started = false;
   bool _looping = false;
+  DateTime lastSeen = DateTime.now(); // dernier instant avec un joueur connecté
 
   Room(this.code);
 
@@ -118,7 +145,8 @@ class Room {
           continue;
         }
         if (phase == 'scored') {
-          await Future.delayed(const Duration(milliseconds: 1200));
+          // le temps de lire le résultat affiché par les clients
+          await Future.delayed(const Duration(milliseconds: 4000));
           if (engine.tokens['NS']! <= 0 || engine.tokens['EW']! <= 0) {
             // partie terminée : on stoppe (l'hôte relancera)
             return;
@@ -222,7 +250,7 @@ class Room {
   void applyAction(int seat, Map action) {
     final e = engine;
     if (_actorSeat() != seat) {
-      _send(seat, {'t': 'error', 'msg': 'Ce n\'est pas votre tour.'});
+      _send(seat, err('notYourTurn', 'Ce n\'est pas votre tour.'));
       return;
     }
     final type = action['type'];
@@ -272,11 +300,11 @@ class Room {
           }
           break;
         default:
-          _send(seat, {'t': 'error', 'msg': 'Action inconnue: $type'});
+          _send(seat, err('invalidAction', 'Action inconnue: $type'));
           return;
       }
-    } catch (err) {
-      _send(seat, {'t': 'error', 'msg': 'Action invalide: $err'});
+    } catch (e) {
+      _send(seat, err('invalidAction', 'Action invalide: $e'));
       return;
     }
     loop();
@@ -295,7 +323,7 @@ void handleMessage(WebSocket ws, String data) {
   try {
     msg = jsonDecode(data) as Map;
   } catch (_) {
-    ws.add(jsonEncode({'t': 'error', 'msg': 'JSON invalide'}));
+    ws.add(jsonEncode(err('invalidAction', 'JSON invalide')));
     return;
   }
   final t = msg['t'];
@@ -324,12 +352,12 @@ void handleMessage(WebSocket ws, String data) {
     final code = (msg['code'] as String?)?.toUpperCase();
     final room = rooms[code];
     if (room == null) {
-      ws.add(jsonEncode({'t': 'error', 'msg': 'Table introuvable'}));
+      ws.add(jsonEncode(err('tableNotFound', 'Table introuvable')));
       return;
     }
     final seat = room.freeSeat();
     if (seat == null) {
-      ws.add(jsonEncode({'t': 'error', 'msg': 'Table complète'}));
+      ws.add(jsonEncode(err('tableFull', 'Table complète')));
       return;
     }
     room.seats[seat]
@@ -360,7 +388,7 @@ void handleMessage(WebSocket ws, String data) {
         }
       }
     }
-    ws.add(jsonEncode({'t': 'error', 'msg': 'Token inconnu'}));
+    ws.add(jsonEncode(err('sessionExpired', 'Token inconnu')));
     return;
   }
 
@@ -376,7 +404,7 @@ void handleMessage(WebSocket ws, String data) {
     }
   }
   if (room == null || seat == null) {
-    ws.add(jsonEncode({'t': 'error', 'msg': 'Pas de table'}));
+    ws.add(jsonEncode(err('sessionExpired', 'Pas de table')));
     return;
   }
 
@@ -408,6 +436,7 @@ Future<void> main() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
   final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
   stdout.writeln('304 server — ws://localhost:$port/ws');
+  Timer.periodic(sweepEvery, (_) => sweepRooms());
   await for (final req in server) {
     if (req.uri.path == '/ws' && WebSocketTransformer.isUpgradeRequest(req)) {
       final ws = await WebSocketTransformer.upgrade(req);
@@ -417,7 +446,10 @@ Future<void> main() async {
           // on garde le siège (reconnexion possible via token) ; on détache la socket
           for (final r in rooms.values) {
             final s = r.seatOfSocket(ws);
-            if (s != null) r.seats[s].socket = null;
+            if (s != null) {
+              r.seats[s].socket = null;
+              r.lastSeen = DateTime.now();
+            }
           }
         },
         onError: (_) {},
