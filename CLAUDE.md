@@ -244,11 +244,13 @@ JS, blocage, ou texte non traduit après bascule de langue.
   (notYourTurn, invalidAction, tableNotFound, tableFull, sessionExpired) traduit par l'app.
 - Web : les polices tamoule/cingalaise sont téléchargées par Flutter (fonts.gstatic.com) au premier
   affichage ; Android/iOS ont des polices système. Les symboles ♠♣♦♥ sont embarqués (`Suits`).
-- **Tutoriel « Apprendre le 304 »** : FR et EN seulement (repli EN pour ta/si) — prototype.
+- Tutoriel « Apprendre le 304 » : **app Flutter en 4 langues** (`lib/ui/tutorial_screen.dart`, score précisé :
+  pénalités −2/−3/−4 ; ta/si par Claude → relecture native). Le prototype reste FR/EN.
 - **Traductions ta/si** : traductions machine vérifiées (clés, repères `{n} {p} {b} {s}`, balises,
   écritures Unicode) mais **relecture native recommandée** (vocabulaire du 304).
-- **UI Flutter** moins aboutie que le prototype : pas de Conseil, Dernier pli, sons, cosmétiques,
-  accueil avec stats, animations de distribution/ramassage, réglages (tous présents dans le prototype).
+- **UI Flutter** : Conseil, Dernier pli, lignes d'aide, vitesse des bots, tutoriel → **faits**. Manquent encore
+  (présents dans le prototype) : sons, cosmétiques (dos de cartes, tapis), statistiques sur l'accueil,
+  animations de distribution/ramassage.
 - **Écran en ligne** : pas d'écran de fin de donne détaillé (le serveur repasse en donne suivante
   après 1,2 s), pas de chat, pas de voice chat (prévu : WebRTC via signaling serveur).
 - Personne (solo comme en ligne) ne peut couper avec l'atout posé (`playIndicatorToCut`) depuis

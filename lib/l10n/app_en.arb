@@ -250,5 +250,7 @@
   "speed": "Bot speed",
   "slow": "Slow",
   "normal": "Normal",
-  "fast": "Fast"
+  "fast": "Fast",
+  "learn304": "Learn 304",
+  "gotIt": "Got it!"
 }

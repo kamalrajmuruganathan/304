@@ -157,3 +157,5 @@ traduction tamoule et cingalaise faite par Claude, vocabulaire aligné sur le pr
 | `errTableNotFound` | Table introuvable : vérifiez le code. | Table not found: check the code. | மேசை கிடைக்கவில்லை: குறியீட்டைச் சரிபாருங்கள். | මේසය හමු නොවීය: කේතය පරීක්ෂා කරන්න. |
 | `errTableFull` | Cette table est complète. | This table is full. | இந்த மேசை நிரம்பிவிட்டது. | මෙම මේසය පිරී ඇත. |
 | `errSessionExpired` | Session expirée : recréez ou rejoignez une table. | Session expired: create or join a table again. | அமர்வு காலாவதியானது: மீண்டும் மேசையை உருவாக்குங்கள் அல்லது சேருங்கள். | සැසිය කල් ඉකුත් විය: නැවත මේසයක් සාදන්න හෝ එක්වන්න. |
+
+Tutoriel « Apprendre le 304 » (`lib/ui/tutorial_screen.dart`) : sections TA/SI traduites par Claude — relecture native à faire.

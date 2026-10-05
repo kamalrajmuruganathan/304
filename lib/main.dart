@@ -4,6 +4,7 @@ import 'l10n/app_localizations.dart';
 import 'settings.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
+import 'ui/tutorial_screen.dart';
 
 /// Langue choisie par le joueur (null = langue de l'appareil, repli anglais).
 final ValueNotifier<Locale?> appLocale = ValueNotifier<Locale?>(null);
@@ -122,7 +123,13 @@ class HomeScreen extends StatelessWidget {
                         textAlign: TextAlign.center),
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const TutorialScreen())),
+                  child: Text('📖 ${l.learn304}'),
+                ),
+                const SizedBox(height: 24),
                 Text(l.language,
                     style:
                         TextStyle(color: Colors.grey.shade500, fontSize: 13)),

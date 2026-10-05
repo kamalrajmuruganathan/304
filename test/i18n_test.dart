@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
 import 'package:game304/settings.dart';
+import 'package:game304/ui/tutorial_screen.dart';
 
 import 'ui_solo_test.dart' show playSolo;
 
@@ -65,6 +66,34 @@ void main() {
         }
       });
       expect(leaks, isEmpty, reason: 'textes non traduits en $lang');
+    });
+  }
+
+  for (final lang in langs) {
+    testWidgets('tutoriel en $lang : complet, traduit, se referme', (t) async {
+      final l = lookupAppLocalizations(Locale(lang));
+      await t.pumpWidget(Game304App(locale: Locale(lang)));
+      await t.tap(find.text('📖 ${l.learn304}'));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      final sections = kTutorial[lang]!;
+      expect(sections.length, kTutorial['fr']!.length);
+      for (final (title, body) in sections) {
+        await t.scrollUntilVisible(find.text(title), 200);
+        expect(find.text(title), findsOneWidget);
+        if (lang != 'fr') {
+          expect(french.hasMatch(body), isFalse, reason: body);
+        }
+        // valeurs exactes des cartes et du barème dans toutes les langues
+        if (body.contains('304')) {
+          expect(body, contains('J > 9 > A > 10 > K > Q > 8 > 7'));
+        }
+      }
+      expect(sections.map((s) => s.$2).join(), contains('−2, −3'));
+      await t.scrollUntilVisible(find.text(l.gotIt), 300);
+      await t.tap(find.text(l.gotIt));
+      await t.pumpAndSettle();
+      expect(find.text(l.quickPlay), findsOneWidget);
     });
   }
 

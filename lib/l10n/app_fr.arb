@@ -118,5 +118,7 @@
   "speed": "Vitesse des bots",
   "slow": "Lente",
   "normal": "Normale",
-  "fast": "Rapide"
+  "fast": "Rapide",
+  "learn304": "Apprendre le 304",
+  "gotIt": "Compris !"
 }
