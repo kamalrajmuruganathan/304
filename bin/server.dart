@@ -145,7 +145,8 @@ class Room {
           continue;
         }
         if (phase == 'scored') {
-          await Future.delayed(const Duration(milliseconds: 1200));
+          // le temps de lire le résultat affiché par les clients
+          await Future.delayed(const Duration(milliseconds: 4000));
           if (engine.tokens['NS']! <= 0 || engine.tokens['EW']! <= 0) {
             // partie terminée : on stoppe (l'hôte relancera)
             return;

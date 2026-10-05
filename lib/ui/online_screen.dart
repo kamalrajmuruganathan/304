@@ -430,6 +430,44 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     );
   }
 
+  /// Résultat de la donne (calculé par le moteur côté serveur), vu de MON
+  /// équipe — même présentation que le dialogue de fin de donne en solo.
+  Widget _scoreCard(GameView g) {
+    final sc = g.lastScore!;
+    final us = g.you % 2 == 0 ? 'NS' : 'EW';
+    final success = sc['success'] == true;
+    final weWon = success ? sc['tmTeam'] == us : sc['tmTeam'] != us;
+    final detail = sc['pcc'] == true
+        ? 'Partner Close Caps · ${sc['tricks']}/8 — '
+            '${success ? l.succeeded : l.failedPcc}'
+        : '${l.bid} ${sc['bid']} · ${l.pointsN(sc['tmPoints'] as int)} — '
+            '${success ? l.succeeded : l.failedBid}'
+            '${sc['caps'] == true ? ' · ${l.caps}' : ''}';
+    return Container(
+      key: const ValueKey('score-card'),
+      margin: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xEE211208),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _goldD),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(weWon ? l.dealWon : l.dealLost,
+            style: const TextStyle(
+                color: _gold, fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(detail,
+            textAlign: TextAlign.center, style: const TextStyle(color: _dim)),
+        const SizedBox(height: 6),
+        Text(
+            '${l.tokens} — ${l.us} ${g.tokens[us]} · '
+            '${l.them} ${g.tokens[us == 'NS' ? 'EW' : 'NS']}',
+            style: const TextStyle(color: _txt)),
+      ]),
+    );
+  }
+
   Alignment _align(int rel) => const [
         Alignment.bottomCenter,
         Alignment.centerRight,
@@ -511,6 +549,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                     child: Padding(
                         padding: const EdgeInsets.all(8),
                         child: _seatLabel(g.you))),
+                if (g.phase == 'scored' && g.lastScore != null)
+                  Center(child: _scoreCard(g)),
               ]),
             ),
           ),

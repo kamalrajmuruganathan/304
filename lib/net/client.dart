@@ -48,6 +48,8 @@ class GameView {
   final List<TrickCardView> currentTrick;
   final List<TrickCardView>? lastTrick; // dernier pli terminé (null au début)
   final int? lastTrickWinner;
+  final Map?
+      lastScore; // résultat de la donne (phase scored), calculé par le moteur
   final List<int> legalBids;
   final bool canPCC;
   final String? code;
@@ -74,6 +76,7 @@ class GameView {
     required this.currentTrick,
     required this.lastTrick,
     required this.lastTrickWinner,
+    required this.lastScore,
     required this.legalBids,
     required this.canPCC,
     required this.code,
@@ -127,6 +130,7 @@ class GameView {
       currentTrick: trick,
       lastTrick: last == null ? null : plays(last['cards'] as List),
       lastTrickWinner: last?['winner'] as int?,
+      lastScore: j['lastScore'] as Map?,
       legalBids: (j['legalBids'] as List).map((e) => e as int).toList(),
       canPCC: (j['canPCC'] as bool?) ?? false,
       code: j['code'] as String?,
