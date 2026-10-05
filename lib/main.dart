@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
+import 'settings.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
 
@@ -26,6 +27,7 @@ Future<void> main() async {
   } catch (_) {
     // préférences indisponibles : langue de l'appareil
   }
+  await loadSettings();
   runApp(const Game304App());
 }
 
@@ -138,6 +140,31 @@ class HomeScreen extends StatelessWidget {
                         onSelected: (_) => setAppLanguage(e.key),
                       ),
                   ],
+                ),
+                const SizedBox(height: 20),
+                Text(l.speed,
+                    style:
+                        TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                const SizedBox(height: 8),
+                ValueListenableBuilder<double>(
+                  valueListenable: botSpeed,
+                  builder: (context, speed, _) => Wrap(
+                    spacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      for (final (v, label) in [
+                        (1.6, l.slow),
+                        (1.0, l.normal),
+                        (0.5, l.fast),
+                      ])
+                        ChoiceChip(
+                          key: ValueKey('speed-$v'),
+                          label: Text(label),
+                          selected: speed == v,
+                          onSelected: (_) => setBotSpeed(v),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),

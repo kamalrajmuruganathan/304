@@ -114,5 +114,9 @@
   "suitS": "Pique",
   "suitC": "Trèfle",
   "suitD": "Carreau",
-  "suitH": "Cœur"
+  "suitH": "Cœur",
+  "speed": "Vitesse des bots",
+  "slow": "Lente",
+  "normal": "Normale",
+  "fast": "Rapide"
 }

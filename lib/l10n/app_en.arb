@@ -246,5 +246,9 @@
   "suitS": "Spades",
   "suitC": "Clubs",
   "suitD": "Diamonds",
-  "suitH": "Hearts"
+  "suitH": "Hearts",
+  "speed": "Bot speed",
+  "slow": "Slow",
+  "normal": "Normal",
+  "fast": "Fast"
 }

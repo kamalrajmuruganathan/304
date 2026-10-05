@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Card;
 import '../engine/engine.dart';
 import '../ai/bots.dart';
 import '../l10n/app_localizations.dart';
+import '../settings.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
 const _feltA = Color(0xFF0F5A3C);
@@ -62,8 +63,7 @@ class _GameScreenState extends State<GameScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _startHand());
   }
 
-  void _bots(void Function() f) =>
-      Future.delayed(const Duration(milliseconds: 600), () {
+  void _bots(void Function() f) => Future.delayed(botDelay(600), () {
         if (mounted) setState(f);
       });
 
@@ -428,7 +428,7 @@ class _GameScreenState extends State<GameScreen> {
     if (r['trickDone'] == true) {
       _lastTrick = r;
       setState(() => _doneTrick = r['cards'] as List<TrickPlay>);
-      Future.delayed(const Duration(milliseconds: 950), () {
+      Future.delayed(botDelay(950), () {
         if (!mounted) return;
         setState(() => _doneTrick = null);
         if (r['handDone'] == true) {

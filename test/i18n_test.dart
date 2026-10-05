@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
+import 'package:game304/settings.dart';
 
 import 'ui_solo_test.dart' show playSolo;
 
@@ -66,6 +67,18 @@ void main() {
       expect(leaks, isEmpty, reason: 'textes non traduits en $lang');
     });
   }
+
+  testWidgets('accueil : vitesse des bots', (t) async {
+    addTearDown(() => botSpeed.value = 1);
+    await t.pumpWidget(const Game304App(locale: Locale('fr')));
+    await t.tap(find.byKey(const ValueKey('speed-0.5')));
+    await t.pumpAndSettle();
+    expect(botSpeed.value, 0.5);
+    expect(botDelay(600), const Duration(milliseconds: 300));
+    await t.tap(find.byKey(const ValueKey('speed-1.6')));
+    await t.pumpAndSettle();
+    expect(botDelay(600), const Duration(milliseconds: 960));
+  });
 
   testWidgets('accueil : le sélecteur change la langue', (t) async {
     addTearDown(() => appLocale.value = null);
