@@ -48,6 +48,18 @@ Future<int> playSolo(WidgetTester tester,
     if (++steps > 400 * deals) fail('aucune progression (blocage ?)');
     await tester.pump(const Duration(milliseconds: 350));
     expect(tester.takeException(), isNull);
+    // les pions ne se chevauchent pas (petit écran, table basse aux enchères)
+    final pods = [
+      for (final k in [0, 1, 2, 3])
+        if (find.byKey(ValueKey('pod-$k')).evaluate().isNotEmpty)
+          tester.getRect(find.byKey(ValueKey('pod-$k')))
+    ];
+    for (var a = 0; a < pods.length; a++) {
+      for (var b = a + 1; b < pods.length; b++) {
+        expect(pods[a].overlaps(pods[b]), isFalse,
+            reason: 'pions qui se chevauchent : ${pods[a]} / ${pods[b]}');
+      }
+    }
     for (final c in cases.entries) {
       if (find.textContaining(c.value).evaluate().isNotEmpty) seen.add(c.key);
     }
@@ -69,6 +81,8 @@ Future<int> playSolo(WidgetTester tester,
     final next = find.text(l.nextDeal);
     final again = find.text(l.playAgain);
     if (next.evaluate().isNotEmpty || again.evaluate().isNotEmpty) {
+      // récapitulatif (plis, points, jetons) dans le résultat de la donne
+      expect(find.byKey(const ValueKey('deal-recap')), findsOneWidget);
       await tester.tap(next.evaluate().isNotEmpty ? next : again);
       await tester.pumpAndSettle();
       hands++;
@@ -231,6 +245,71 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
+  testWidgets('solo : double toucher rapide sur une carte (sans exception)',
+      (tester) async {
+    final l = lookupAppLocalizations(const Locale('fr'));
+    tester.view.physicalSize = const Size(390, 844) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const Game304App(locale: Locale('fr')));
+    await tester.tap(find.text(l.quickPlay));
+    await tester.pumpAndSettle();
+    var doubles = 0;
+    for (var step = 0; step < 3000 && doubles < 5; step++) {
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(tester.takeException(), isNull);
+      for (final t in [l.close, l.nextDeal, l.playAgain, l.pass, l.keep]) {
+        if (find.text(t).evaluate().isNotEmpty) {
+          await tester.tap(find.text(t).first);
+          await tester.pumpAndSettle();
+          break;
+        }
+      }
+      final playable = find.byWidgetPredicate((w) =>
+          w.key is ValueKey<String> &&
+          (w.key as ValueKey<String>).value.startsWith('play-'));
+      final hand = find.byWidgetPredicate((w) =>
+          w.key is ValueKey<String> &&
+          RegExp(r'^(play|hand)-').hasMatch((w.key as ValueKey<String>).value));
+      if (playable.evaluate().isEmpty) {
+        // choix d'atout / jeu fermé : premier bouton d'action
+        final buttons = find.descendant(
+            of: find.byType(Wrap),
+            matching: find.byWidgetPredicate(
+                (w) => w is FilledButton || w is OutlinedButton));
+        if (buttons.evaluate().isNotEmpty) {
+          await tester.tap(buttons.first, warnIfMissed: false);
+        }
+        continue;
+      }
+      // carte la plus à droite = dernière case de la main
+      Finder rightmost(Finder f) {
+        var best = f.first;
+        for (var k = 0; k < f.evaluate().length; k++) {
+          if (tester.getCenter(f.at(k)).dx > tester.getCenter(best).dx) {
+            best = f.at(k);
+          }
+        }
+        return best;
+      }
+
+      final last = rightmost(hand);
+      final target = last.evaluate().first.widget.key as ValueKey<String>;
+      if (!target.value.startsWith('play-') || e2eChooseTrump(tester)) {
+        await tester.tap(playable.first, warnIfMissed: false);
+        continue;
+      }
+      // deux touchers sans reconstruction entre les deux
+      await tester.tap(last, warnIfMissed: false);
+      await tester.tap(last, warnIfMissed: false);
+      expect(tester.takeException(), isNull, reason: 'double toucher');
+      doubles++;
+    }
+    expect(doubles, greaterThan(0));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 10));
+  });
+
   testWidgets('solo : animation de distribution', (tester) async {
     final l = lookupAppLocalizations(const Locale('fr'));
     await tester.pumpWidget(const Game304App(locale: Locale('fr')));
@@ -257,6 +336,19 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
   });
 
+  testWidgets('solo : grandes cartes + 4 couleurs sur petit écran (360×640)',
+      (tester) async {
+    cardSize.value = 'large';
+    deckColors.value = 'four';
+    addTearDown(() {
+      cardSize.value = 'normal';
+      deckColors.value = 'two';
+    });
+    expect(
+        await playSolo(tester, size: const Size(360, 640), deals: 6, seed: 5),
+        6);
+  });
+
   testWidgets('solo : 10 donnes sur petit écran (360×640)', (tester) async {
     expect(
         await playSolo(tester, size: const Size(360, 640), deals: 10, seed: 2),
@@ -269,4 +361,13 @@ void main() {
         await playSolo(tester, size: const Size(1024, 768), deals: 10, seed: 3),
         10);
   });
+}
+
+/// Vrai pendant le choix d'atout (les cartes servent à choisir, pas à jouer).
+bool e2eChooseTrump(WidgetTester tester) {
+  final l = lookupAppLocalizations(const Locale('fr'));
+  String head(String s) => s.split(RegExp(r'[.!:(]')).first.trim();
+  return find.textContaining(head(l.youWinR1)).evaluate().isNotEmpty ||
+      find.textContaining(head(l.youTakeR2)).evaluate().isNotEmpty ||
+      find.textContaining(head(l.pccYou)).evaluate().isNotEmpty;
 }

@@ -46,11 +46,14 @@ lib/
   ui/game_screen.dart      table « royale » solo vs 3 bots (UI Flutter)
   ui/online_screen.dart    salon (créer/rejoindre code, reprise de table) + table en ligne (chat, bandeau de reconnexion)
   ui/tutorial_screen.dart  tutoriel « Apprendre le 304 » en 4 langues
+  ui/stats_screen.dart     statistiques détaillées (prises par palier, Caps, parties, séries)
+  ui/recap.dart            DealRecap : récapitulatif de fin de donne (plis, points, jetons ±), solo et en ligne
   ui/anim.dart             animations : DealIn (distribution en cascade), GatherTo (pli ramassé vers le gagnant)
-  settings.dart            préférences mémorisées (vitesse, son, dos de cartes, tapis, stats, table en cours)
+  settings.dart            préférences mémorisées (vitesse, son, dos, tapis, grandes cartes `size304`,
+                           jeu 4 couleurs `deck304`, vibrations `vibe304`, stats `Stats`, table en cours)
   sound.dart               sons (playSfx) : assets/sounds/{card,trick,win,lose}.wav, bips du prototype
   main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
-  l10n/app_{en,fr,ta,si}.arb  140 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
+  l10n/app_{en,fr,ta,si}.arb  160 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
@@ -77,7 +80,8 @@ docs/
   STORE_LISTING.md         fiche store 4 langues + réponses aux questionnaires
   TRANSLATIONS.md          106 termes FR/EN/TA/SI (prototype)
   DEPLOY.md                notes de déploiement (ancien, voir MISE_EN_LIGNE.md)
-  privacy.html             politique de confidentialité FR/EN (placeholders [DATE], [EMAIL])
+  privacy.html             politique de confidentialité FR/EN (chat de table déclaré)
+  store/                   visuels Play/App Store : icon-512/1024, feature-1024x500, screenshots/{fr,en}
 .github/workflows/
   ci.yml                   flutter analyze --no-fatal-infos, flutter test, test UI prototype (en/ta/si)
   pages.yml                GitHub Pages : prototype (/304/), app Flutter web (/304/app/, SERVER_URL = variable
@@ -179,7 +183,7 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 57/57 (coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 63/63 (double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
@@ -259,7 +263,7 @@ JS, blocage, ou texte non traduit après bascule de langue.
   ramassage → **faits (05/10/2026)**, en solo et en ligne. Sur le web, le son ne démarre qu'après un premier geste
   (règle des navigateurs) ; dans `flutter test`, le son est coupé (`test/flutter_test_config.dart`).
 - Web : pas d'emoji dans les boutons (police emoji téléchargée à la volée → carrés) : icônes Material à la place.
-- **Écran en ligne** : résultat de chaque donne affiché 4 s, **chat de table** (1 ligne, 200 caractères max,
+- **Écran en ligne** : récapitulatif de chaque donne affiché 6 s (plis, points, jetons ±), **chat de table** (1 ligne, 200 caractères max,
   nettoyé par le serveur), **reconnexion automatique** après coupure (bandeau, nouvelles tentatives à 1/2/4/8 s,
   jeton de reprise ; table mémorisée `table304` → bouton « Reprendre » au salon) → faits (05/10/2026).
   Pas de voice chat (prévu : WebRTC via signaling serveur).
@@ -268,6 +272,12 @@ JS, blocage, ou texte non traduit après bascule de langue.
   `canCutWithIndicator(seat)` (moteur JS + Dart : phase play, son tour, preneur, atout posé sur la table,
   jeu fermé, pli entamé, ne peut pas fournir). En ligne, la vue contient `canCut` et le serveur
   valide avec la même fonction. Le Conseil propose la coupe quand l'IA la jouerait (avant : « défaussez »).
+- **Fait (07/10/2026)** : statistiques détaillées (écran dédié, ancien format `stats304` relu sans
+  perte), récapitulatif de donne (plis/points/jetons ±) en solo et en ligne — le serveur garde le
+  résultat affiché **6 s** —, accessibilité (grandes cartes ×1,25, jeu 4 couleurs ♦ bleu ♣ vert,
+  vibration légère au jeu d'une carte, sans effet sur le web), préparation Play Store (signature
+  par clé d'upload via secrets GitHub, `.aab` dans la release si la clé est configurée, visuels
+  `docs/store/`). **Reste à Kamal** : créer la clé d'upload et les 4 secrets (MISE_EN_LIGNE §4).
 - ~~Tables jamais nettoyées~~ → **fait** : table sans joueur connecté supprimée après `ROOM_TTL_SECONDS`
   (1800 par défaut, balayage toutes les `ROOM_SWEEP_SECONDS`=300). Toujours une seule instance.
 - ~~privacy.html à compléter~~ → fait (date, hébergeurs Render/GitHub Pages/Google Fonts, contact = issues GitHub ;
@@ -285,6 +295,8 @@ JS, blocage, ou texte non traduit après bascule de langue.
 - Toujours indiquer « **sans argent réel** » (évite la classification jeu d'argent).
 - Confidentialité : aucun compte, préférences locales, pseudonyme multijoueur non conservé
   → « aucune donnée collectée ».
+- **Chat de table** : à déclarer dans les questionnaires (Play « interactions entre utilisateurs »,
+  IARC) — voir `docs/STORE_LISTING.md`.
 - URL de confidentialité prévue : `https://kamalrajmuruganathan.github.io/304/privacy.html`.
 
 ## 11. Historique des bugs trouvés (pour ne pas les réintroduire)
@@ -338,6 +350,15 @@ JS, blocage, ou texte non traduit après bascule de langue.
 - Dockerfile : partait de l'image Flutter (`ghcr.io/cirruslabs/flutter`, lourde) alors que le serveur
   est en Dart pur → image `dart:stable` + pubspec réduit, binaire dans `scratch` (16 Mo).
   `.gcloudignore` : n'envoie à Cloud Build que `bin/`, `lib/engine`, `lib/ai` et le Dockerfile.
+- UI solo : la main capturait l'**indice** de la carte dans le `onTap` (`h[i]`) → un 2e toucher rapide sur
+  la dernière carte, déjà jouée, lisait hors de la main (`RangeError`) ; sur le web avec l'accessibilité
+  activée, le moteur web restait ensuite bloqué (toutes les touches en erreur). Corrigé (carte capturée
+  par valeur + `_canPlay` vérifie que la carte est en main) ; test « double toucher rapide ». Trouvé par
+  les captures automatiques du store (07/10/2026).
+- UI solo, petit écran : pendant les enchères (3 rangées de boutons) la table devient basse et le
+  pion « Vous » chevauchait celui d'Ouest. Corrigé : Est/Ouest placés dans la bande libre au-dessus
+  du pion du joueur, pion du joueur masqué s'il n'y a pas la place ; `playSolo` vérifie à chaque
+  étape qu'aucun pion n'en chevauche un autre.
 - Captures d'écran du build web : `flutter build web --no-web-resources-cdn` (sinon CanvasKit vient
   d'un CDN injoignable ici), Chromium via le proxy, accessibilité Flutter activée
   (`flt-semantics-placeholder`) pour cliquer les boutons par leur texte.

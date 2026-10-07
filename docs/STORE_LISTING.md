@@ -62,11 +62,12 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 | Achats intégrés | Non |
 | Publicité | Non |
 | Données collectées (Play « Sécurité des données » / Apple « Confidentialité ») | Aucune donnée collectée ni partagée (préférences sur l'appareil ; pseudonyme multijoueur transitoire, non conservé) |
-| Chat entre joueurs | Non (pas de chat affiché dans l'app) |
+| Chat entre joueurs | **Oui** : chat texte entre joueurs d'une même table privée (rejointe par code), non modéré, non conservé. Play « Contenu généré par les utilisateurs / interactions » et IARC : répondre **Oui, les utilisateurs peuvent communiquer** (table privée uniquement) |
 | Public cible | 13 ans et plus conseillé |
 | URL de confidentialité | `https://kamalrajmuruganathan.github.io/304/privacy.html` |
 
-## Visuels à préparer
-- Icône 512×512 (Play) et 1024×1024 (Apple) à partir de `assets/icon.svg`.
-- 2 à 8 captures d'écran téléphone (portrait) : accueil, enchères, pli en cours, fin de donne.
-- Bannière Play 1024×500 : `assets/logo.svg` sur fond vert feutre.
+## Visuels (prêts dans `docs/store/`)
+- `icon-512.png` (Play) et `icon-1024.png` (Apple), depuis `assets/icon.svg`.
+- `feature-1024x500.png` : bannière Play.
+- `screenshots/<langue>/1-accueil.png` … : captures téléphone portrait 1080×1920 (fr, en),
+  prises sur le build web de l'app (accueil, enchères, pli en cours, fin de donne).

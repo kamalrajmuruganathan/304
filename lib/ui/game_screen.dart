@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Card;
 import '../engine/engine.dart';
 import '../ai/bots.dart';
@@ -5,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
+import 'recap.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
 const _gold = Color(0xFFE3C565);
@@ -69,8 +72,12 @@ class _GameScreenState extends State<GameScreen> {
       });
 
   // ======================= déroulé d'une donne =======================
+  /// Jetons au début de la donne (variation affichée dans le récapitulatif).
+  Map<String, int> _tokensAtStart = {'NS': 11, 'EW': 11};
+
   void _startHand() {
     _lastTrick = null;
+    _tokensAtStart = Map.of(e.tokens);
     e.newHand();
     _handleRedeal(0);
   }
@@ -376,6 +383,7 @@ class _GameScreenState extends State<GameScreen> {
   /// Le joueur (preneur, jeu fermé) coupe avec l'atout posé.
   void _humanCutIndicator() {
     if (!e.canCutWithIndicator(human) || _doneTrick != null) return;
+    haptic();
     setState(() => actions = []);
     _afterPlay(e.playIndicatorToCut(human));
   }
@@ -479,6 +487,7 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     if (e.phase == 'play' && e.turn == human) {
+      haptic();
       setState(
           () => actions = []); // plus de Conseil / Dernier pli une fois joué
       _afterPlay(e.playCard(human, c));
@@ -486,6 +495,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   bool _canPlay(Card c) {
+    // carte déjà jouée (toucher en double) : rien à faire
+    if (!e.hands[human].any((x) => x.key == c.key)) return false;
     // choix d'atout : seulement quand c'est le joueur qui choisit (pas pendant
     // qu'un bot pose le sien)
     if (e.phase == 'chooseTrump1') return e.trumpMaker1 == human;
@@ -507,7 +518,11 @@ class _GameScreenState extends State<GameScreen> {
     final nsWon =
         s['success'] == true ? s['tmTeam'] == 'NS' : s['tmTeam'] == 'EW';
     final over = r['gameOver'] == true;
-    recordDeal(won: nsWon);
+    recordDeal(
+        won: nsWon,
+        score: s,
+        takerIsMe: e.trumpMaker == human,
+        gameWinner: over ? r['gameWinner'] as String? : null);
     playSfx(nsWon ? Sfx.win : Sfx.lose);
     showDialog<void>(
       context: context,
@@ -519,10 +534,19 @@ class _GameScreenState extends State<GameScreen> {
             side: const BorderSide(color: _goldD)),
         title: Text(nsWon ? l.dealWon : l.dealLost,
             style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
-        content: Text(
-          '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
-          style: const TextStyle(color: _dim),
-        ),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+            '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
+            style: const TextStyle(color: _dim),
+          ),
+          const SizedBox(height: 12),
+          DealRecap(
+            tricks: (e.trickWinsNS, e.trickWinsEW),
+            points: (e.pointsNS, e.pointsEW),
+            tokens: (e.tokens['NS']!, e.tokens['EW']!),
+            delta: e.tokens['NS']! - _tokensAtStart['NS']!,
+          ),
+        ]),
         actions: [
           FilledButton(
             onPressed: () {
@@ -570,8 +594,9 @@ class _GameScreenState extends State<GameScreen> {
       bool playable = false,
       bool hinted = false,
       VoidCallback? onTap}) {
-    final red = c.suit == 'D' || c.suit == 'H';
-    final w = big ? 52.0 : 46.0, h = big ? 74.0 : 66.0;
+    final col = suitColor(c.suit, ink: _ink, red: _red);
+    final k = cardScale; // grandes cartes (réglage d'accessibilité)
+    final w = (big ? 52.0 : 46.0) * k, h = (big ? 74.0 : 66.0) * k;
     final card = Container(
       width: w,
       height: h,
@@ -598,13 +623,13 @@ class _GameScreenState extends State<GameScreen> {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(c.rank,
             style: TextStyle(
-                color: red ? _red : _ink,
+                color: col,
                 fontWeight: FontWeight.bold,
-                fontSize: big ? 19 : 17,
+                fontSize: (big ? 19 : 17) * k,
                 height: 1)),
         Text(kSuitSym[c.suit]!,
             style: TextStyle(
-                color: red ? _red : _ink, fontSize: big ? 17 : 15, height: 1)),
+                color: col, fontSize: (big ? 17 : 15) * k, height: 1)),
       ]),
     );
     return onTap != null
@@ -613,8 +638,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _facedown({bool big = true}) => Container(
-        width: big ? 52 : 24,
-        height: big ? 74 : 34,
+        width: big ? 52 * cardScale : 24,
+        height: big ? 74 * cardScale : 34,
         decoration: cardBackDecoration(), // dos choisi dans les réglages
       );
 
@@ -631,6 +656,7 @@ class _GameScreenState extends State<GameScreen> {
     if (e.trumpMaker == seat) meta = e.pcc ? l.mSolo : l.mMaker;
     if (muted) meta = l.mOut;
     return Opacity(
+      key: ValueKey('pod-$seat'),
       opacity: muted ? 0.55 : 1,
       child: Container(
         padding: EdgeInsets.fromLTRB(3, 3, compact ? 3 : 10, 3),
@@ -694,8 +720,8 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _trickArea() {
     return SizedBox(
-      width: 176,
-      height: 168,
+      width: 176 * cardScale,
+      height: 168 * cardScale,
       child: Stack(
         children: [
           for (final p in _doneTrick ?? e.currentTrick)
@@ -720,22 +746,25 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _handFan() {
     final h = e.hands[human];
-    if (h.isEmpty) return const SizedBox(height: 118);
+    final k = cardScale;
+    if (h.isEmpty) return SizedBox(height: 118 * k);
     return LayoutBuilder(builder: (ctx, cons) {
       final n = h.length;
       final spacing =
-          n > 1 ? ((cons.maxWidth - 60) / n).clamp(26.0, 42.0) : 0.0;
-      final totalW = spacing * (n - 1) + 56;
+          n > 1 ? ((cons.maxWidth - 60 * k) / n).clamp(26.0, 42.0 * k) : 0.0;
+      final totalW = spacing * (n - 1) + 56 * k;
       final startX = (cons.maxWidth - totalW) / 2;
       final mid = (n - 1) / 2;
       return SizedBox(
-        height: 118,
+        height: 118 * k,
         width: cons.maxWidth,
         child: Stack(
           children: [
-            for (int i = 0; i < n; i++)
+            // la carte est capturée par valeur : un 2e toucher rapide sur une
+            // carte déjà jouée ne lit plus une case de la main qui a changé
+            for (final (i, c) in List.of(h).indexed)
               Positioned(
-                key: ValueKey('deal-${h[i].key}'),
+                key: ValueKey('deal-${c.key}'),
                 left: startX + i * spacing,
                 bottom: 6.0 + (mid - (i - mid).abs()) * 3.0,
                 child: DealIn(
@@ -743,13 +772,13 @@ class _GameScreenState extends State<GameScreen> {
                   child: Transform.rotate(
                     angle: (i - mid) * 0.06,
                     child: _cardWidget(
-                      h[i],
-                      key: ValueKey(
-                          '${_canPlay(h[i]) ? 'play' : 'hand'}-${h[i].key}'),
+                      c,
+                      key:
+                          ValueKey('${_canPlay(c) ? 'play' : 'hand'}-${c.key}'),
                       big: true,
-                      playable: _canPlay(h[i]),
-                      hinted: _hinted == h[i].key,
-                      onTap: _canPlay(h[i]) ? () => _onHumanCard(h[i]) : null,
+                      playable: _canPlay(c),
+                      hinted: _hinted == c.key,
+                      onTap: _canPlay(c) ? () => _onHumanCard(c) : null,
                     ),
                   ),
                 ),
@@ -903,6 +932,23 @@ class _GameScreenState extends State<GameScreen> {
           // écran étroit : la pastille d'atout passe sous la rangée de Nord et
           // le pion du joueur se réduit à son avatar (textes longs en ta/si)
           final narrow = cons.maxWidth < 520;
+          const podH = 46.0; // hauteur d'un pion réduit (avatar)
+          final h = cons.maxHeight;
+          // écran étroit : bande libre entre la pastille d'atout et la main
+          final bandTop = narrow ? 96.0 : 0.0;
+          final youBottom = narrow ? 118 * cardScale + 4 : 8.0;
+          final bandBottom = h - youBottom;
+          // pion du joueur au-dessus de la main s'il y a la place pour lui ET
+          // pour Est/Ouest au-dessus ; sinon masqué (table basse pendant les
+          // enchères sur petit écran, surtout avec les grandes cartes)
+          final showYou = !narrow || bandBottom - bandTop >= 2 * podH + 10;
+          final sideTop = math.max(
+              0.0,
+              narrow
+                  ? (showYou
+                      ? math.min((h - podH) / 2, bandBottom - 2 * podH - 10)
+                      : (bandTop + bandBottom - podH) / 2)
+                  : (h - podH) / 2);
           return Stack(
             children: [
               Positioned(top: narrow ? 58 : 10, left: 12, child: _trumpChip()),
@@ -910,21 +956,18 @@ class _GameScreenState extends State<GameScreen> {
                   alignment: Alignment.topCenter,
                   child: Padding(
                       padding: const EdgeInsets.only(top: 6), child: _pod(2))),
-              Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: _pod(1, compact: narrow))),
-              Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: _pod(3, compact: narrow))),
-              Align(alignment: Alignment.center, child: _trickArea()),
+              // Est / Ouest : au milieu, mais toujours au-dessus du pion du
+              // joueur (table basse sur petit écran pendant les enchères)
               Positioned(
-                  left: 10,
-                  bottom: narrow ? 126 : 8, // au-dessus de la main
-                  child: _pod(0, compact: narrow)),
+                  right: 6, top: sideTop, child: _pod(1, compact: narrow)),
+              Positioned(
+                  left: 6, top: sideTop, child: _pod(3, compact: narrow)),
+              Align(alignment: Alignment.center, child: _trickArea()),
+              if (showYou)
+                Positioned(
+                    left: 10,
+                    bottom: youBottom, // au-dessus de la main
+                    child: _pod(0, compact: narrow)),
               Align(alignment: Alignment.bottomCenter, child: _handFan()),
             ],
           );

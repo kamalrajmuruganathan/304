@@ -106,7 +106,8 @@ void main() {
       final v = c.last!;
       if (v.phase == 'scored' && v.lastScore != null) {
         // le résultat de la donne s'affiche (calculé par le moteur serveur)
-        if (find.byKey(const ValueKey('score-card')).evaluate().isNotEmpty) {
+        if (find.byKey(const ValueKey('score-card')).evaluate().isNotEmpty &&
+            find.byKey(const ValueKey('deal-recap')).evaluate().isNotEmpty) {
           sawScore = true;
         }
       }

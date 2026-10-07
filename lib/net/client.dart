@@ -44,6 +44,8 @@ class GameView {
   final String? ledSuit;
   final int trickWinsNS;
   final int trickWinsEW;
+  final int pointsNS; // points de cartes ramassés pendant la donne
+  final int pointsEW;
   final List<SeatHand> hands;
   final List<TrickCardView> currentTrick;
   final List<TrickCardView>? lastTrick; // dernier pli terminé (null au début)
@@ -74,6 +76,8 @@ class GameView {
     required this.ledSuit,
     required this.trickWinsNS,
     required this.trickWinsEW,
+    required this.pointsNS,
+    required this.pointsEW,
     required this.hands,
     required this.currentTrick,
     required this.lastTrick,
@@ -129,6 +133,8 @@ class GameView {
       ledSuit: j['ledSuit'] as String?,
       trickWinsNS: (j['trickWinsNS'] as int?) ?? 0,
       trickWinsEW: (j['trickWinsEW'] as int?) ?? 0,
+      pointsNS: (j['pointsNS'] as int?) ?? 0,
+      pointsEW: (j['pointsEW'] as int?) ?? 0,
       hands: hands,
       currentTrick: trick,
       lastTrick: last == null ? null : plays(last['cards'] as List),

@@ -13,6 +13,7 @@ import '../net/client.dart';
 import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
+import 'recap.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
@@ -206,6 +207,7 @@ class OnlineGameScreen extends StatefulWidget {
 
 class _OnlineGameScreenState extends State<OnlineGameScreen> {
   GameView? v;
+  Map<String, int>? _tokensBefore;
   bool _waiting = false; // action envoyée, réponse du serveur attendue
   Timer? _unlock;
   bool _offline = false; // connexion perdue, reconnexion automatique en cours
@@ -224,9 +226,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   void initState() {
     super.initState();
     v = c.last;
+    if (v != null && v!.phase != 'scored') _tokensBefore = Map.of(v!.tokens);
     if (c.code != null && c.token != null) saveTable(c.code!, c.token!);
     _s1 = c.states.listen((view) {
       _sounds(v, view);
+      // jetons avant la donne (les jetons ne changent qu'en phase scored)
+      if (view.phase != 'scored') _tokensBefore = Map.of(view.tokens);
       if (mounted) {
         setState(() {
           v = view;
@@ -351,7 +356,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     });
   }
 
-  void _tapCard(Card card) => _send(() => _sendCard(card));
+  void _tapCard(Card card) {
+    if (v?.phase == 'play') haptic();
+    _send(() => _sendCard(card));
+  }
 
   void _sendCard(Card card) {
     final g = v!;
@@ -471,8 +479,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     return const [];
   }
 
-  Widget _card(Card card, {bool playable = false, double width = 50}) {
-    final red = card.suit == 'D' || card.suit == 'H';
+  Widget _card(Card card, {bool playable = false, double? width}) {
+    width ??= 50 * cardScale;
+    final col = suitColor(card.suit, ink: _ink, red: _red);
     final w = Container(
       width: width,
       height: width * 1.44,
@@ -486,7 +495,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       child: Text('${card.rank}\n${kSuitSym[card.suit]}',
           textAlign: TextAlign.center,
           style: TextStyle(
-              color: red ? _red : _ink,
+              color: col,
               fontWeight: FontWeight.bold,
               fontSize: width * 0.32,
               height: 1.1)),
@@ -500,8 +509,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   }
 
   Widget _back() => Container(
-        width: 50,
-        height: 72,
+        width: 50 * cardScale,
+        height: 72 * cardScale,
         decoration: cardBackDecoration(), // dos choisi dans les réglages
       );
 
@@ -530,6 +539,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   Widget _scoreCard(GameView g) {
     final sc = g.lastScore!;
     final us = g.you % 2 == 0 ? 'NS' : 'EW';
+    final them = us == 'NS' ? 'EW' : 'NS';
     final success = sc['success'] == true;
     final weWon = success ? sc['tmTeam'] == us : sc['tmTeam'] != us;
     final detail = sc['pcc'] == true
@@ -555,10 +565,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         Text(detail,
             textAlign: TextAlign.center, style: const TextStyle(color: _dim)),
         const SizedBox(height: 6),
-        Text(
-            '${l.tokens} — ${l.us} ${g.tokens[us]} · '
-            '${l.them} ${g.tokens[us == 'NS' ? 'EW' : 'NS']}',
-            style: const TextStyle(color: _txt)),
+        const SizedBox(height: 10),
+        DealRecap(
+          tricks: us == 'NS'
+              ? (g.trickWinsNS, g.trickWinsEW)
+              : (g.trickWinsEW, g.trickWinsNS),
+          points:
+              us == 'NS' ? (g.pointsNS, g.pointsEW) : (g.pointsEW, g.pointsNS),
+          tokens: (g.tokens[us]!, g.tokens[them]!),
+          delta: g.tokens[us]! - (_tokensBefore?[us] ?? g.tokens[us]!),
+        ),
       ]),
     );
   }
@@ -647,8 +663,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                   ),
                 Center(
                   child: SizedBox(
-                    width: 180,
-                    height: 170,
+                    width: 180 * cardScale,
+                    height: 170 * cardScale,
                     // pli en cours ; s'il est vide, le dernier pli terminé
                     // reste visible jusqu'à l'entame suivante
                     child: Stack(children: [
@@ -697,12 +713,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             ),
           ),
           Container(
-            height: 96,
+            height: 96 * cardScale,
             padding: const EdgeInsets.all(8),
             color: const Color(0xFF1C0F09),
             // les 8 cartes tiennent sur la largeur (pas de défilement)
             child: LayoutBuilder(builder: (context, cons) {
-              final w = ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0);
+              final w =
+                  ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0 * cardScale);
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
