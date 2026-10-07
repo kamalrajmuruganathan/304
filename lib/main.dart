@@ -4,6 +4,7 @@ import 'l10n/app_localizations.dart';
 import 'settings.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
+import 'ui/stats_screen.dart';
 import 'ui/tutorial_screen.dart';
 
 /// Langue choisie par le joueur (null = langue de l'appareil, repli anglais).
@@ -110,11 +111,20 @@ class HomeScreen extends StatelessWidget {
                   builder: (context, st, _) => st.played == 0
                       ? const SizedBox.shrink()
                       : Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text(l.statsLine(st.played, st.won, st.lost),
-                              key: const ValueKey('stats'),
-                              style: TextStyle(
-                                  color: Colors.grey.shade400, fontSize: 13)),
+                          padding: const EdgeInsets.only(top: 6),
+                          // touche : statistiques détaillées
+                          child: TextButton.icon(
+                            key: const ValueKey('open-stats'),
+                            onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) => const StatsScreen())),
+                            icon: Icon(Icons.bar_chart,
+                                size: 18, color: Colors.grey.shade400),
+                            label: Text(l.statsLine(st.played, st.won, st.lost),
+                                key: const ValueKey('stats'),
+                                style: TextStyle(
+                                    color: Colors.grey.shade400, fontSize: 13)),
+                          ),
                         ),
                 ),
                 const SizedBox(height: 40),
@@ -187,6 +197,27 @@ class HomeScreen extends StatelessWidget {
                     },
                     onSelect: setFelt,
                     keyPrefix: 'felt'),
+                const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.cardSize,
+                    notifier: cardSize,
+                    options: {'normal': l.normal, 'large': l.large},
+                    onSelect: setCardSize,
+                    keyPrefix: 'size'),
+                const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.deckColors,
+                    notifier: deckColors,
+                    options: {'two': l.twoColors, 'four': l.fourColors},
+                    onSelect: setDeckColors,
+                    keyPrefix: 'deck'),
+                const SizedBox(height: 20),
+                _OptionRow(
+                    label: l.vibration,
+                    notifier: vibrate,
+                    options: {'on': l.on, 'off': l.off},
+                    onSelect: setVibrate,
+                    keyPrefix: 'vibe'),
                 const SizedBox(height: 20),
                 _OptionRow(
                     label: l.sound,

@@ -85,13 +85,29 @@ Optionnel : publier la version Flutter web (avec multijoueur) sur Firebase Hosti
      12 testeurs pendant 14 jours** avant de pouvoir publier. Prévois ta famille/tes amis.
    - Un compte **organisation** (ex. au nom de ta micro-entreprise, numéro D-U-N-S requis)
      n'a pas cette contrainte.
-2. Créer la clé de signature (une fois, **à sauvegarder précieusement**) :
+2. Créer la **clé d'upload** (une fois, sur PC avec Java installé ; **à sauvegarder précieusement**,
+   par ex. dans un gestionnaire de mots de passe) :
    ```bash
-   keytool -genkey -v -keystore ~/game304-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   base64 -w0 upload-keystore.jks > upload-keystore.b64     # Windows : certutil -encode upload-keystore.jks upload-keystore.b64
    ```
-   puis suivre [la doc Flutter « Sign the app »](https://docs.flutter.dev/deployment/android#sign-the-app)
-   (`android/key.properties`, déjà ignoré par Git).
-3. Construire : `./deploy/mobile.sh wss://…/ws` → envoyer `app-release.aab` dans la Play Console.
+   Puis sur GitHub : **Settings → Secrets and variables → Actions → New repository secret**, créer :
+   | Secret | Valeur |
+   |---|---|
+   | `ANDROID_KEYSTORE_BASE64` | contenu de `upload-keystore.b64` (une seule ligne ; avec certutil, retirer les lignes BEGIN/END) |
+   | `ANDROID_KEYSTORE_PASSWORD` | mot de passe du keystore |
+   | `ANDROID_KEY_ALIAS` | `upload` |
+   | `ANDROID_KEY_PASSWORD` | mot de passe de la clé (souvent le même) |
+
+   Le fichier `.jks` et les mots de passe ne doivent **jamais** être commités (`*.keystore`,
+   `*.jks` et `key.properties` sont ignorés par Git). Avec **Play App Signing** (par défaut),
+   Google garde la clé finale : une clé d'upload perdue peut être réinitialisée via le support.
+3. Construire : à chaque fusion sur `main`, le workflow **APK Android** produit aussi
+   `304.aab` (signé avec la clé d'upload) et le joint à la release GitHub. Le téléverser dans la
+   Play Console (Test fermé → Créer une release). Le `versionCode` = numéro d'exécution du
+   workflow (toujours croissant). En local : `android/key.properties` (voir
+   [la doc Flutter](https://docs.flutter.dev/deployment/android#sign-the-app)) puis
+   `flutter build appbundle`.
 4. Remplir la fiche avec `docs/STORE_LISTING.md` et l'URL de confidentialité (étape 2).
 
 ## 5. iPhone — App Store

@@ -291,5 +291,55 @@
   "on": "On",
   "off": "Off",
   "cutIndicator": "Cut with the face-down trump",
-  "hintCut": "Hint: cut with the face-down trump."
+  "hintCut": "Hint: cut with the face-down trump.",
+  "cardSize": "Card size",
+  "large": "Large",
+  "deckColors": "Suit colours",
+  "twoColors": "2 colours",
+  "fourColors": "4 colours",
+  "vibration": "Vibration",
+  "statsTitle": "Statistics",
+  "dealsPlayed": "Deals played",
+  "dealsWonPct": "Deals won",
+  "yourBids": "Your bids",
+  "tierLt200": "Bid 160 to 190",
+  "tierLt250": "Bid 200 to 240",
+  "tierGe250": "Bid 250 and above",
+  "madeOf": "{made} made out of {taken}",
+  "@madeOf": {
+    "placeholders": {
+      "made": {
+        "type": "int"
+      },
+      "taken": {
+        "type": "int"
+      }
+    }
+  },
+  "capsMade": "Caps made (8 tricks)",
+  "gamesRecord": "Games: {won} won · {lost} lost",
+  "@gamesRecord": {
+    "placeholders": {
+      "won": {
+        "type": "int"
+      },
+      "lost": {
+        "type": "int"
+      }
+    }
+  },
+  "streaks": "Current streak: {now} · best: {best}",
+  "@streaks": {
+    "placeholders": {
+      "now": {
+        "type": "int"
+      },
+      "best": {
+        "type": "int"
+      }
+    }
+  },
+  "resetStats": "Reset",
+  "noStats": "No deals played yet.",
+  "points": "Points"
 }

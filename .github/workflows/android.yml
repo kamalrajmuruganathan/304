@@ -1,8 +1,16 @@
 name: APK Android
 
-# Construit un APK installable (signé avec la clé de debug : pour les tests,
-# PAS pour le Play Store). Sur main, il est publié comme release GitHub :
-#   https://github.com/kamalrajmuruganathan/304/releases/latest/download/304.apk
+# 1) APK de test (installable directement) : signé avec la clé de debug, sauf
+#    si la clé d'upload est configurée (secrets ci-dessous). Sur main, publié
+#    comme release GitHub :
+#    https://github.com/kamalrajmuruganathan/304/releases/latest/download/304.apk
+# 2) Paquet Play Store (.aab) : construit SEULEMENT si la clé d'upload est
+#    configurée dans Settings → Secrets and variables → Actions :
+#      ANDROID_KEYSTORE_BASE64   (fichier upload-keystore.jks encodé en base64)
+#      ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#    Le .aab est joint à la release (à téléverser dans la Play Console).
+#    Numéro de version (versionCode) = numéro d'exécution du workflow, toujours
+#    croissant comme l'exige Google Play.
 on:
   push:
     branches: [ main ]
@@ -15,6 +23,9 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      SERVER_URL: ${{ vars.SERVER_URL || 'wss://three04-bivu.onrender.com/ws' }}
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -24,27 +35,52 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Construire l'APK
+      - name: Clé d'upload (si configurée)
+        if: env.HAS_KEY == 'true'
         env:
-          SERVER_URL: ${{ vars.SERVER_URL || 'wss://three04-bivu.onrender.com/ws' }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+      - name: Construire l'APK (et le .aab si la clé est configurée)
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           flutter pub get
-          flutter build apk --release --dart-define=SERVER_URL="$SERVER_URL"
+          flutter build apk --release --build-number=${{ github.run_number }} \
+            --dart-define=SERVER_URL="$SERVER_URL"
           cp build/app/outputs/flutter-apk/app-release.apk 304.apk
           ls -la 304.apk
+          if [ "$HAS_KEY" = "true" ]; then
+            flutter build appbundle --release --build-number=${{ github.run_number }} \
+              --dart-define=SERVER_URL="$SERVER_URL"
+            cp build/app/outputs/bundle/release/app-release.aab 304.aab
+            ls -la 304.aab
+          else
+            echo "Pas de clé d'upload : .aab Play Store non construit (voir docs/MISE_EN_LIGNE.md)."
+          fi
       - uses: actions/upload-artifact@v4
         with:
-          name: 304-apk
-          path: 304.apk
+          name: 304-android
+          path: |
+            304.apk
+            304.aab
+          if-no-files-found: warn
       - name: Publier la release (main uniquement)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-${{ github.run_number }}
-          name: 304 Android (test) n°${{ github.run_number }}
+          name: 304 Android n°${{ github.run_number }}
           body: |
-            APK de test, signé avec la clé de debug (pas pour le Play Store).
-            Sur Android : télécharger 304.apk, l'ouvrir, autoriser l'installation
-            depuis cette source. Serveur : ${{ vars.SERVER_URL || 'wss://three04-bivu.onrender.com/ws' }}
-          files: 304.apk
+            APK installable directement sur Android : télécharger 304.apk, l'ouvrir,
+            autoriser l'installation depuis cette source.
+            ${{ env.HAS_KEY == 'true' && '304.aab : paquet signé avec la clé d''upload, à téléverser dans la Play Console.' || 'APK signé avec la clé de debug (test), pas de .aab : clé d''upload non configurée.' }}
+            Serveur : ${{ env.SERVER_URL }}
+          files: |
+            304.apk
+            304.aab
+          fail_on_unmatched_files: false
           make_latest: true

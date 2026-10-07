@@ -167,3 +167,23 @@ Tutoriel « Apprendre le 304 » (`lib/ui/tutorial_screen.dart`) : sections TA/SI
 | `send` | Envoyer | Send | அனுப்பு | යවන්න |
 | `cutIndicator` | Couper avec l'atout posé | Cut with the face-down trump | வைத்த துருப்பால் வெட்டு | තැබූ තුරුම්පුවෙන් කපන්න |
 | `hintCut` | Conseil : coupez avec l'atout posé. | Hint: cut with the face-down trump. | குறிப்பு: வைத்த துருப்பால் வெட்டுங்கள். | ඉඟිය: තැබූ තුරුම්පුවෙන් කපන්න. |
+| `cardSize` | Taille des cartes | Card size | சீட்டு அளவு | කාඩ්පත් ප්‍රමාණය |
+| `large` | Grandes | Large | பெரியது | විශාල |
+| `deckColors` | Couleurs des enseignes | Suit colours | வகை நிறங்கள் | වර්ග වර්ණ |
+| `twoColors` | 2 couleurs | 2 colours | 2 நிறங்கள் | වර්ණ 2 |
+| `fourColors` | 4 couleurs | 4 colours | 4 நிறங்கள் | වර්ණ 4 |
+| `vibration` | Vibrations | Vibration | அதிர்வு | කම්පනය |
+| `statsTitle` | Statistiques | Statistics | புள்ளிவிவரங்கள் | සංඛ්‍යාලේඛන |
+| `dealsPlayed` | Donnes jouées | Deals played | ஆடிய பகிர்வுகள் | ක්‍රීඩා කළ බෙදීම් |
+| `dealsWonPct` | Donnes gagnées | Deals won | வென்ற பகிர்வுகள் | ජයගත් බෙදීම් |
+| `yourBids` | Vos prises | Your bids | உங்கள் ஏலங்கள் | ඔබේ ලංසු |
+| `tierLt200` | Enchère 160 à 190 | Bid 160 to 190 | ஏலம் 160 முதல் 190 | ලංසුව 160 සිට 190 |
+| `tierLt250` | Enchère 200 à 240 | Bid 200 to 240 | ஏலம் 200 முதல் 240 | ලංසුව 200 සිට 240 |
+| `tierGe250` | Enchère 250 et plus | Bid 250 and above | ஏலம் 250 மற்றும் மேல் | ලංසුව 250 සහ ඉහළ |
+| `madeOf` | {made} réussies sur {taken} | {made} made out of {taken} | {taken} இல் {made} வெற்றி | {taken} න් {made} ක් ජය |
+| `capsMade` | Caps réalisés (8 plis) | Caps made (8 tricks) | Caps (8 கைகள்) | Caps (අත් 8) |
+| `gamesRecord` | Parties : {won} gagnées · {lost} perdues | Games: {won} won · {lost} lost | ஆட்டங்கள்: {won} வெற்றி · {lost} தோல்வி | ක්‍රීඩා: ජය {won} · පරාජය {lost} |
+| `streaks` | Série en cours : {now} · meilleure : {best} | Current streak: {now} · best: {best} | தொடர் வெற்றி: {now} · சிறந்தது: {best} | දැන් ජය පෙළ: {now} · හොඳම: {best} |
+| `resetStats` | Remettre à zéro | Reset | மீட்டமை | යළි සකසන්න |
+| `noStats` | Aucune donne jouée pour l'instant. | No deals played yet. | இன்னும் பகிர்வு எதுவும் ஆடவில்லை. | තවම බෙදීම් ක්‍රීඩා කර නැත. |
+| `points` | Points | Points | புள்ளிகள் | ලකුණු |

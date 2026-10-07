@@ -125,6 +125,25 @@ void main() {
     expect(soundEnabled, isFalse);
   });
 
+  testWidgets('accueil : grandes cartes, 4 couleurs, vibrations', (t) async {
+    addTearDown(() {
+      cardSize.value = 'normal';
+      deckColors.value = 'two';
+      vibrate.value = 'on';
+    });
+    await t.pumpWidget(const Game304App(locale: Locale('fr')));
+    for (final k in ['size-large', 'deck-four', 'vibe-off']) {
+      await t.ensureVisible(find.byKey(ValueKey(k)));
+      await t.tap(find.byKey(ValueKey(k)));
+      await t.pumpAndSettle();
+    }
+    expect(cardScale, 1.25);
+    expect(
+        suitColor('D', ink: Colors.black, red: Colors.red), isNot(Colors.red));
+    expect(suitColor('H', ink: Colors.black, red: Colors.red), Colors.red);
+    expect(vibrate.value, 'off');
+  });
+
   testWidgets('accueil : vitesse des bots', (t) async {
     addTearDown(() => botSpeed.value = 1);
     await t.pumpWidget(const Game304App(locale: Locale('fr')));

@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Clé d'upload Play Store : android/key.properties (jamais commité) ou, en CI,
+// variables d'environnement remplies depuis les secrets GitHub (voir
+// docs/MISE_EN_LIGNE.md). Sans clé : signature de debug (APK de test).
+val keyProps = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun keyValue(name: String, env: String): String? =
+    (keyProps.getProperty(name) ?: System.getenv(env))?.takeIf { it.isNotBlank() }
+val uploadStoreFile = keyValue("storeFile", "ANDROID_KEYSTORE_PATH")
 
 android {
     namespace = "com.kjtech.game304"
@@ -15,7 +28,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.kjtech.game304"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -29,11 +41,23 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (uploadStoreFile != null) {
+            create("upload") {
+                storeFile = file(uploadStoreFile!!)
+                storePassword = keyValue("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = keyValue("keyAlias", "ANDROID_KEY_ALIAS")
+                keyPassword = keyValue("keyPassword", "ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (uploadStoreFile != null)
+                signingConfigs.getByName("upload")
+            else
+                signingConfigs.getByName("debug") // APK de test uniquement
         }
     }
 }
