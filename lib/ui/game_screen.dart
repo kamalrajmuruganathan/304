@@ -30,6 +30,10 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
+  /// Taille des cartes : réglage « grandes cartes » × agrandissement automatique
+  /// sur grand écran.
+  double get _k => cardScale * autoCardScale(MediaQuery.sizeOf(context));
+
   final Engine e = Engine();
   String _msg = '';
   String get msg => _msg;
@@ -524,6 +528,11 @@ class _GameScreenState extends State<GameScreen> {
         takerIsMe: e.trumpMaker == human,
         gameWinner: over ? r['gameWinner'] as String? : null);
     playSfx(nsWon ? Sfx.win : Sfx.lose);
+    // bandeau sous la fenêtre : le résultat, plus « Nord joue… »
+    setState(() {
+      msg = nsWon ? l.dealWon : l.dealLost;
+      actions = [];
+    });
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -595,7 +604,7 @@ class _GameScreenState extends State<GameScreen> {
       bool hinted = false,
       VoidCallback? onTap}) {
     final col = suitColor(c.suit, ink: _ink, red: _red);
-    final k = cardScale; // grandes cartes (réglage d'accessibilité)
+    final k = _k; // grandes cartes (réglage d'accessibilité)
     final w = (big ? 52.0 : 46.0) * k, h = (big ? 74.0 : 66.0) * k;
     final card = Container(
       width: w,
@@ -638,8 +647,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _facedown({bool big = true}) => Container(
-        width: big ? 52 * cardScale : 24,
-        height: big ? 74 * cardScale : 34,
+        width: big ? 52 * _k : 24,
+        height: big ? 74 * _k : 34,
         decoration: cardBackDecoration(), // dos choisi dans les réglages
       );
 
@@ -720,8 +729,8 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _trickArea() {
     return SizedBox(
-      width: 176 * cardScale,
-      height: 168 * cardScale,
+      width: 176 * _k,
+      height: 168 * _k,
       child: Stack(
         children: [
           for (final p in _doneTrick ?? e.currentTrick)
@@ -746,7 +755,7 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _handFan() {
     final h = e.hands[human];
-    final k = cardScale;
+    final k = _k;
     if (h.isEmpty) return SizedBox(height: 118 * k);
     return LayoutBuilder(builder: (ctx, cons) {
       final n = h.length;
@@ -936,7 +945,7 @@ class _GameScreenState extends State<GameScreen> {
           final h = cons.maxHeight;
           // écran étroit : bande libre entre la pastille d'atout et la main
           final bandTop = narrow ? 96.0 : 0.0;
-          final youBottom = narrow ? 118 * cardScale + 4 : 8.0;
+          final youBottom = narrow ? 118 * _k + 4 : 8.0;
           final bandBottom = h - youBottom;
           // pion du joueur au-dessus de la main s'il y a la place pour lui ET
           // pour Est/Ouest au-dessus ; sinon masqué (table basse pendant les

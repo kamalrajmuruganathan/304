@@ -18,6 +18,10 @@ import 'recap.dart';
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
 
+/// Adresse utilisée par le salon (modifiable par les tests, qui lancent le
+/// serveur sur un port libre).
+String serverUrl = kServerUrl;
+
 const _gold = Color(0xFFE3C565);
 const _goldD = Color(0xFFA5822F);
 const _cream = Color(0xFFF6F1E2);
@@ -70,7 +74,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     // Réveille le serveur dès l'ouverture du salon (hébergement gratuit qui
     // s'endort) : il est prêt quand le joueur a fini de taper son nom.
     try {
-      final ch = WebSocketChannel.connect(Uri.parse(kServerUrl));
+      final ch = WebSocketChannel.connect(Uri.parse(serverUrl));
       ch.stream.listen((_) {}, onError: (_) {}, cancelOnError: true);
       ch.ready.then((_) => ch.sink.close(), onError: (_) {});
     } catch (_) {}
@@ -88,7 +92,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted && _busy) setState(() => _slow = true);
     });
-    final c = GameClient(kServerUrl);
+    final c = GameClient(serverUrl);
     _sub = c.events.listen((m) {
       if (!mounted) return;
       if (m['t'] == 'joined' || m['t'] == 'reconnected') {
@@ -104,7 +108,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           _busy = false;
           _error = m['t'] == 'error'
               ? serverErrorText(AppLocalizations.of(context)!, m)
-              : AppLocalizations.of(context)!.serverUnreachable(kServerUrl);
+              : AppLocalizations.of(context)!.serverUnreachable(serverUrl);
         });
       }
     });
@@ -206,6 +210,10 @@ class OnlineGameScreen extends StatefulWidget {
 }
 
 class _OnlineGameScreenState extends State<OnlineGameScreen> {
+  /// Taille des cartes : réglage « grandes cartes » × agrandissement automatique
+  /// sur grand écran.
+  double get _k => cardScale * autoCardScale(MediaQuery.sizeOf(context));
+
   GameView? v;
   Map<String, int>? _tokensBefore;
   bool _waiting = false; // action envoyée, réponse du serveur attendue
@@ -480,7 +488,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   }
 
   Widget _card(Card card, {bool playable = false, double? width}) {
-    width ??= 50 * cardScale;
+    width ??= 50 * _k;
     final col = suitColor(card.suit, ink: _ink, red: _red);
     final w = Container(
       width: width,
@@ -509,8 +517,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   }
 
   Widget _back() => Container(
-        width: 50 * cardScale,
-        height: 72 * cardScale,
+        width: 50 * _k,
+        height: 72 * _k,
         decoration: cardBackDecoration(), // dos choisi dans les réglages
       );
 
@@ -663,8 +671,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                   ),
                 Center(
                   child: SizedBox(
-                    width: 180 * cardScale,
-                    height: 170 * cardScale,
+                    width: 180 * _k,
+                    height: 170 * _k,
                     // pli en cours ; s'il est vide, le dernier pli terminé
                     // reste visible jusqu'à l'entame suivante
                     child: Stack(children: [
@@ -713,13 +721,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             ),
           ),
           Container(
-            height: 96 * cardScale,
+            height: 96 * _k,
             padding: const EdgeInsets.all(8),
             color: const Color(0xFF1C0F09),
             // les 8 cartes tiennent sur la largeur (pas de défilement)
             child: LayoutBuilder(builder: (context, cons) {
-              final w =
-                  ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0 * cardScale);
+              final w = ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0 * _k);
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

@@ -60,6 +60,7 @@ test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup
 test/fixtures/prototype_trace.json.gz trace de référence produite par tools/diff-test/trace.js
 test/ui_solo_test.dart     test d'interface Flutter : donnes jouées via les boutons/cartes (3 tailles d'écran)
 test/ui_online_test.dart   test d'interface en ligne (en tamoul) contre le vrai serveur (lancé par le test)
+                           + salon à l'écran (créer en cingalais, rejoindre par code, code inconnu refusé)
 test/server_test.dart      serveur par WebSocket : codes d'erreur, table complète, ordre des sièges, nettoyage
 test/i18n_test.dart        cohérence des ARB + donnes jouées en en/ta/si sans texte français + sélecteur de langue
 tools/diff-test/trace.js   génère / vérifie (--check) la trace de référence du prototype
@@ -77,11 +78,13 @@ docs/
   ARCHITECTURE.md          ADR multijoueur
   PROTOCOL.md              protocole client↔serveur
   MISE_EN_LIGNE.md         guide pas à pas (étapes, coûts, pièges) — À SUIVRE POUR PUBLIER
-  STORE_LISTING.md         fiche store 4 langues + réponses aux questionnaires
+  STORE_LISTING.md         fiche store 4 langues (descriptions longues fr/en/ta/si) + réponses aux questionnaires
+  PLAY_CONSOLE.md          publication Google Play pas à pas : contenu, IARC, sécurité des données, test fermé
   TRANSLATIONS.md          106 termes FR/EN/TA/SI (prototype)
   DEPLOY.md                notes de déploiement (ancien, voir MISE_EN_LIGNE.md)
   privacy.html             politique de confidentialité FR/EN (chat de table déclaré)
-  store/                   visuels Play/App Store : icon-512/1024, feature-1024x500, screenshots/{fr,en}
+  store/                   visuels Play/App Store : icon-512/1024, feature-1024x500,
+                           screenshots/{fr,en,ta,si} (téléphone) et screenshots/tablet7|tablet10/{fr,en}
 .github/workflows/
   ci.yml                   flutter analyze --no-fatal-infos, flutter test, test UI prototype (en/ta/si)
   pages.yml                GitHub Pages : prototype (/304/), app Flutter web (/304/app/, SERVER_URL = variable
@@ -183,17 +186,17 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 63/63 (double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 66/66 (tablette portrait 800×1280, salon créer/rejoindre à l'écran, double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
-| UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. Coupure réseau simulée → bandeau puis reconnexion automatique ; envoi d'un message de chat. ⚠️ Salon (créer/rejoindre) non testé à l'écran |
+| UI Flutter en ligne (online_screen, client) | ✅ **Testée contre le vrai serveur** (`test/ui_online_test.dart`) : table créée, démarrée, 2 donnes jouées via l'UI contre 3 bots serveur, 0 erreur ; relance après fin de partie vérifiée par client WebSocket. Coupure réseau simulée → bandeau puis reconnexion automatique ; envoi d'un message de chat. **Salon testé à l'écran** (08/10/2026) : créer une table (en cingalais), un ami la rejoint en partenaire (siège 2), démarrage ; rejoindre par code tapé en minuscules ; code inconnu → erreur traduite. Adresse du salon modifiable par les tests (`serverUrl`) |
 | Dockerfile serveur | ✅ Image construite et lancée (05/10/2026) : `dart:stable` + `deploy/server.pubspec.yaml` (Dart pur, sans Flutter), exécution `scratch`, **16,3 Mo** ; conteneur testé : `/health` ok, partie complète par WebSocket jusqu'à 0 jeton, relance, 20/20 coups illégaux rejetés |
-| Serveur en ligne | ✅ **Render.com, offre gratuite, sans carte bancaire** (05/10/2026) : service Docker `three04` sur la branche `claude/game304-dart-compile-kj2ik4`, https://three04-bivu.onrender.com (`/health`, WebSocket `wss://…/ws`). Build + démarrage OK dans les logs Render. **À faire par Kamal : dans Render, passer la branche du service sur `main`.** ⚠️ Non testé depuis la session Claude Code (domaine bloqué par la politique réseau de l'environnement). S'endort après 15 min sans joueur (réveil ≈ 30–60 s ; le salon réveille le serveur à l'ouverture) |
+| Serveur en ligne | ✅ **Render.com, offre gratuite, sans carte bancaire** (05/10/2026) : service Docker `three04` sur la branche `claude/game304-dart-compile-kj2ik4`, https://three04-bivu.onrender.com (`/health`, WebSocket `wss://…/ws`). Build + démarrage OK dans les logs Render. **À faire par Kamal : dans Render, passer la branche du service sur `main`** (tant que ce n'est pas fait, Render déploie chaque push sur la branche de travail — y compris du code pas encore fusionné ; après chaque fusion la branche est remise au niveau de `main`). ⚠️ Non testé depuis la session Claude Code (domaine bloqué par la politique réseau de l'environnement). S'endort après 15 min sans joueur (réveil ≈ 30–60 s ; le salon réveille le serveur à l'ouverture) |
 | GitHub Pages | ✅ Prototype https://kamalrajmuruganathan.github.io/304/ et **app Flutter https://kamalrajmuruganathan.github.io/304/app/** publiés par `pages.yml` (05/10/2026) |
-| APK Android | ✅ Construit par `android.yml` à chaque PR et publié en release sur `main` (release `android-5`, 52 Mo, signé clé de debug = test, pas Play Store) : https://github.com/kamalrajmuruganathan/304/releases/latest/download/304.apk. ⚠️ Jamais installé sur un vrai téléphone (SDK Android injoignable depuis la session) |
+| APK Android | ✅ Construit par `android.yml` à chaque PR et publié en release sur `main` (release `android-N`, ~54 Mo, signé clé de debug tant que la clé d'upload n'est pas dans les secrets ; `.aab` Play Store joint dès qu'elle l'est) : https://github.com/kamalrajmuruganathan/304/releases/latest/download/304.apk. ⚠️ Jamais installé sur un vrai téléphone (SDK Android injoignable depuis la session) |
 | Scripts deploy (`server.sh`, `web.sh`, `mobile.sh`) | ⚠️ Jamais exécutés : Kamal ne veut **pas de carte bancaire** → pas de Cloud Run/Firebase ; Render + GitHub Pages à la place |
-| CI GitHub | ✅ Verte sur `main` après les PR #1, #2, #3 (jobs `test`, `prototype-ui`, `apk`) |
+| CI GitHub | ✅ Verte sur `main` après les PR #1 à #5 (jobs `test`, `prototype-ui`, `apk`) |
 
 Validation faite le 03/10/2026 (session Claude Code, branche `claude/game304-dart-compile-kj2ik4`).
 Commandes : `flutter analyze`, `flutter test`, `flutter build web`, `dart compile exe bin/server.dart`,
@@ -278,6 +281,10 @@ JS, blocage, ou texte non traduit après bascule de langue.
   vibration légère au jeu d'une carte, sans effet sur le web), préparation Play Store (signature
   par clé d'upload via secrets GitHub, `.aab` dans la release si la clé est configurée, visuels
   `docs/store/`). **Reste à Kamal** : créer la clé d'upload et les 4 secrets (MISE_EN_LIGNE §4).
+- **Fait (08/10/2026)** : cartes agrandies automatiquement sur grand écran (`autoCardScale` : min(l/390,
+  h/844) borné à 1–1,7, multiplié par le réglage « grandes cartes » ; téléphone et tablette paysage
+  inchangés) ; bandeau solo qui affichait « Nord joue… » sous la fenêtre de résultat → affiche le
+  résultat ; captures store ta/si et tablettes 7"/10" ; guide `docs/PLAY_CONSOLE.md`.
 - ~~Tables jamais nettoyées~~ → **fait** : table sans joueur connecté supprimée après `ROOM_TTL_SECONDS`
   (1800 par défaut, balayage toutes les `ROOM_SWEEP_SECONDS`=300). Toujours une seule instance.
 - ~~privacy.html à compléter~~ → fait (date, hébergeurs Render/GitHub Pages/Google Fonts, contact = issues GitHub ;
@@ -359,9 +366,13 @@ JS, blocage, ou texte non traduit après bascule de langue.
   pion « Vous » chevauchait celui d'Ouest. Corrigé : Est/Ouest placés dans la bande libre au-dessus
   du pion du joueur, pion du joueur masqué s'il n'y a pas la place ; `playSolo` vérifie à chaque
   étape qu'aucun pion n'en chevauche un autre.
+- Test « animation de distribution » instable : une redistribution par un bot (600 ms) relançait
+  l'animation avant la vérification à 1 s → vérification à 500 ms (animation la plus longue : 470 ms).
 - Captures d'écran du build web : `flutter build web --no-web-resources-cdn` (sinon CanvasKit vient
   d'un CDN injoignable ici), Chromium via le proxy, accessibilité Flutter activée
-  (`flt-semantics-placeholder`) pour cliquer les boutons par leur texte.
+  (`flt-semantics-placeholder`) pour cliquer les boutons par leur texte. Les cartes ne sont pas des
+  nœuds d'accessibilité : les toucher par coordonnées (rangée au-dessus du panneau du bas). Sans le
+  proxy, les polices tamoule/cingalaise (Google Fonts) ne chargent pas → carrés.
 
 ## 12. Prototype — repères dans `prototype/304.html`
 
