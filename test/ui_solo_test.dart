@@ -328,7 +328,9 @@ void main() {
     // les 4 cartes arrivent en cascade : en cours d'apparition…
     expect(opacities(), hasLength(4));
     expect(opacities().where((o) => o < 1), isNotEmpty);
-    await tester.pump(const Duration(seconds: 1));
+    // animation la plus longue : 260 + 3×70 = 470 ms ; vérifié avant le
+    // premier coup d'un bot (600 ms), qui peut redistribuer et relancer l'animation
+    await tester.pump(const Duration(milliseconds: 500));
     // … puis toutes posées
     expect(opacities().every((o) => o == 1), isTrue);
     // écran quitté : laisse expirer les minuteurs des bots
@@ -353,6 +355,16 @@ void main() {
     expect(
         await playSolo(tester, size: const Size(360, 640), deals: 10, seed: 2),
         10);
+  });
+
+  testWidgets(
+      'solo : 6 donnes sur tablette portrait (800×1280, cartes agrandies)',
+      (tester) async {
+    expect(autoCardScale(const Size(800, 1280)), greaterThan(1.4));
+    expect(autoCardScale(const Size(390, 844)), 1.0);
+    expect(
+        await playSolo(tester, size: const Size(800, 1280), deals: 6, seed: 9),
+        6);
   });
 
   testWidgets('solo : 10 donnes sur tablette paysage (1024×768)',

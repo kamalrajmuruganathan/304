@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/net/client.dart';
 import 'package:game304/ui/online_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 late Process server;
 late int port;
@@ -191,4 +192,148 @@ void main() {
     await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 200)));
   }, timeout: const Timeout(Duration(minutes: 4)));
+
+  testWidgets(
+      'salon (cingalais) : créer une table à l\'écran, un ami la rejoint',
+      (tester) async {
+    HttpOverrides.global = null;
+    SharedPreferences.setMockInitialValues({});
+    serverUrl = 'ws://127.0.0.1:$port/ws';
+    final l = lookupAppLocalizations(const Locale('si'));
+    await tester.pumpWidget(const MaterialApp(
+        locale: Locale('si'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: OnlineLobbyScreen()));
+    await tester.enterText(find.byType(TextField).first, 'Kamal');
+    await tester.tap(find.text(l.createTable));
+    // connexion réelle : laisse passer le temps puis reconstruit l'écran
+    for (var i = 0;
+        i < 100 && find.byType(OnlineGameScreen).evaluate().isEmpty;
+        i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(OnlineGameScreen), findsOneWidget,
+        reason: 'table ouverte après « créer »');
+    final host =
+        tester.widget<OnlineGameScreen>(find.byType(OnlineGameScreen)).client;
+    expect(host.seat, 0);
+    final code = host.code!;
+    expect(find.text(l.shareCode(code)), findsOneWidget);
+
+    // un ami rejoint avec le code : il devient le partenaire (siège 2)
+    final friend = GameClient('ws://127.0.0.1:$port/ws');
+    late StreamSubscription<Map> sub;
+    await tester.runAsync(() async {
+      // écouteur créé hors de la zone de test (sinon il ne tourne qu'aux pump)
+      final joined = Completer<void>();
+      sub = friend.events.listen((m) {
+        if (m['t'] == 'joined' && !joined.isCompleted) joined.complete();
+      });
+      friend
+        ..connect()
+        ..join(code, 'Ami');
+      await joined.future.timeout(const Duration(seconds: 10));
+    });
+    expect(friend.seat, 2);
+    // le nom de l'ami apparaît à la table de l'hôte
+    for (var i = 0;
+        i < 50 && find.textContaining('Ami').evaluate().isEmpty;
+        i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.textContaining('Ami'), findsWidgets);
+
+    // l'hôte démarre la partie depuis l'écran
+    await tester.tap(find.text(l.start));
+    for (var i = 0; i < 50 && host.last?.started != true; i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(host.last?.started, isTrue);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox()); // dispose -> ferme la socket
+    await tester.pump(const Duration(seconds: 5)); // minuteur « réveil lent »
+    await tester.runAsync(() async {
+      await sub.cancel();
+      friend.dispose();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+  }, timeout: const Timeout(Duration(minutes: 2)));
+
+  testWidgets('salon : rejoindre par le code à l\'écran, code inconnu refusé',
+      (tester) async {
+    HttpOverrides.global = null;
+    SharedPreferences.setMockInitialValues({});
+    serverUrl = 'ws://127.0.0.1:$port/ws';
+    final l = lookupAppLocalizations(const Locale('en'));
+    // table créée par un autre joueur
+    final other = GameClient('ws://127.0.0.1:$port/ws');
+    late StreamSubscription<Map> sub;
+    await tester.runAsync(() async {
+      final created = Completer<void>();
+      sub = other.events.listen((m) {
+        if (m['t'] == 'joined' && !created.isCompleted) created.complete();
+      });
+      other
+        ..connect()
+        ..create('Hôte');
+      await created.future.timeout(const Duration(seconds: 10));
+    });
+    final code = other.code!;
+
+    await tester.pumpWidget(const MaterialApp(
+        locale: Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: OnlineLobbyScreen()));
+    Future<void> settleNet() async {
+      for (var i = 0; i < 30; i++) {
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 100)));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    // code inconnu : message d'erreur traduit, on reste au salon
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(1), 'ZZZZ');
+    await tester.pump();
+    await tester.ensureVisible(find.text(l.join));
+    await tester.tap(find.text(l.join));
+    await settleNet();
+    expect(find.text(l.errTableNotFound), findsOneWidget);
+    expect(find.byType(OnlineGameScreen), findsNothing);
+
+    // bon code (en minuscules : mis en majuscules par l'app)
+    await tester.enterText(fields.at(1), code.toLowerCase());
+    await tester.pump();
+    await tester.tap(find.text(l.join));
+    for (var i = 0;
+        i < 100 && find.byType(OnlineGameScreen).evaluate().isEmpty;
+        i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final me =
+        tester.widget<OnlineGameScreen>(find.byType(OnlineGameScreen)).client;
+    expect(me.code, code);
+    expect(me.seat, 2, reason: 'le 2e joueur est le partenaire');
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox()); // dispose -> ferme la socket
+    await tester.pump(const Duration(seconds: 5)); // minuteur « réveil lent »
+    await tester.runAsync(() async {
+      await sub.cancel();
+      other.dispose();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }

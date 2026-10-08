@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -98,6 +99,12 @@ final ValueNotifier<String> vibrate = ValueNotifier<String>('on');
 
 /// Facteur d'agrandissement des cartes de la main et du pli.
 double get cardScale => cardSize.value == 'large' ? 1.25 : 1.0;
+
+/// Agrandissement automatique selon l'écran (tablette en portrait : la table
+/// est grande, les cartes taille téléphone y paraissent minuscules). Référence
+/// : téléphone 390×844 → 1 ; jamais en dessous de 1 ni au-dessus de 1,7.
+double autoCardScale(Size screen) =>
+    math.min(screen.width / 390, screen.height / 844).clamp(1.0, 1.7);
 
 /// Couleur d'une enseigne. En jeu 4 couleurs (aide aux daltoniens et
 /// lecture rapide) : ♠ noir, ♥ rouge, ♦ bleu, ♣ vert.
