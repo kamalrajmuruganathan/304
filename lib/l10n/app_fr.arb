@@ -159,5 +159,9 @@
   "streaks": "Série en cours : {now} · meilleure : {best}",
   "resetStats": "Remettre à zéro",
   "noStats": "Aucune donne jouée pour l'instant.",
-  "points": "Points"
+  "points": "Points",
+  "leaveGame": "Quitter la partie ?",
+  "leave": "Quitter",
+  "stay": "Rester",
+  "backHome": "Retour à l'accueil"
 }

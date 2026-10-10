@@ -187,3 +187,7 @@ Tutoriel « Apprendre le 304 » (`lib/ui/tutorial_screen.dart`) : sections TA/SI
 | `resetStats` | Remettre à zéro | Reset | மீட்டமை | යළි සකසන්න |
 | `noStats` | Aucune donne jouée pour l'instant. | No deals played yet. | இன்னும் பகிர்வு எதுவும் ஆடவில்லை. | තවම බෙදීම් ක්‍රීඩා කර නැත. |
 | `points` | Points | Points | புள்ளிகள் | ලකුණු |
+| `leaveGame` | Quitter la partie ? | Leave the game? | ஆட்டத்திலிருந்து வெளியேறவா? | ක්‍රීඩාවෙන් ඉවත් වන්නද? |
+| `leave` | Quitter | Leave | வெளியேறு | ඉවත් වන්න |
+| `stay` | Rester | Stay | தொடர் | රැඳී සිටින්න |
+| `backHome` | Retour à l'accueil | Back to home | முகப்புக்குத் திரும்பு | මුල් පිටුවට |

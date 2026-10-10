@@ -8,6 +8,7 @@ import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
+import 'leave.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
 const _gold = Color(0xFFE3C565);
@@ -68,7 +69,14 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     e.onLog = (_) {};
+    keepScreenOn(true); // l'écran ne s'éteint pas pendant la partie
     WidgetsBinding.instance.addPostFrameCallback((_) => _startHand());
+  }
+
+  @override
+  void dispose() {
+    keepScreenOn(false);
+    super.dispose();
   }
 
   void _bots(void Function() f) => Future.delayed(botDelay(600), () {
@@ -888,6 +896,16 @@ class _GameScreenState extends State<GameScreen> {
       ),
       child: Column(children: [
         Row(children: [
+          // retour à l'accueil (avec confirmation) : seul moyen sur le web/iPhone
+          IconButton(
+            key: const ValueKey('leave-game'),
+            tooltip: l.backHome,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: const Icon(Icons.arrow_back, color: _dim, size: 20),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
           _teamPanel(l.us, e.tokens['NS']!, _gold),
           Expanded(
             // réduit l'ensemble sur les écrans étroits au lieu de déborder
@@ -1014,15 +1032,17 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _woodB,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _scoreboard(),
-            Expanded(child: _table()),
-            _panel(),
-          ],
+    return LeaveGuard(
+      child: Scaffold(
+        backgroundColor: _woodB,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _scoreboard(),
+              Expanded(child: _table()),
+              _panel(),
+            ],
+          ),
         ),
       ),
     );

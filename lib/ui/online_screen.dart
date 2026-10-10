@@ -14,6 +14,7 @@ import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
+import 'leave.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
@@ -233,6 +234,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   @override
   void initState() {
     super.initState();
+    keepScreenOn(true); // l'écran ne s'éteint pas pendant la partie
     v = c.last;
     if (v != null && v!.phase != 'scored') _tokensBefore = Map.of(v!.tokens);
     if (c.code != null && c.token != null) saveTable(c.code!, c.token!);
@@ -280,6 +282,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     _s2.cancel();
     _unlock?.cancel();
     _chat.dispose();
+    keepScreenOn(false);
     c.dispose();
     clearSavedTable(); // quitter la table : plus rien à reprendre
     super.dispose();
@@ -603,7 +606,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final trump = g.trumpSuit;
     final us = g.you % 2 == 0 ? 'NS' : 'EW';
     final them = us == 'NS' ? 'EW' : 'NS';
-    return Scaffold(
+    return LeaveGuard(
+        child: Scaffold(
       backgroundColor: const Color(0xFF160A06),
       appBar: AppBar(
         // le code de table reste toujours lisible (il se partage)
@@ -745,7 +749,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           ),
         ]),
       ),
-    );
+    ));
   }
 }
 

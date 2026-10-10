@@ -310,6 +310,28 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
   });
 
+  testWidgets('solo : quitter la partie demande confirmation', (tester) async {
+    final l = lookupAppLocalizations(const Locale('fr'));
+    await tester.pumpWidget(const Game304App(locale: Locale('fr')));
+    await tester.tap(find.text(l.quickPlay));
+    await tester.pumpAndSettle();
+    // geste « retour » du téléphone : confirmation, « Rester » garde la partie
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text(l.leaveGame), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('leave-stay')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('leave-game')), findsOneWidget);
+    // bouton retour de l'écran : « Quitter » ramène à l'accueil
+    await tester.tap(find.byKey(const ValueKey('leave-game')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('leave-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text(l.quickPlay), findsOneWidget);
+    expect(find.byKey(const ValueKey('leave-game')), findsNothing);
+    await tester.pump(const Duration(seconds: 10));
+  });
+
   testWidgets('solo : animation de distribution', (tester) async {
     final l = lookupAppLocalizations(const Locale('fr'));
     await tester.pumpWidget(const Game304App(locale: Locale('fr')));

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 /// Vitesse des bots (multiplicateur des délais, comme `SPEED` du prototype) :
 /// 1.6 = lente, 1 = normale, 0.5 = rapide. Mémorisée sous `speed304`.
@@ -118,6 +119,14 @@ Color suitColor(String suit, {required Color ink, required Color red}) {
     }
   }
   return (suit == 'D' || suit == 'H') ? red : ink;
+}
+
+/// Garde l'écran allumé pendant une partie (sinon il s'éteint pendant que les
+/// bots jouent ou qu'on réfléchit). Sans effet si la plateforme ne le permet pas.
+void keepScreenOn(bool on) {
+  try {
+    WakelockPlus.toggle(enable: on).catchError((_) {});
+  } catch (_) {}
 }
 
 /// Petite vibration au moment de jouer une carte (téléphones ; sans effet
