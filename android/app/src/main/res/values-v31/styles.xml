@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Démarrage : fond sombre + icône (même rendu en mode clair et sombre) -->
+    <!-- Android 12+ : écran de démarrage système (icône de l'app sur fond sombre) -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
         <item name="android:windowBackground">@drawable/launch_background</item>
     </style>
-    <!-- Fond de la fenêtre derrière l'UI Flutter pendant son initialisation -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@color/splash_bg</item>
     </style>

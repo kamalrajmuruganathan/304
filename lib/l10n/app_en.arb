@@ -341,5 +341,9 @@
   },
   "resetStats": "Reset",
   "noStats": "No deals played yet.",
-  "points": "Points"
+  "points": "Points",
+  "leaveGame": "Leave the game?",
+  "leave": "Leave",
+  "stay": "Stay",
+  "backHome": "Back to home"
 }

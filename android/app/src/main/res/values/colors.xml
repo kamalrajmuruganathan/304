@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fond de l'écran de démarrage = fond de l'accueil de l'app (pas de flash blanc) -->
+    <color name="splash_bg">#0D1117</color>
+</resources>
