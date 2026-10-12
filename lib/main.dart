@@ -4,6 +4,7 @@ import 'l10n/app_localizations.dart';
 import 'settings.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
+import 'ui/invite.dart';
 import 'ui/stats_screen.dart';
 import 'ui/tutorial_screen.dart';
 
@@ -45,8 +46,12 @@ Future<void> setAppLanguage(String code) async {
 
 class Game304App extends StatelessWidget {
   /// [locale] force une langue (tests) ; sinon choix du joueur ou appareil.
-  const Game304App({super.key, this.locale});
+  const Game304App({super.key, this.locale, this.inviteCode});
   final Locale? locale;
+
+  /// Code de table d'un lien d'invitation (?table=ABCD) ; par défaut lu dans
+  /// l'adresse de la page (web).
+  final String? inviteCode;
 
   @override
   Widget build(BuildContext context) {
@@ -76,14 +81,34 @@ class Game304App extends StatelessWidget {
             secondary: const Color(0xFFD4A72C),
           ),
         ),
-        home: const HomeScreen(),
+        home: HomeScreen(inviteCode: inviteCode ?? tableFromUrl()),
       ),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key, this.inviteCode});
+  final String? inviteCode;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // lien d'invitation : on arrive directement au salon, code pré-rempli
+    final code = widget.inviteCode;
+    if (code != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => OnlineLobbyScreen(initialCode: code)));
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

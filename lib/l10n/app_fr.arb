@@ -69,7 +69,7 @@
   "tableCodeLabel": "Code de la table",
   "join": "Rejoindre",
   "serverUnreachable": "Connexion au serveur impossible ({url}).",
-  "lobbyInfo": "Les sièges vides sont tenus par des bots : la partie démarre même à deux. Le 2ᵉ joueur devient votre partenaire.",
+  "lobbyInfo": "Les sièges vides sont tenus par des bots : la partie démarre même à deux. Le deuxième joueur devient votre partenaire.",
   "tableTitle": "Table {code}",
   "shareCode": "Partagez le code {code} puis démarrez.",
   "waitingHost": "En attente du démarrage par l'hôte…",
@@ -163,5 +163,16 @@
   "leaveGame": "Quitter la partie ?",
   "leave": "Quitter",
   "stay": "Rester",
-  "backHome": "Retour à l'accueil"
+  "backHome": "Retour à l'accueil",
+  "invite": "Inviter",
+  "inviteText": "Rejoins ma table de 304 ! {link} (code {code})",
+  "linkCopied": "Lien d'invitation copié : colle-le dans WhatsApp ou un SMS.",
+  "invitedTo": "Invitation à la table {code} : choisis ton nom, puis « Rejoindre ».",
+  "reactions": "Réactions",
+  "rWellPlayed": "Bien joué !",
+  "rComeOn": "Allez !",
+  "rOops": "Oups !",
+  "rThanks": "Merci !",
+  "rHurry": "Vite !",
+  "rGoodGame": "Bonne partie !"
 }

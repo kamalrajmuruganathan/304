@@ -42,6 +42,11 @@ void sweepRooms() {
   });
 }
 
+/// Un joueur déconnecté depuis ce délai est remplacé par un bot (jusqu'à son
+/// retour) : la partie continue au lieu de rester bloquée sur son tour.
+final Duration botTakeover = Duration(
+    seconds: int.parse(Platform.environment['BOT_TAKEOVER_SECONDS'] ?? '20'));
+
 final Random _rng = Random();
 
 String genCode() {
@@ -54,9 +59,17 @@ class Seat {
   String name;
   bool isBot;
   WebSocket? socket;
+  DateTime? offlineSince; // déconnexion du joueur humain (null = en ligne)
   Seat({this.name = 'Bot', this.isBot = true});
   bool get isHuman => !isBot;
   bool get connected => socket != null && socket!.readyState == WebSocket.open;
+
+  /// Humain absent depuis trop longtemps : un bot joue à sa place.
+  bool get away =>
+      isHuman &&
+      !connected &&
+      offlineSince != null &&
+      DateTime.now().difference(offlineSince!) >= botTakeover;
 }
 
 class Room {
@@ -96,7 +109,12 @@ class Room {
           ..['started'] = started
           ..['players'] = [
             for (final p in seats)
-              {'name': p.name, 'bot': p.isBot, 'online': p.connected}
+              {
+                'name': p.name,
+                'bot': p.isBot,
+                'online': p.connected,
+                'away': p.away
+              }
           ];
         s.socket!.add(jsonEncode({'t': 'state', 'you': i, 'view': view}));
       }
@@ -179,10 +197,13 @@ class Room {
           continue;
         }
 
-        if (seats[actor].isHuman) {
-          // on attend l'action du client (reprise via applyAction)
+        if (seats[actor].isHuman && !seats[actor].away) {
+          // on attend l'action du client (reprise via applyAction) ; s'il
+          // est déconnecté, un minuteur relancera la boucle (bot à sa place)
           return;
         }
+        // personne à la table : on ne joue pas la partie tout seul
+        if (!seats.any((s) => s.connected)) return;
 
         // --- c'est un bot : le serveur joue pour lui ---
         _botMove(actor);
@@ -308,6 +329,35 @@ class Room {
     loop();
   }
 
+  /// Le joueur du siège [seat] vient de se déconnecter : après [botTakeover],
+  /// un bot joue pour lui s'il n'est pas revenu.
+  void onDisconnect(int seat) {
+    seats[seat]
+      ..socket = null
+      ..offlineSince = DateTime.now();
+    lastSeen = DateTime.now();
+    broadcast();
+    Timer(botTakeover + const Duration(milliseconds: 50), () {
+      if (seats[seat].away) {
+        broadcast(); // les autres voient « bot » à sa place
+        loop();
+      }
+    });
+  }
+
+  /// Le joueur quitte la table pour de bon : son siège redevient un bot
+  /// (libre pour un nouvel arrivant), son jeton n'est plus valable.
+  void leave(int seat) {
+    seats[seat]
+      ..isBot = true
+      ..name = 'Bot ${seat + 1}'
+      ..token = null
+      ..socket = null
+      ..offlineSince = null;
+    broadcast();
+    loop();
+  }
+
   void _send(int seat, Map msg) {
     final s = seats[seat];
     if (s.connected) s.socket!.add(jsonEncode(msg));
@@ -377,11 +427,14 @@ void handleMessage(WebSocket ws, String data) {
     final token = msg['token'] as String?;
     for (final room in rooms.values) {
       for (var i = 0; i < 4; i++) {
-        if (room.seats[i].token == token) {
-          room.seats[i].socket = ws;
+        if (token != null && room.seats[i].token == token) {
+          room.seats[i]
+            ..socket = ws
+            ..offlineSince = null; // de retour : il rejoue lui-même
           ws.add(jsonEncode(
               {'t': 'joined', 'code': room.code, 'seat': i, 'token': token}));
           room.broadcast();
+          if (room.started) room.loop(); // reprend si la table attendait
           return;
         }
       }
@@ -412,6 +465,10 @@ void handleMessage(WebSocket ws, String data) {
     } else if (seat == 0 && room.gameOver) {
       room.restart(); // l'hôte relance une partie après la fin
     }
+    return;
+  }
+  if (t == 'leave') {
+    room.leave(seat);
     return;
   }
   if (t == 'action') {
@@ -446,13 +503,11 @@ Future<void> main() async {
       ws.listen(
         (data) => handleMessage(ws, data as String),
         onDone: () {
-          // on garde le siège (reconnexion possible via token) ; on détache la socket
+          // on garde le siège (reconnexion possible via token) ; on détache
+          // la socket ; un bot le remplacera s'il ne revient pas à temps
           for (final r in rooms.values) {
             final s = r.seatOfSocket(ws);
-            if (s != null) {
-              r.seats[s].socket = null;
-              r.lastSeen = DateTime.now();
-            }
+            if (s != null) r.onDisconnect(s);
           }
         },
         onError: (_) {},

@@ -64,6 +64,7 @@ void main() {
       'PORT': '$port',
       'ROOM_TTL_SECONDS': '2',
       'ROOM_SWEEP_SECONDS': '1',
+      'BOT_TAKEOVER_SECONDS': '1',
     });
     final ready = Completer<void>();
     server.stdout.transform(utf8.decoder).listen((l) {
@@ -243,5 +244,135 @@ void main() {
     expect((await err)['code'], 'sessionExpired');
     expect(c.token, isNull);
     c.dispose();
+  });
+
+  /// Joue automatiquement pour [c] (humain de test) : garde sa main, passe
+  /// aux enchères, fournit la couleur quand il peut.
+  Future<void> autoPlay(C c, bool Function() until) async {
+    final end = DateTime.now().add(const Duration(seconds: 40));
+    var lastSent = '';
+    while (!until()) {
+      if (DateTime.now().isAfter(end)) fail('la partie n\'avance pas');
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final v = c.lastView;
+      if (v == null || v['yourTurn'] != true) continue;
+      final sig = '${v['phase']}-${v['tricksPlayed']}-${v['currentTrick']}';
+      if (sig == lastSent) continue; // déjà répondu à cet état
+      lastSent = sig;
+      Map action;
+      switch (v['phase']) {
+        case 'redeal':
+          action = {'type': 'redeal', 'keep': true};
+        case 'bid1':
+          action = {'type': 'bid', 'value': null};
+        case 'bid2':
+          action = {'type': 'bid2', 'value': null};
+        case 'play':
+          final hand =
+              ((v['hands'] as List)[v['you'] ?? 0] as List).cast<Map>();
+          final trick = (v['currentTrick'] as List);
+          final led = v['ledSuit'];
+          final follow = trick.isEmpty
+              ? <Map>[]
+              : hand.where((x) => x['s'] == led).toList();
+          action = {
+            'type': 'play',
+            'card': (follow.isNotEmpty ? follow : hand).first
+          };
+        default:
+          continue;
+      }
+      c.send({'t': 'action', 'action': action});
+    }
+  }
+
+  test(
+      'joueur parti (« leave ») : un bot reprend son siège, libre pour un autre',
+      () async {
+    final a = await C.open();
+    a.send({'t': 'create', 'name': 'Ana'});
+    final code = (await a.next('joined'))['code'];
+    final b = await C.open();
+    b.send({'t': 'join', 'code': code, 'name': 'Bala'});
+    expect((await b.next('joined'))['seat'], 2);
+    b.send({'t': 'leave'});
+    for (var i = 0; i < 50; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final p = (a.lastView?['players'] as List?)?[2] as Map?;
+      if (p?['bot'] == true) break;
+      if (i == 49) fail('le siège 2 n\'est pas redevenu un bot');
+    }
+    // un autre ami prend la place libérée
+    final c = await C.open();
+    c.send({'t': 'join', 'code': code, 'name': 'Chitra'});
+    expect((await c.next('joined'))['seat'], 2);
+    await a.ws.close();
+    await b.ws.close();
+    await c.ws.close();
+  });
+
+  test('joueur déconnecté : un bot joue à sa place, il reprend en revenant',
+      () async {
+    final a = await C.open();
+    a.send({'t': 'create', 'name': 'Ana'});
+    final code = (await a.next('joined'))['code'];
+    final b = await C.open();
+    b.send({'t': 'join', 'code': code, 'name': 'Bala'});
+    final token = (await b.next('joined'))['token'];
+    await b.ws.close(); // coupure (téléphone en veille, réseau perdu…)
+    a.send({'t': 'start'});
+    // la partie avance malgré l'absence de Bala (BOT_TAKEOVER_SECONDS=1)
+    var sawAway = false;
+    await autoPlay(a, () {
+      final p = (a.lastView?['players'] as List?)?[2] as Map?;
+      if (p?['away'] == true) sawAway = true;
+      return ((a.lastView?['tricksPlayed'] as int?) ?? 0) >= 1;
+    });
+    expect(sawAway, isTrue, reason: 'Bala affiché comme remplacé par un bot');
+    // Bala revient avec son jeton : il reprend son siège
+    final b2 = await C.open();
+    b2.send({'t': 'reconnect', 'token': token});
+    expect((await b2.next('joined'))['seat'], 2);
+    for (var i = 0; i < 50; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final p = (a.lastView?['players'] as List?)?[2] as Map?;
+      if (p?['away'] == false && p?['online'] == true) break;
+      if (i == 49) fail('Bala n\'a pas repris sa place');
+    }
+    await a.ws.close();
+    await b2.ws.close();
+  }, timeout: const Timeout(Duration(minutes: 2)));
+
+  test('table sans joueur connecté : les bots ne jouent pas seuls', () async {
+    final a = await C.open();
+    a.send({'t': 'create', 'name': 'Ana'});
+    final j = await a.next('joined');
+    a.send({'t': 'start'});
+    // coupure pendant SON tour : la boucle du serveur l'attend
+    for (var i = 0; i < 200 && a.lastView?['yourTurn'] != true; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    expect(a.lastView?['yourTurn'], isTrue);
+    String sig(Map? v) => [
+          v?['phase'],
+          v?['turn'],
+          v?['bidTurn'],
+          v?['bid2Turn'],
+          (v?['currentTrick'] as List?)?.length,
+          v?['tricksPlayed'],
+        ].join('/');
+    final before = sig(a.lastView);
+    await a.ws.close();
+    // > délai de remplacement (1 s), < suppression de la table (2 s)
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    final a2 = await C.open();
+    a2.send({'t': 'reconnect', 'token': j['token']});
+    await a2.next('joined');
+    for (var i = 0; i < 30 && a2.lastView == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    expect(sig(a2.lastView), before,
+        reason: 'aucun coup joué pendant que personne n\'était là');
+    await a2.ws.close();
   });
 }

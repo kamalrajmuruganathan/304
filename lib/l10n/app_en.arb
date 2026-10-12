@@ -345,5 +345,33 @@
   "leaveGame": "Leave the game?",
   "leave": "Leave",
   "stay": "Stay",
-  "backHome": "Back to home"
+  "backHome": "Back to home",
+  "invite": "Invite",
+  "inviteText": "Join my 304 table! {link} (code {code})",
+  "linkCopied": "Invite link copied: paste it into WhatsApp or a text message.",
+  "invitedTo": "Invitation to table {code}: choose your name, then “Join”.",
+  "reactions": "Reactions",
+  "rWellPlayed": "Well played!",
+  "rComeOn": "Come on!",
+  "rOops": "Oops!",
+  "rThanks": "Thanks!",
+  "rHurry": "Hurry up!",
+  "rGoodGame": "Good game!",
+  "@inviteText": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@invitedTo": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  }
 }

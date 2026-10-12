@@ -191,3 +191,14 @@ Tutoriel « Apprendre le 304 » (`lib/ui/tutorial_screen.dart`) : sections TA/SI
 | `leave` | Quitter | Leave | வெளியேறு | ඉවත් වන්න |
 | `stay` | Rester | Stay | தொடர் | රැඳී සිටින්න |
 | `backHome` | Retour à l'accueil | Back to home | முகப்புக்குத் திரும்பு | මුල් පිටුවට |
+| `invite` | Inviter | Invite | அழை | ආරාධනා කරන්න |
+| `inviteText` | Rejoins ma table de 304 ! {link} (code {code}) | Join my 304 table! {link} (code {code}) | என் 304 மேசையில் சேருங்கள்! {link} (குறியீடு {code}) | මගේ 304 මේසයට එක්වන්න! {link} (කේතය {code}) |
+| `linkCopied` | Lien d'invitation copié : colle-le dans WhatsApp ou un SMS. | Invite link copied: paste it into WhatsApp or a text message. | அழைப்பு இணைப்பு நகலெடுக்கப்பட்டது: WhatsApp அல்லது குறுஞ்செய்தியில் ஒட்டுங்கள். | ආරාධනා සබැඳිය පිටපත් විය: WhatsApp හෝ කෙටි පණිවිඩයකට අලවන්න. |
+| `invitedTo` | Invitation à la table {code} : choisis ton nom, puis « Rejoindre ». | Invitation to table {code}: choose your name, then “Join”. | {code} மேசைக்கு அழைப்பு: உங்கள் பெயரைத் தேர்ந்தெடுத்து, பின் « சேர் » அழுத்துங்கள். | {code} මේසයට ආරාධනාව: ඔබේ නම තෝරා, පසුව « එක්වන්න » ඔබන්න. |
+| `reactions` | Réactions | Reactions | எதிர்வினைகள் | ප්‍රතිචාර |
+| `rWellPlayed` | Bien joué ! | Well played! | நன்றாக ஆடினீர்கள்! | හොඳට ක්‍රීඩා කළා! |
+| `rComeOn` | Allez ! | Come on! | வாருங்கள், முடியும்! | යමු, පුළුවන්! |
+| `rOops` | Oups ! | Oops! | அச்சச்சோ! | අයියෝ! |
+| `rThanks` | Merci ! | Thanks! | நன்றி! | ස්තූතියි! |
+| `rHurry` | Vite ! | Hurry up! | சீக்கிரம்! | ඉක්මනට! |
+| `rGoodGame` | Bonne partie ! | Good game! | நல்ல ஆட்டம்! | හොඳ ක්‍රීඩාවක්! |
