@@ -175,5 +175,7 @@
   "rThanks": "Merci !",
   "rHurry": "Vite !",
   "rGoodGame": "Bonne partie !",
-  "resumeGame": "Reprendre la partie"
+  "resumeGame": "Reprendre la partie",
+  "botLevel": "Niveau des adversaires",
+  "levelEasy": "Facile"
 }

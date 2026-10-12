@@ -392,7 +392,9 @@ class _GameScreenState extends State<GameScreen> {
         actions = [];
       });
       _bots(() {
-        final c = botPlay(e, seat);
+        // niveau « facile » : seuls les adversaires (Est/Ouest) se trompent
+        final c = botPlayLevel(e, seat,
+            easy: botLevel.value == 'easy' && teamOf(seat) != teamOf(human));
         final r = c is PlayIndicator
             ? e.playIndicatorToCut(seat)
             : e.playCard(seat, c as Card);

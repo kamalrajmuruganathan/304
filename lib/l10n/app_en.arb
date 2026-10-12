@@ -374,5 +374,7 @@
       }
     }
   },
-  "resumeGame": "Resume game"
+  "resumeGame": "Resume game",
+  "botLevel": "Opponents' level",
+  "levelEasy": "Easy"
 }

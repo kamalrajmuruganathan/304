@@ -225,6 +225,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
                 _OptionRow(
+                    label: l.botLevel,
+                    notifier: botLevel,
+                    options: {'easy': l.levelEasy, 'normal': l.normal},
+                    onSelect: setBotLevel,
+                    keyPrefix: 'level'),
+                const SizedBox(height: 20),
+                _OptionRow(
                     label: l.cardBack,
                     notifier: cardBack,
                     options: {

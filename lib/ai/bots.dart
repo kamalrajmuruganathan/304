@@ -2,6 +2,8 @@
 // IA des bots — port fidèle du prototype JS. Heuristiques volontairement
 // simples et lisibles ; c'est le premier chantier à renforcer (voir roadmap).
 // ============================================================================
+import 'dart:math';
+
 import '../engine/engine.dart';
 
 /// Estimation des points que réalisera l'équipe à partir des 4 premières cartes.
@@ -260,4 +262,27 @@ Object botPlay(Engine e, int seat) {
 /// Marqueur : le preneur coupe en jouant sa carte-atout cachée.
 class PlayIndicator {
   const PlayIndicator();
+}
+
+// ============================================================================
+// NIVEAUX DE DIFFICULTÉ (partie solo). Le niveau « normal » est l'IA ci-dessus,
+// inchangée (identique au prototype). Le niveau « facile » ne touche que les
+// adversaires du joueur : ils commettent des erreurs de jeu au hasard.
+// ============================================================================
+
+/// Probabilité qu'un adversaire « facile » joue une carte légale au hasard au
+/// lieu de la carte de l'IA. Calibrée par simulation (tool/level_sim.dart).
+const double kEasySlip = 0.25;
+
+/// Décision de jeu selon le niveau. [easy] : le bot joue une carte légale au
+/// hasard avec la probabilité [kEasySlip] (jamais la coupe à l'atout posé).
+Object botPlayLevel(Engine e, int seat, {required bool easy, Random? rng}) {
+  if (easy) {
+    final r = rng ?? Random();
+    if (r.nextDouble() < kEasySlip) {
+      final legal = e.playableCards(seat);
+      if (legal.isNotEmpty) return legal[r.nextInt(legal.length)];
+    }
+  }
+  return botPlay(e, seat);
 }
