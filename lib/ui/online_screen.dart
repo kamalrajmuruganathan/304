@@ -15,6 +15,7 @@ import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
 import 'leave.dart';
+import 'invite.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
@@ -51,7 +52,9 @@ String serverErrorText(AppLocalizations l, Map m) {
 
 // ------------------------------- SALON --------------------------------------
 class OnlineLobbyScreen extends StatefulWidget {
-  const OnlineLobbyScreen({super.key});
+  /// Code reçu par un lien d'invitation (?table=ABCD), pré-rempli.
+  final String? initialCode;
+  const OnlineLobbyScreen({super.key, this.initialCode});
   @override
   State<OnlineLobbyScreen> createState() => _OnlineLobbyScreenState();
 }
@@ -69,6 +72,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialCode != null) _code.text = widget.initialCode!;
     loadSavedTable().then((t) {
       if (mounted) setState(() => _saved = t);
     });
@@ -135,6 +139,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            if (widget.initialCode != null) ...[
+              Text(l.invitedTo(widget.initialCode!),
+                  key: const ValueKey('invited'),
+                  style: const TextStyle(color: _gold, fontSize: 15)),
+              const SizedBox(height: 12),
+            ],
             TextField(
               controller: _name,
               decoration: InputDecoration(
@@ -223,6 +233,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   /// Messages du chat de table (siège, nom, texte) et non lus.
   final ValueNotifier<List<(int, String, String)>> _chat = ValueNotifier([]);
+
+  /// Dernier message de chaque joueur, affiché en bulle quelques secondes.
+  final Map<int, String> _bubbles = {};
+  final Map<int, Timer> _bubbleTimers = {};
   int _unread = 0;
   bool _chatOpen = false;
   late final StreamSubscription<GameView> _s1;
@@ -267,11 +281,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(AppLocalizations.of(context)!.connectionLost)));
       } else if (m['t'] == 'chat') {
+        final seat = m['seat'] as int;
         _chat.value = [
           ..._chat.value,
-          (m['seat'] as int, '${m['name'] ?? ''}', '${m['text']}')
+          (seat, '${m['name'] ?? ''}', '${m['text']}')
         ];
-        if (!_chatOpen) setState(() => _unread++);
+        // bulle au-dessus du joueur pendant 4 s (sans ouvrir le chat)
+        _bubbleTimers[seat]?.cancel();
+        _bubbleTimers[seat] = Timer(const Duration(seconds: 4), () {
+          if (mounted) setState(() => _bubbles.remove(seat));
+        });
+        setState(() {
+          _bubbles[seat] = chatText(l, '${m['text']}');
+          if (!_chatOpen) _unread++;
+        });
       }
     });
   }
@@ -281,8 +304,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     _s1.cancel();
     _s2.cancel();
     _unlock?.cancel();
+    for (final t in _bubbleTimers.values) {
+      t.cancel();
+    }
     _chat.dispose();
     keepScreenOn(false);
+    c.leave(); // siège rendu à un bot pour les autres joueurs
     c.dispose();
     clearSavedTable(); // quitter la table : plus rien à reprendre
     super.dispose();
@@ -334,7 +361,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   String _playerName(int seat) {
     final p = v!.players.length > seat ? v!.players[seat] : null;
     if (p == null) return [l.mSud, l.seatEast, l.seatNorth, l.seatWest][seat];
-    return p['bot'] == true ? l.mAI : '${p['name']}';
+    if (p['bot'] == true) return l.mAI;
+    // joueur absent trop longtemps : un bot joue à sa place
+    return p['away'] == true ? '${p['name']} (${l.mAI})' : '${p['name']}';
   }
 
   List<Card> get _myCards => v!.hands[v!.you].cards ?? const [];
@@ -428,6 +457,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       return [
         if (g.you == 0)
           FilledButton(onPressed: () => _send(c.start), child: Text(l.start)),
+        OutlinedButton.icon(
+            key: const ValueKey('invite'),
+            onPressed: () => shareInvite(context, g.code ?? ''),
+            icon: const Icon(Icons.share),
+            label: Text(l.invite)),
       ];
     }
     if (g.gameOver) {
@@ -532,7 +566,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         ((g.phase == 'play' && g.turn == seat) ||
             (g.yourTurn && seat == g.you));
     final cnt = g.hands[seat].count;
-    return Container(
+    final bubble = _bubbles[seat];
+    final label = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0x55000000),
@@ -543,6 +578,24 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           '${_playerName(seat)}${g.trumpMaker == seat ? ' · ${l.mMaker}' : ''}  ($cnt)',
           style: const TextStyle(color: _txt, fontSize: 12)),
     );
+    if (bubble == null) return label;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        key: ValueKey('bubble-$seat'),
+        constraints: const BoxConstraints(maxWidth: 160),
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3E9D2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(bubble,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFF1A160F), fontSize: 12)),
+      ),
+      label,
+    ]);
   }
 
   /// Résultat de la donne (calculé par le moteur côté serveur), vu de MON
@@ -613,6 +666,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         // le code de table reste toujours lisible (il se partage)
         title: Text(l.tableTitle(g.code ?? '')),
         actions: [
+          IconButton(
+            key: const ValueKey('share-table'),
+            tooltip: l.invite,
+            onPressed: () => shareInvite(context, g.code ?? ''),
+            icon: const Icon(Icons.share),
+          ),
+          // réactions rapides : 2 touchers, sans clavier
+          PopupMenuButton<String>(
+            key: const ValueKey('react'),
+            tooltip: l.reactions,
+            icon: const Icon(Icons.add_reaction_outlined),
+            onSelected: (k) => c.chat(reactionCode(k)),
+            itemBuilder: (_) => [
+              for (final k in kReactions)
+                PopupMenuItem(
+                    key: ValueKey('react-$k'),
+                    value: k,
+                    child: Text(chatText(l, reactionCode(k)))),
+            ],
+          ),
           IconButton(
             key: const ValueKey('chat-open'),
             tooltip: l.chat,
@@ -818,7 +891,9 @@ class _ChatSheetState extends State<_ChatSheet> {
                           style: TextStyle(
                               color: seat == widget.you ? _gold : _dim,
                               fontWeight: FontWeight.bold)),
-                      TextSpan(text: text, style: const TextStyle(color: _txt)),
+                      TextSpan(
+                          text: chatText(AppLocalizations.of(context)!, text),
+                          style: const TextStyle(color: _txt)),
                     ])),
                   ),
               ],

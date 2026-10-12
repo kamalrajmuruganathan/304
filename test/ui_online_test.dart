@@ -188,6 +188,34 @@ void main() {
         .pop();
     await tester.pumpAndSettle();
 
+    // réaction rapide (2 touchers, sans clavier) : bulle traduite au-dessus
+    // du joueur, chez tout le monde (le serveur relaie un code « :r:… »)
+    await tester.tap(find.byKey(const ValueKey('react')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('react-wellPlayed')));
+    var bubble = false;
+    for (var i = 0; i < 50 && !bubble; i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump();
+      bubble = find
+          .descendant(
+              of: find.byKey(ValueKey('bubble-${c.seat}')),
+              matching: find.text(l.rWellPlayed))
+          .evaluate()
+          .isNotEmpty;
+    }
+    expect(bubble, isTrue, reason: 'réaction affichée en tamoul');
+
+    // inviter : pas de feuille de partage dans les tests -> lien copié
+    await tester.tap(find.byKey(const ValueKey('share-table')));
+    for (var i = 0; i < 10; i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump();
+    }
+    expect(find.text(l.linkCopied), findsOneWidget);
+
     await tester.pumpWidget(const SizedBox()); // dispose -> ferme la socket
     await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 200)));

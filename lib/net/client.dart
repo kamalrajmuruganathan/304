@@ -263,6 +263,13 @@ class GameClient {
   void start() => _send({'t': 'start'});
   void chat(String text) => _send({'t': 'chat', 'text': text});
 
+  /// Quitter la table pour de bon : un bot reprend le siège, pas de
+  /// reconnexion automatique ensuite.
+  void leave() {
+    _send({'t': 'leave'});
+    token = null;
+  }
+
   // ---- actions de jeu ----
   void bid(int? value) => _action({'type': 'bid', 'value': value});
   void pass() => bid(null);

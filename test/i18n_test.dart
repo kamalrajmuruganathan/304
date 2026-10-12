@@ -13,6 +13,7 @@ import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
 import 'package:game304/settings.dart';
 import 'package:game304/ui/tutorial_screen.dart';
+import 'package:game304/ui/invite.dart';
 
 import 'ui_solo_test.dart' show playSolo;
 
@@ -142,6 +143,29 @@ void main() {
         suitColor('D', ink: Colors.black, red: Colors.red), isNot(Colors.red));
     expect(suitColor('H', ink: Colors.black, red: Colors.red), Colors.red);
     expect(vibrate.value, 'off');
+  });
+
+  test('réactions du chat traduites ; lien d\'invitation', () {
+    final ta = lookupAppLocalizations(const Locale('ta'));
+    expect(chatText(ta, reactionCode('thanks')), ta.rThanks);
+    expect(chatText(ta, 'bonjour'), 'bonjour'); // texte libre inchangé
+    expect(chatText(ta, ':r:inconnue'), ':r:inconnue');
+    for (final k in kReactions) {
+      expect(chatText(ta, reactionCode(k)), isNot(reactionCode(k)));
+    }
+    expect(inviteLink('AB12'), endsWith('/304/app/?table=AB12'));
+    expect(
+        tableFromUrl(Uri.parse('https://x.io/304/app/?table=ab12#/')), 'AB12');
+    expect(
+        tableFromUrl(Uri.parse('https://x.io/304/app/?table=toolong')), isNull);
+  });
+
+  testWidgets('lien d\'invitation : salon ouvert, code pré-rempli', (t) async {
+    await t
+        .pumpWidget(const Game304App(locale: Locale('fr'), inviteCode: 'AB12'));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('invited')), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'AB12'), findsOneWidget);
   });
 
   testWidgets('accueil : vitesse des bots', (t) async {

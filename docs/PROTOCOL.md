@@ -65,3 +65,12 @@ on action(seat, a):
   broadcastState()                // viewFor(seat) à chaque humain
   advanceUntilHuman()             // joue bots + transitions auto, en diffusant
 ```
+
+## Ajouts (12/10/2026)
+- Client → serveur `{"t":"leave"}` : le joueur quitte la table ; son siège redevient un bot (libre
+  pour un nouvel arrivant) et son jeton n'est plus valable.
+- Joueur déconnecté depuis `BOT_TAKEOVER_SECONDS` (20 s par défaut) : le serveur joue pour lui
+  jusqu'à sa reconnexion ; la vue indique `players[i].away = true`.
+- Aucun joueur connecté à la table : le serveur ne fait plus avancer la partie.
+- Chat : un texte `:r:<clé>` (clés `wellPlayed`, `comeOn`, `oops`, `thanks`, `hurry`, `goodGame`)
+  est une réaction rapide, affichée traduite par chaque client.
