@@ -373,5 +373,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "resumeGame": "Resume game"
 }

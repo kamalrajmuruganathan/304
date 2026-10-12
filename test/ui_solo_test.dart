@@ -4,10 +4,12 @@
 // et les vraies cartes. Échoue sur toute exception (dont les débordements de
 // mise en page) et sur tout blocage. Équivalent Flutter de tools/ui-test.
 // ============================================================================
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/main.dart';
 import 'package:game304/settings.dart';
@@ -330,6 +332,49 @@ void main() {
     expect(find.text(l.quickPlay), findsOneWidget);
     expect(find.byKey(const ValueKey('leave-game')), findsNothing);
     await tester.pump(const Duration(seconds: 10));
+  });
+
+  testWidgets('solo : partie interrompue reprise depuis l\'accueil',
+      (tester) async {
+    final l = lookupAppLocalizations(const Locale('fr'));
+    addTearDown(() => soloSave.value = null);
+    // partie mémorisée par une session précédente (app fermée à 14 - 8)
+    SharedPreferences.setMockInitialValues(
+        {'solo304': jsonEncode({'ns': 14, 'ew': 8, 'dealer': 2})});
+    await loadSettings();
+    expect(soloSave.value?.ns, 14);
+    await tester.pumpWidget(const Game304App(locale: Locale('fr')));
+    final resume = find.byKey(const ValueKey('resume-solo'));
+    expect(resume, findsOneWidget);
+    expect(find.textContaining(l.resumeGame), findsOneWidget);
+    await tester.tap(resume);
+    await tester.pumpAndSettle();
+    // le score reprend : 14 pour nous, 8 pour eux, même donneur
+    expect(find.text('14'), findsOneWidget);
+    expect(find.text('8'), findsWidgets);
+    expect(soloSave.value?.ns, 14);
+    expect(soloSave.value?.dealer, 2);
+    // retour à l'accueil : la partie reste à reprendre
+    await tester.tap(find.byKey(const ValueKey('leave-game')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('leave-confirm')));
+    await tester.pumpAndSettle();
+    expect(resume, findsOneWidget);
+    // score de départ (11-11) : rien à reprendre
+    soloSave.value = const SoloSave(11, 11, 0);
+    await tester.pump();
+    expect(resume, findsNothing);
+    await tester.pump(const Duration(seconds: 10));
+  });
+
+  testWidgets('solo : le score est mémorisé après chaque donne',
+      (tester) async {
+    addTearDown(() => soloSave.value = null);
+    soloSave.value = null;
+    await playSolo(tester, size: const Size(390, 844), deals: 2, seed: 1);
+    final s = soloSave.value;
+    expect(s, isNotNull);
+    expect(s!.ns + s.ew, 22); // jetons toujours au total de 22
   });
 
   testWidgets('solo : animation de distribution', (tester) async {

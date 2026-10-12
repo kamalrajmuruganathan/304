@@ -267,6 +267,8 @@ Future<void> loadSettings() async {
     if (raw != null) {
       stats.value = Stats.fromJson(jsonDecode(raw) as Map);
     }
+    final solo = prefs.getString(_kSoloPref);
+    if (solo != null) soloSave.value = SoloSave.fromJson(jsonDecode(solo) as Map);
   } catch (_) {
     // préférences indisponibles : vitesse normale
   }
@@ -350,5 +352,34 @@ Future<void> saveTable(String code, String token) async {
 Future<void> clearSavedTable() async {
   try {
     await (await SharedPreferences.getInstance()).remove('table304');
+  } catch (_) {}
+}
+
+/// Partie solo en cours : jetons et donneur au début de la dernière donne.
+/// Permet de la reprendre après la fermeture de l'app (la donne en cours,
+/// elle, est redistribuée). Effacée à la fin de la partie.
+class SoloSave {
+  final int ns, ew, dealer;
+  const SoloSave(this.ns, this.ew, this.dealer);
+  factory SoloSave.fromJson(Map j) =>
+      SoloSave(j['ns'] as int, j['ew'] as int, j['dealer'] as int);
+  Map<String, int> toJson() => {'ns': ns, 'ew': ew, 'dealer': dealer};
+
+  /// Score de départ (11-11) : rien à reprendre.
+  bool get fresh => ns == 11 && ew == 11;
+}
+
+final ValueNotifier<SoloSave?> soloSave = ValueNotifier(null);
+const _kSoloPref = 'solo304';
+
+Future<void> saveSolo(int ns, int ew, int dealer) async {
+  soloSave.value = SoloSave(ns, ew, dealer);
+  await _savePref(_kSoloPref, jsonEncode(soloSave.value!.toJson()));
+}
+
+Future<void> clearSolo() async {
+  soloSave.value = null;
+  try {
+    await (await SharedPreferences.getInstance()).remove(_kSoloPref);
   } catch (_) {}
 }

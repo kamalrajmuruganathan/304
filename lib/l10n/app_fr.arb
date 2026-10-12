@@ -174,5 +174,6 @@
   "rOops": "Oups !",
   "rThanks": "Merci !",
   "rHurry": "Vite !",
-  "rGoodGame": "Bonne partie !"
+  "rGoodGame": "Bonne partie !",
+  "resumeGame": "Reprendre la partie"
 }

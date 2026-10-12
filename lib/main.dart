@@ -153,6 +153,29 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                 ),
                 const SizedBox(height: 40),
+                // partie solo interrompue (app fermée) : la reprendre
+                ValueListenableBuilder(
+                  valueListenable: soloSave,
+                  builder: (context, save, _) => save == null || save.fresh
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: FilledButton(
+                            key: const ValueKey('resume-solo'),
+                            onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const GameScreen(resume: true))),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 6),
+                              child: Text(
+                                  '${l.resumeGame}\n${l.us} ${save.ns} · ${l.them} ${save.ew}',
+                                  textAlign: TextAlign.center),
+                            ),
+                          ),
+                        ),
+                ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const GameScreen())),

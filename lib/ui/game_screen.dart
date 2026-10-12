@@ -25,7 +25,10 @@ const _dim = Color(0xFFC9B48A);
 /// logique de règles reste dans Engine. Prévu pour basculer plus tard sur
 /// lib/net/client.dart (multijoueur).
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  const GameScreen({super.key, this.resume = false});
+
+  /// Reprendre la partie mémorisée (`soloSave`) au lieu d'en commencer une.
+  final bool resume;
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -69,6 +72,11 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     e.onLog = (_) {};
+    final saved = soloSave.value;
+    if (widget.resume && saved != null) {
+      e.tokens = {'NS': saved.ns, 'EW': saved.ew};
+      e.dealer = saved.dealer;
+    }
     keepScreenOn(true); // l'écran ne s'éteint pas pendant la partie
     WidgetsBinding.instance.addPostFrameCallback((_) => _startHand());
   }
@@ -90,6 +98,7 @@ class _GameScreenState extends State<GameScreen> {
   void _startHand() {
     _lastTrick = null;
     _tokensAtStart = Map.of(e.tokens);
+    saveSolo(e.tokens['NS']!, e.tokens['EW']!, e.dealer);
     e.newHand();
     _handleRedeal(0);
   }
@@ -530,6 +539,13 @@ class _GameScreenState extends State<GameScreen> {
     final nsWon =
         s['success'] == true ? s['tmTeam'] == 'NS' : s['tmTeam'] == 'EW';
     final over = r['gameOver'] == true;
+    // score mémorisé dès le résultat (l'app peut être fermée sur la fenêtre) ;
+    // partie finie : rien à reprendre
+    if (over) {
+      clearSolo();
+    } else {
+      saveSolo(e.tokens['NS']!, e.tokens['EW']!, e.dealer);
+    }
     recordDeal(
         won: nsWon,
         score: s,
