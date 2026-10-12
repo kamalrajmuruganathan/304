@@ -18,12 +18,14 @@ class C {
   final WebSocket ws;
   final _q = <Map>[];
   Map? lastView; // dernière vue reçue (message state)
+  int states = 0; // nombre de messages state reçus
   final _waiters = <Completer<void>>[];
   C._(this.ws) {
     ws.listen((d) {
       final m = jsonDecode(d as String) as Map;
       if (m['t'] == 'state') {
         lastView = m['view'] as Map;
+        states++;
       } else {
         _q.add(m);
       }
@@ -250,15 +252,16 @@ void main() {
   /// aux enchères, fournit la couleur quand il peut.
   Future<void> autoPlay(C c, bool Function() until) async {
     final end = DateTime.now().add(const Duration(seconds: 40));
-    var lastSent = '';
+    var lastSent = -1;
     while (!until()) {
       if (DateTime.now().isAfter(end)) fail('la partie n\'avance pas');
       await Future<void>.delayed(const Duration(milliseconds: 100));
       final v = c.lastView;
       if (v == null || v['yourTurn'] != true) continue;
-      final sig = '${v['phase']}-${v['tricksPlayed']}-${v['currentTrick']}';
-      if (sig == lastSent) continue; // déjà répondu à cet état
-      lastSent = sig;
+      // une réponse par état reçu (une signature phase/pli se répète après
+      // une donne où tout le monde passe : la partie restait bloquée)
+      if (c.states == lastSent) continue;
+      lastSent = c.states;
       Map action;
       switch (v['phase']) {
         case 'redeal':
