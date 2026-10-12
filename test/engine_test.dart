@@ -90,6 +90,7 @@ String fullHand(Engine e, {int? forcePCC, Random? cutRnd}) {
 }
 
 void main() {
+  levelTests();
   test('Coupe à l\'atout posé (bouton du joueur) : 300 parties, invariants',
       () {
     final rnd = Random(304);
@@ -192,4 +193,47 @@ bool fullHandUntilPlay(Engine e) {
   }
   if (e.phase == 'preplay') e.startPlayClosed();
   return e.phase == 'play';
+}
+
+/// Partie complète où Est/Ouest jouent au niveau « facile » (botPlayLevel).
+/// Renvoie true si Nord-Sud (IA normale) gagne.
+bool gameVsEasy(int seed, Random rng) {
+  final e = Engine(seed: seed);
+  var guard = 0;
+  while (e.tokens['NS']! > 0 && e.tokens['EW']! > 0) {
+    if (++guard > 2000) fail('partie sans fin');
+    if (!fullHandUntilPlay(e)) continue;
+    while (e.phase == 'play') {
+      final s = e.turn;
+      if (e.hands[s].isEmpty && s == e.trumpMaker && e.indicatorOnTable) {
+        e.playLastIndicator(s);
+        continue;
+      }
+      final c = botPlayLevel(e, s, easy: s.isOdd, rng: rng);
+      if (c is PlayIndicator) {
+        expect(e.canCutWithIndicator(s), isTrue);
+        e.playIndicatorToCut(s);
+      } else {
+        expect(e.playableCards(s).any((x) => x.key == (c as Card).key), isTrue,
+            reason: 'carte légale');
+        e.playCard(s, c as Card);
+      }
+    }
+    expect(e.tokens['NS']! + e.tokens['EW']!, 22, reason: 'somme jetons');
+  }
+  return e.tokens['EW']! <= 0;
+}
+
+void levelTests() {
+  test('Niveau facile : coups légaux, adversaires nettement plus faibles', () {
+    final rng = Random(304);
+    var won = 0;
+    const games = 300;
+    for (var g = 0; g < games; g++) {
+      if (gameVsEasy(70000 + g, rng)) won++;
+    }
+    // mesuré (tool/level_sim.dart, 1000 parties) : 89 % ; à niveau égal : 50 %
+    expect(won / games, greaterThan(0.75),
+        reason: 'Nord-Sud gagne ${100 * won ~/ games} % des parties');
+  });
 }

@@ -377,6 +377,22 @@ void main() {
     expect(s!.ns + s.ew, 22); // jetons toujours au total de 22
   });
 
+  testWidgets('solo : niveau « facile » choisi à l\'accueil, 4 donnes jouées',
+      (tester) async {
+    final l = lookupAppLocalizations(const Locale('fr'));
+    addTearDown(() => botLevel.value = 'normal');
+    await tester.pumpWidget(const Game304App(locale: Locale('fr')));
+    expect(find.text(l.botLevel), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('level-easy')));
+    await tester.tap(find.byKey(const ValueKey('level-easy')));
+    await tester.pump();
+    expect(botLevel.value, 'easy');
+    await tester.pumpWidget(const SizedBox());
+    expect(
+        await playSolo(tester, size: const Size(390, 844), deals: 4, seed: 9),
+        4);
+  });
+
   testWidgets('solo : animation de distribution', (tester) async {
     final l = lookupAppLocalizations(const Locale('fr'));
     await tester.pumpWidget(const Game304App(locale: Locale('fr')));

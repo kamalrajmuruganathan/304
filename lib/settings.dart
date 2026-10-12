@@ -154,6 +154,15 @@ Future<void> setDeckColors(String v) async {
   await _savePref('deck304', v);
 }
 
+/// Niveau des adversaires en solo : 'normal' (IA complète) ou 'easy'
+/// (Est/Ouest font des erreurs, voir `kEasySlip`). Clé `level304`.
+final ValueNotifier<String> botLevel = ValueNotifier<String>('normal');
+
+Future<void> setBotLevel(String v) async {
+  botLevel.value = v;
+  await _savePref('level304', v);
+}
+
 Future<void> setVibrate(String v) async {
   vibrate.value = v;
   await _savePref('vibe304', v);
@@ -257,6 +266,7 @@ Future<void> loadSettings() async {
     if (prefs.getString('size304') == 'large') cardSize.value = 'large';
     if (prefs.getString('deck304') == 'four') deckColors.value = 'four';
     if (prefs.getString('vibe304') == 'off') vibrate.value = 'off';
+    if (prefs.getString('level304') == 'easy') botLevel.value = 'easy';
     final b = prefs.getString('back304');
     if (b != null && kBacks.contains(b)) cardBack.value = b;
     final f = prefs.getString('felt304');
