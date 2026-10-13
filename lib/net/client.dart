@@ -58,7 +58,7 @@ class GameView {
       canCut; // je peux couper avec l'atout posé (calculé par le serveur)
   final String? code;
   final bool started;
-  final List<Map> players; // [{name, bot, online}] par siège
+  final List<Map> players; // [{name, bot, online, away, voice}] par siège
 
   GameView._({
     required this.you,
@@ -163,11 +163,14 @@ class GameClient {
   String? code;
   String? token;
 
+  /// Serveurs ICE (STUN/TURN) fournis par le serveur pour le chat vocal.
+  List<Map<String, dynamic>> iceServers = const [];
+
   final _states = StreamController<GameView>.broadcast();
   final _events = StreamController<Map>.broadcast();
   Stream<GameView> get states => _states.stream;
 
-  /// joined / error / chat / disconnected / reconnecting / reconnected
+  /// joined / error / chat / rtc / disconnected / reconnecting / reconnected
   Stream<Map> get events => _events.stream;
 
   bool _disposed = false;
@@ -231,6 +234,10 @@ class GameClient {
         seat = m['seat'] as int?;
         code = m['code'] as String?;
         token = m['token'] as String?;
+        final ice = m['ice'];
+        if (ice is List) {
+          iceServers = [for (final x in ice) Map<String, dynamic>.from(x as Map)];
+        }
         _retry = 0;
         if (_reconnecting) {
           _reconnecting = false;
@@ -262,6 +269,12 @@ class GameClient {
       _send({'t': 'join', 'code': code, 'name': name});
   void start() => _send({'t': 'start'});
   void chat(String text) => _send({'t': 'chat', 'text': text});
+
+  /// Rejoindre / quitter le chat vocal (les autres le voient dans `players`).
+  void voice(bool on) => _send({'t': 'voice', 'on': on});
+
+  /// Signalisation WebRTC vers le joueur du siège [to] (relayée par le serveur).
+  void rtc(int to, Map data) => _send({'t': 'rtc', 'to': to, 'data': data});
 
   /// Quitter la table pour de bon : un bot reprend le siège, pas de
   /// reconnexion automatique ensuite.

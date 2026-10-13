@@ -27,7 +27,7 @@ Retrouvez le **304**, le grand jeu de plis par équipes de Jaffna et du sud de l
 
 • **Règles officielles complètes** : double tour d'enchères, atout caché ou ouvert, révélation de l'atout, Partner Close Caps, redistribution, atouts épuisés et atout gâché.
 • **Des adversaires qui savent jouer** : les bots mémorisent les cartes tombées, enchérissent selon la force réelle de leur main et coupent au bon moment.
-• **Tables privées** : créez une table, partagez le code à 4 lettres, jouez avec votre famille où qu'elle soit. Les places libres sont tenues par des bots. Chat de table et reconnexion automatique.
+• **Tables privées** : créez une table, partagez le code à 4 lettres, jouez avec votre famille où qu'elle soit. Les places libres sont tenues par des bots. Chat écrit et **vocal**, lien d'invitation, reconnexion automatique.
 • **En 4 langues** : தமிழ், සිංහල, English, français.
 • **Pour apprendre** : tutoriel intégré, bouton Conseil, revue du dernier pli, récapitulatif de chaque donne.
 • **Statistiques** : réussite de vos prises par niveau d'enchère, Caps, séries.
@@ -41,7 +41,7 @@ Play **304**, the classic team trick-taking game of Jaffna and South India.
 
 • **Complete official rules**: two bidding rounds, hidden or open trump, trump reveal, Partner Close Caps, redeal, exhausted and spoilt trumps.
 • **Opponents that know the game**: bots remember played cards, bid on their hand's real strength and cut at the right moment.
-• **Private tables**: create a table, share the 4-letter code and play with family anywhere. Empty seats are filled by bots. Table chat and automatic reconnection.
+• **Private tables**: create a table, share the 4-letter code and play with family anywhere. Empty seats are filled by bots. Text and **voice** chat, invite link, automatic reconnection.
 • **In 4 languages**: தமிழ், සිංහල, English, français.
 • **Easy to learn**: built-in tutorial, Hint button, last-trick review, summary of every deal.
 • **Statistics**: success of your bids by level, Caps, winning streaks.
@@ -87,8 +87,8 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 | Jeu d'argent réel / pari | **Non** |
 | Achats intégrés | Non |
 | Publicité | Non |
-| Données collectées (Play « Sécurité des données » / Apple « Confidentialité ») | Voir `docs/PLAY_CONSOLE.md` §5 : déclaration prudente du pseudonyme et des messages de chat (traités de façon éphémère, non partagés, non conservés) ; aucune autre donnée |
-| Chat entre joueurs | **Oui** : chat texte entre joueurs d'une même table privée (rejointe par code), non modéré, non conservé. Play « Contenu généré par les utilisateurs / interactions » et IARC : répondre **Oui, les utilisateurs peuvent communiquer** (table privée uniquement) |
+| Données collectées (Play « Sécurité des données » / Apple « Confidentialité ») | Voir `docs/PLAY_CONSOLE.md` §5 : déclaration prudente du pseudonyme, des messages de chat et de l'audio du chat vocal (traités de façon éphémère, non partagés, non conservés) ; aucune autre donnée |
+| Chat entre joueurs | **Oui** : chat texte et **vocal** (WebRTC, en direct, non enregistré) entre joueurs d'une même table privée (rejointe par code), non modéré, non conservé. Play « Contenu généré par les utilisateurs / interactions » et IARC : répondre **Oui, les utilisateurs peuvent communiquer** (table privée uniquement) |
 | Public cible | 13 ans et plus conseillé |
 | URL de confidentialité | `https://kamalrajmuruganathan.github.io/304/privacy.html` |
 

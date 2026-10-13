@@ -376,5 +376,13 @@
   },
   "resumeGame": "Resume game",
   "botLevel": "Opponents' level",
-  "levelEasy": "Easy"
+  "levelEasy": "Easy",
+  "voiceJoin": "Turn on mic (voice chat)",
+  "voiceMute": "Mute mic",
+  "voiceUnmute": "Unmute mic",
+  "voiceDenied": "Microphone unavailable: allow microphone access.",
+  "voiceLeft": "Left voice chat",
+  "voiceConnected": "Voice connected",
+  "voiceConnecting": "Voice connecting…",
+  "voiceFailed": "Voice connection failed"
 }

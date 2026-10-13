@@ -49,6 +49,41 @@ final Duration botTakeover = Duration(
 
 final Random _rng = Random();
 
+/// Serveurs ICE envoyés aux clients pour le chat vocal (WebRTC pair-à-pair).
+/// STUN public gratuit par défaut ; un relais TURN (ex. compte gratuit Metered)
+/// se configure par variables d'environnement, sans toucher au code :
+///   STUN_URLS        (défaut : stun:stun.l.google.com:19302)
+///   TURN_URLS        turn:…:80,turns:…:443 (séparées par des virgules)
+///   TURN_USERNAME / TURN_CREDENTIAL
+List<Map<String, dynamic>> iceServers([Map<String, String>? env]) {
+  env ??= Platform.environment;
+  List<String> urls(String? v) => (v ?? '')
+      .split(',')
+      .map((u) => u.trim())
+      .where((u) => u.isNotEmpty)
+      .toList();
+  final stun = urls(env['STUN_URLS'] ?? 'stun:stun.l.google.com:19302');
+  final turn = urls(env['TURN_URLS']);
+  return [
+    if (stun.isNotEmpty) {'urls': stun},
+    if (turn.isNotEmpty)
+      {
+        'urls': turn,
+        'username': env['TURN_USERNAME'] ?? '',
+        'credential': env['TURN_CREDENTIAL'] ?? '',
+      },
+  ];
+}
+
+/// Message `joined` (création, arrivée, reconnexion) : place + serveurs ICE.
+String joinedMsg(String code, int seat, String? token) => jsonEncode({
+      't': 'joined',
+      'code': code,
+      'seat': seat,
+      'token': token,
+      'ice': iceServers(),
+    });
+
 String genCode() {
   const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return List.generate(4, (_) => abc[_rng.nextInt(abc.length)]).join();
@@ -60,6 +95,7 @@ class Seat {
   bool isBot;
   WebSocket? socket;
   DateTime? offlineSince; // déconnexion du joueur humain (null = en ligne)
+  bool voice = false; // a rejoint le chat vocal (micro ouvert ou coupé)
   Seat({this.name = 'Bot', this.isBot = true});
   bool get isHuman => !isBot;
   bool get connected => socket != null && socket!.readyState == WebSocket.open;
@@ -113,7 +149,8 @@ class Room {
                 'name': p.name,
                 'bot': p.isBot,
                 'online': p.connected,
-                'away': p.away
+                'away': p.away,
+                'voice': p.voice && p.connected
               }
           ];
         s.socket!.add(jsonEncode({'t': 'state', 'you': i, 'view': view}));
@@ -334,6 +371,7 @@ class Room {
   void onDisconnect(int seat) {
     seats[seat]
       ..socket = null
+      ..voice = false
       ..offlineSince = DateTime.now();
     lastSeen = DateTime.now();
     broadcast();
@@ -353,6 +391,7 @@ class Room {
       ..name = 'Bot ${seat + 1}'
       ..token = null
       ..socket = null
+      ..voice = false
       ..offlineSince = null;
     broadcast();
     loop();
@@ -386,12 +425,7 @@ void handleMessage(WebSocket ws, String data) {
       ..name = (msg['name'] as String?) ?? 'Joueur'
       ..socket = ws
       ..token = '$code:$seat:${_rng.nextInt(1 << 31)}';
-    ws.add(jsonEncode({
-      't': 'joined',
-      'code': code,
-      'seat': seat,
-      'token': room.seats[seat].token
-    }));
+    ws.add(joinedMsg(code, seat, room.seats[seat].token));
     room.broadcast();
     return;
   }
@@ -413,12 +447,7 @@ void handleMessage(WebSocket ws, String data) {
       ..name = (msg['name'] as String?) ?? 'Joueur'
       ..socket = ws
       ..token = '$code:$seat:${_rng.nextInt(1 << 31)}';
-    ws.add(jsonEncode({
-      't': 'joined',
-      'code': code,
-      'seat': seat,
-      'token': room.seats[seat].token
-    }));
+    ws.add(joinedMsg(code!, seat, room.seats[seat].token));
     room.broadcast();
     return;
   }
@@ -430,9 +459,9 @@ void handleMessage(WebSocket ws, String data) {
         if (token != null && room.seats[i].token == token) {
           room.seats[i]
             ..socket = ws
+            ..voice = false // le client renvoie `voice` s'il parlait
             ..offlineSince = null; // de retour : il rejoue lui-même
-          ws.add(jsonEncode(
-              {'t': 'joined', 'code': room.code, 'seat': i, 'token': token}));
+          ws.add(joinedMsg(room.code, i, token));
           room.broadcast();
           if (room.started) room.loop(); // reprend si la table attendait
           return;
@@ -473,6 +502,25 @@ void handleMessage(WebSocket ws, String data) {
   }
   if (t == 'action') {
     room.applyAction(seat, msg['action'] as Map);
+    return;
+  }
+  if (t == 'voice') {
+    // rejoindre / quitter le chat vocal : les autres le voient (players[].voice)
+    room.seats[seat].voice = msg['on'] == true;
+    room.broadcast();
+    return;
+  }
+  if (t == 'rtc') {
+    // signalisation WebRTC (offre / réponse / candidat ICE) relayée telle
+    // quelle à UN joueur de la même table ; l'audio, lui, ne passe pas ici
+    final to = msg['to'];
+    final data = msg['data'];
+    if (to is! int || to < 0 || to > 3 || to == seat || data is! Map) return;
+    final target = room.seats[to];
+    if (!room.seats[seat].voice || !target.voice || !target.connected) return;
+    final out = jsonEncode({'t': 'rtc', 'from': seat, 'data': data});
+    if (out.length > 20000) return; // une offre SDP fait quelques Ko
+    target.socket!.add(out);
     return;
   }
   if (t == 'chat') {

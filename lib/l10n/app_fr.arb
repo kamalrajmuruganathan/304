@@ -177,5 +177,13 @@
   "rGoodGame": "Bonne partie !",
   "resumeGame": "Reprendre la partie",
   "botLevel": "Niveau des adversaires",
-  "levelEasy": "Facile"
+  "levelEasy": "Facile",
+  "voiceJoin": "Activer le micro (chat vocal)",
+  "voiceMute": "Couper le micro",
+  "voiceUnmute": "Rétablir le micro",
+  "voiceDenied": "Micro indisponible : autorisez l'accès au micro.",
+  "voiceLeft": "Chat vocal quitté",
+  "voiceConnected": "Vocal connecté",
+  "voiceConnecting": "Vocal : connexion…",
+  "voiceFailed": "Vocal : échec de connexion"
 }

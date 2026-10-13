@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Mode en ligne (WebSocket vers le serveur) : indispensable en release. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Chat vocal de table (WebRTC) : micro demandé au 1er toucher du bouton. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <application
         android:label="304"
         android:name="${applicationName}"

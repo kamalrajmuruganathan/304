@@ -53,6 +53,27 @@ Sur GitHub : **Settings → Pages → Source : GitHub Actions**. C'est tout.
 (la version jouable solo contre les bots, dans les 4 langues ; la politique de
 confidentialité est servie sur `/privacy.html` — utile pour les stores).
 
+## 2 bis. Chat vocal — relais TURN gratuit (facultatif, recommandé)
+
+Le chat vocal marche **sans rien configurer** sur la plupart des réseaux (Wi-Fi, box) grâce au STUN
+public de Google. Sur certains réseaux **4G/5G** ou d'entreprise, la liaison directe est impossible :
+il faut alors un **relais TURN**. Offre gratuite suffisante pour la famille (la voix consomme
+≈ 15 Mo par heure et par joueur relayé) :
+
+1. Créer un compte gratuit sur https://www.metered.ca/stun-turn (offre gratuite : quelques Go par mois ;
+   vérifier à l'inscription qu'aucune carte n'est demandée).
+2. Dans le tableau de bord Metered, rubrique TURN : créer un identifiant (credential). Noter
+   l'**Username**, le **Password** et la liste des adresses (`turn:…:80`, `turn:…:443`, `turns:…:443`).
+3. Sur Render : service `three04` → **Environment** → ajouter :
+   - `TURN_URLS` = les adresses séparées par des virgules, ex.
+     `turn:global.relay.metered.ca:80,turn:global.relay.metered.ca:443,turns:global.relay.metered.ca:443`
+   - `TURN_USERNAME` = l'username ; `TURN_CREDENTIAL` = le password
+4. **Save Changes** (Render redémarre le serveur). Rien à changer dans l'app : le serveur envoie ces
+   réglages à chaque joueur (message `joined`, champ `ice`).
+
+Ces identifiants sont visibles par les joueurs (c'est le principe de TURN) : si l'usage explose,
+régénérer le mot de passe dans Metered et le remplacer sur Render.
+
 ## 3. Serveur multijoueur — Google Cloud Run
 
 Prérequis : [gcloud CLI](https://cloud.google.com/sdk/docs/install), un projet GCP avec facturation activée.
