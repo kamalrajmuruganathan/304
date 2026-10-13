@@ -67,6 +67,10 @@ void main() {
       'ROOM_TTL_SECONDS': '2',
       'ROOM_SWEEP_SECONDS': '1',
       'BOT_TAKEOVER_SECONDS': '1',
+      // relais TURN fictif : vérifie qu'il est transmis aux clients
+      'TURN_URLS': 'turn:turn.example.org:3478, turns:turn.example.org:443',
+      'TURN_USERNAME': 'u304',
+      'TURN_CREDENTIAL': 'p304',
     });
     final ready = Completer<void>();
     server.stdout.transform(utf8.decoder).listen((l) {
@@ -377,5 +381,70 @@ void main() {
     expect(sig(a2.lastView), before,
         reason: 'aucun coup joué pendant que personne n\'était là');
     await a2.ws.close();
+  });
+
+  test('chat vocal : serveurs ICE, présence « voice », signalisation relayée',
+      () async {
+    final a = await C.open();
+    a.send({'t': 'create', 'name': 'Ana'});
+    final ja = await a.next('joined');
+    // STUN public par défaut + relais TURN des variables d'environnement
+    final ice = (ja['ice'] as List).cast<Map>();
+    expect(ice.first['urls'], ['stun:stun.l.google.com:19302']);
+    expect(ice[1]['urls'],
+        ['turn:turn.example.org:3478', 'turns:turn.example.org:443']);
+    expect(ice[1]['username'], 'u304');
+    expect(ice[1]['credential'], 'p304');
+    final code = ja['code'];
+    final b = await C.open();
+    b.send({'t': 'join', 'code': code, 'name': 'Bala'});
+    expect((await b.next('joined'))['seat'], 2);
+
+    Future<void> until(bool Function() ok, String why) async {
+      for (var i = 0; i < 50 && !ok(); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+      expect(ok(), isTrue, reason: why);
+    }
+
+    bool voiceOf(C c, int seat) =>
+        ((c.lastView?['players'] as List?)?[seat] as Map?)?['voice'] == true;
+
+    // Ana seule dans le vocal : sa signalisation vers Bala n'est pas relayée
+    a.send({'t': 'voice', 'on': true});
+    await until(() => voiceOf(b, 0), 'Bala voit Ana dans le vocal');
+    a.send({
+      't': 'rtc',
+      'to': 2,
+      'data': {'type': 'offer', 'sdp': 'x'}
+    });
+    // Bala rejoint : l'offre d'Ana lui parvient avec l'expéditeur
+    b.send({'t': 'voice', 'on': true});
+    await until(() => voiceOf(a, 2), 'Ana voit Bala dans le vocal');
+    a.send({
+      't': 'rtc',
+      'to': 2,
+      'data': {'type': 'offer', 'sdp': 'v=0 offre'}
+    });
+    final got = await b.next('rtc');
+    expect(got['from'], 0);
+    expect((got['data'] as Map)['sdp'], 'v=0 offre',
+        reason: 'la 1re offre (Bala hors vocal) a été ignorée');
+    // réponse dans l'autre sens ; destinataires invalides ignorés
+    b.send({'t': 'rtc', 'to': 9, 'data': {}});
+    b.send({'t': 'rtc', 'to': 2, 'data': {}}); // à soi-même
+    b.send({'t': 'rtc', 'to': 1, 'data': {}}); // un bot
+    b.send({
+      't': 'rtc',
+      'to': 0,
+      'data': {'type': 'answer', 'sdp': 'v=0 reponse'}
+    });
+    final ans = await a.next('rtc');
+    expect(ans['from'], 2);
+    expect((ans['data'] as Map)['type'], 'answer');
+    // Bala se déconnecte : il n'est plus affiché dans le vocal
+    await b.ws.close();
+    await until(() => !voiceOf(a, 2), 'Bala retiré du vocal');
+    await a.ws.close();
   });
 }

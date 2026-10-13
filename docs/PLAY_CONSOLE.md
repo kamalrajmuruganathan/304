@@ -39,7 +39,7 @@ Textes et visuels : `docs/STORE_LISTING.md` et `docs/store/`.
 | Règles de confidentialité | `https://kamalrajmuruganathan.github.io/304/privacy.html` |
 | Accès à l'application | **Toutes les fonctionnalités sont accessibles sans restriction** (aucun compte). Préciser : « Le mode en ligne utilise un serveur gratuit qui peut mettre 30 à 60 s à se réveiller. » |
 | Annonces | **Non, mon application ne contient pas d'annonces** |
-| Classification du contenu (IARC) | catégorie **Jeu** (« Jeux de cartes / plateau / casse-tête » selon l'écran) ; violence, sexe, langage, drogues : **Non** ; **jeux d'argent simulés : Non** (jeu de plis, les jetons sont un score, aucune mise) ; **les utilisateurs peuvent-ils interagir ou échanger du contenu : Oui** (chat texte des tables privées) ; partage de position : Non ; achats numériques : Non |
+| Classification du contenu (IARC) | catégorie **Jeu** (« Jeux de cartes / plateau / casse-tête » selon l'écran) ; violence, sexe, langage, drogues : **Non** ; **jeux d'argent simulés : Non** (jeu de plis, les jetons sont un score, aucune mise) ; **les utilisateurs peuvent-ils interagir ou échanger du contenu : Oui** (chat texte et vocal des tables privées) ; partage de position : Non ; achats numériques : Non |
 | Public cible | **13 ans et plus** (13–15, 16–17, 18+). Ne pas cocher les tranches d'âge enfants (le chat les exclut des règles « Familles ») |
 | Application d'actualités | Non |
 | Applications gouvernementales / finance / santé | Non |
@@ -47,7 +47,9 @@ Textes et visuels : `docs/STORE_LISTING.md` et `docs/store/`.
 
 ## 5. Sécurité des données (déclaration prudente)
 
-L'app n'a ni compte, ni publicité, ni analyse. Deux informations transitent par le serveur en
+L'app n'a ni compte, ni publicité, ni analyse. Le **chat vocal** (facultatif) envoie la voix en direct,
+chiffrée, d'un joueur à l'autre (WebRTC) : rien n'est enregistré. Permission Android : `RECORD_AUDIO`,
+demandée seulement au premier toucher du bouton micro. Deux informations transitent par le serveur en
 ligne et y restent **seulement en mémoire** le temps de la table : le **pseudonyme** saisi et
 les **messages du chat**. Déclaration recommandée (prudente, cohérente avec `privacy.html`) :
 
@@ -61,6 +63,7 @@ les **messages du chat**. Déclaration recommandée (prudente, cohérente avec `
 |---|---|---|---|---|---|
 | Infos personnelles → **Nom** (pseudonyme libre, peut être inventé) | Oui | Non | Oui | Non (facultatif : un nom par défaut est proposé) | Fonctionnalité de l'application |
 | Messages → **Autres messages dans l'application** (chat de table) | Oui | Non | Oui | Non | Fonctionnalité de l'application |
+| Audio → **Enregistrements vocaux ou sonores** (chat vocal, transmis en direct, jamais enregistré) | Oui | Non | Oui | Non | Fonctionnalité de l'application |
 
 Tout le reste : **non collecté** (préférences et statistiques restent sur l'appareil).
 

@@ -10,6 +10,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../engine/engine.dart';
 import '../l10n/app_localizations.dart';
 import '../net/client.dart';
+import '../net/voice.dart';
 import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
@@ -242,6 +243,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   late final StreamSubscription<GameView> _s1;
   late final StreamSubscription<Map> _s2;
 
+  /// Chat vocal (WebRTC pair-à-pair, voir lib/net/voice.dart).
+  late final VoiceChat _voice = VoiceChat(c);
+
   GameClient get c => widget.client;
   AppLocalizations get l => AppLocalizations.of(context)!;
 
@@ -249,6 +253,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   void initState() {
     super.initState();
     keepScreenOn(true); // l'écran ne s'éteint pas pendant la partie
+    for (final n in [_voice.joined, _voice.muted, _voice.links]) {
+      n.addListener(_redraw);
+    }
     v = c.last;
     if (v != null && v!.phase != 'scored') _tokensBefore = Map.of(v!.tokens);
     if (c.code != null && c.token != null) saveTable(c.code!, c.token!);
@@ -309,10 +316,80 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     }
     _chat.dispose();
     keepScreenOn(false);
+    for (final n in [_voice.joined, _voice.muted, _voice.links]) {
+      n.removeListener(_redraw);
+    }
+    _voice.dispose(); // micro fermé, liaisons audio coupées
     c.leave(); // siège rendu à un bot pour les autres joueurs
     c.dispose();
     clearSavedTable(); // quitter la table : plus rien à reprendre
     super.dispose();
+  }
+
+  void _redraw() {
+    if (mounted) setState(() {});
+  }
+
+  /// Bouton micro : 1er toucher = rejoindre le vocal (autorisation du micro),
+  /// ensuite = couper / rétablir le micro. Appui long = quitter le vocal.
+  Future<void> _tapVoice() async {
+    if (_voice.joined.value) {
+      _voice.toggleMute();
+      return;
+    }
+    try {
+      await _voice.join();
+    } catch (e) {
+      debugPrint('voix : micro refusé ($e)');
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.voiceDenied)));
+      }
+    }
+  }
+
+  Future<void> _leaveVoice() async {
+    if (!_voice.joined.value) return;
+    await _voice.leave();
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.voiceLeft)));
+    }
+  }
+
+  /// Petit micro à côté du nom d'un joueur qui a rejoint le vocal : vert =
+  /// relié (on l'entend), orange = connexion, rouge = échec ou micro coupé.
+  Widget? _voiceBadge(int seat) {
+    final g = v!;
+    final p = seat < g.players.length ? g.players[seat] : const {};
+    if (p['voice'] != true) return null;
+    Color color;
+    String label;
+    if (seat == g.you) {
+      final mute = _voice.muted.value;
+      color = mute ? Colors.redAccent : Colors.greenAccent;
+      label = mute ? l.voiceUnmute : l.voiceMute;
+    } else {
+      final link = _voice.links.value[seat];
+      if (!_voice.joined.value) {
+        color = Colors.grey;
+        label = l.voiceJoin;
+      } else if (link == PeerLink.connected) {
+        color = Colors.greenAccent;
+        label = l.voiceConnected;
+      } else if (link == PeerLink.failed) {
+        color = Colors.redAccent;
+        label = l.voiceFailed;
+      } else {
+        color = Colors.orangeAccent;
+        label = l.voiceConnecting;
+      }
+    }
+    return Icon(Icons.mic,
+        key: ValueKey('voice-$seat'),
+        size: 14,
+        color: color,
+        semanticLabel: label);
   }
 
   /// Sons d'après l'évolution de la vue (carte posée, pli ramassé, résultat).
@@ -574,9 +651,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: active ? _gold : const Color(0xFF5A3D2E)),
       ),
-      child: Text(
-          '${_playerName(seat)}${g.trumpMaker == seat ? ' · ${l.mMaker}' : ''}  ($cnt)',
-          style: const TextStyle(color: _txt, fontSize: 12)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (_voiceBadge(seat) case final badge?) ...[
+          badge,
+          const SizedBox(width: 3),
+        ],
+        Flexible(
+          child: Text(
+              '${_playerName(seat)}${g.trumpMaker == seat ? ' · ${l.mMaker}' : ''}  ($cnt)',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: _txt, fontSize: 12)),
+        ),
+      ]),
     );
     if (bubble == null) return label;
     return Column(mainAxisSize: MainAxisSize.min, children: [
@@ -685,6 +771,27 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                     value: k,
                     child: Text(chatText(l, reactionCode(k)))),
             ],
+          ),
+          // chat vocal : toucher = micro (rejoindre, couper, rétablir),
+          // appui long = quitter le vocal
+          GestureDetector(
+            onLongPress: _leaveVoice,
+            child: IconButton(
+              key: const ValueKey('voice'),
+              tooltip: !_voice.joined.value
+                  ? l.voiceJoin
+                  : (_voice.muted.value ? l.voiceUnmute : l.voiceMute),
+              onPressed: _tapVoice,
+              icon: Icon(
+                  !_voice.joined.value
+                      ? Icons.mic_none
+                      : (_voice.muted.value ? Icons.mic_off : Icons.mic),
+                  color: !_voice.joined.value
+                      ? null
+                      : (_voice.muted.value
+                          ? Colors.redAccent
+                          : Colors.greenAccent)),
+            ),
           ),
           IconButton(
             key: const ValueKey('chat-open'),
