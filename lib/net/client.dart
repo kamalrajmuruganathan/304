@@ -271,7 +271,8 @@ class GameClient {
   void chat(String text) => _send({'t': 'chat', 'text': text});
 
   /// Rejoindre / quitter le chat vocal (les autres le voient dans `players`).
-  void voice(bool on) => _send({'t': 'voice', 'on': on});
+  void voice(bool on, {bool muted = false}) =>
+      _send({'t': 'voice', 'on': on, 'muted': muted});
 
   /// Signalisation WebRTC vers le joueur du siège [to] (relayée par le serveur).
   void rtc(int to, Map data) => _send({'t': 'rtc', 'to': to, 'data': data});

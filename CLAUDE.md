@@ -60,7 +60,7 @@ lib/
                            niveau des adversaires `level304` = normal | easy)
   sound.dart               sons (playSfx) : assets/sounds/{card,trick,win,lose}.wav, bips du prototype
   main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
-  l10n/app_{en,fr,ta,si}.arb  187 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
+  l10n/app_{en,fr,ta,si}.arb  189 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
@@ -152,6 +152,11 @@ Valeurs : J=30, 9=20, A=11, 10=10, K=3, Q=2, 8=0, 7=0 → **total 304**.
 
 Caps (8 plis, hors PCC) : **+1** bonus. Le donneur tourne d'un siège après chaque donne.
 Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplacé par le bonus automatique.
+Énoncé trouvé (pagat.com/jass/304.html, catsatcards.com) : dès qu'un joueur *devrait savoir*, avec les
+cartes déjà vues, que son équipe gagnera tous les plis restants, il doit annoncer « Caps » ; annonce
+correcte au plus tard à l'entame du 7e pli = +1 jeton ; annonce trop tôt, trop tard ou absente =
+pénalité (non chiffrée par Pagat ; 2 jetons ou 2 points de partie selon d'autres sources).
+**En attente d'une décision de Kamal** (pénalité, et si les bots annoncent) avant implémentation.
 
 **Phases du moteur** : `idle → redeal → bid1 → (allpass) → chooseTrump1 → bid2 →
 (chooseTrump2 | chooseTrumpPCC) → preplay → play → (spoilt) → scored`.
@@ -201,6 +206,12 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
   Seul le plus petit siège d'une paire envoie l'offre. UI : bouton micro de la barre (1er toucher =
   rejoindre + autoriser le micro, puis couper/rétablir ; appui long = quitter), petit micro à côté du
   nom (vert relié / orange connexion / rouge échec ou micro coupé). Haut-parleur activé sur mobile.
+  Micro coupé visible de tous (`players[].muted`, micro barré rouge, 15/10/2026).
+- **Lien d'invitation → appli Android** (15/10/2026) : l'APK déclare `game304://table/CODE` (lu par
+  `app_links` au démarrage et pendant l'exécution ; `flutter_deeplinking_enabled=false`) et le lien
+  https `…/304/app` (non vérifié : il faudrait `assetlinks.json` à la racine du domaine, MISE_EN_LIGNE
+  §2 ter). La page web ouverte sur Android propose « Ouvrir dans l'appli 304 » (`intent://`, repli :
+  page de l'APK).
 
 ## 6. État réel de validation — IMPORTANT
 
@@ -208,7 +219,7 @@ Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplac
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 79/79 (chat vocal : signalisation serveur + logique de liaison, niveau facile : 300 parties + UI, reprise d'une partie solo, bot remplaçant un joueur parti ou déconnecté, tables sans joueur figées, réactions traduites, lien d'invitation, quitter la partie avec confirmation, tablette portrait 800×1280, salon créer/rejoindre à l'écran, double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 79/79 (liens d'invitation `game304://` et `intent://`, micro coupé, chat vocal : signalisation serveur + logique de liaison, niveau facile : 300 parties + UI, reprise d'une partie solo, bot remplaçant un joueur parti ou déconnecté, tables sans joueur figées, réactions traduites, lien d'invitation, quitter la partie avec confirmation, tablette portrait 800×1280, salon créer/rejoindre à l'écran, double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |

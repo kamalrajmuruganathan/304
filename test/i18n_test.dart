@@ -158,6 +158,19 @@ void main() {
         tableFromUrl(Uri.parse('https://x.io/304/app/?table=ab12#/')), 'AB12');
     expect(
         tableFromUrl(Uri.parse('https://x.io/304/app/?table=toolong')), isNull);
+    // appli Android ouverte par la page web (bouton « Ouvrir dans l'appli »)
+    expect(tableFromUrl(Uri.parse('game304://table/ab12')), 'AB12');
+    expect(tableFromUrl(Uri.parse('game304://table/')), isNull);
+    expect(tableFromUrl(Uri.parse('game304://autre/AB12')), isNull);
+    final intent = appIntentLink('AB12');
+    expect(intent, startsWith('intent://table/AB12#Intent;'));
+    expect(intent, contains('scheme=game304;'));
+    expect(intent, contains('package=com.kjtech.game304;'));
+    expect(intent, contains('S.browser_fallback_url=https%3A%2F%2Fgithub.com'));
+    expect(intent, endsWith(';end'));
+    // l'adresse que lit l'appli donne bien la table de départ
+    expect(tableFromUrl(Uri.parse(intent.replaceFirst('intent:', 'game304:')
+        .split('#').first)), 'AB12');
   });
 
   testWidgets('lien d\'invitation : salon ouvert, code pré-rempli', (t) async {

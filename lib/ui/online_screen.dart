@@ -145,6 +145,16 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   key: const ValueKey('invited'),
                   style: const TextStyle(color: _gold, fontSize: 15)),
               const SizedBox(height: 12),
+              // page web ouverte sur Android : rejoindre dans l'appli installée
+              if (offerAndroidApp) ...[
+                OutlinedButton.icon(
+                  key: const ValueKey('open-app'),
+                  onPressed: () => openInAndroidApp(widget.initialCode!),
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(l.openInApp),
+                ),
+                const SizedBox(height: 12),
+              ],
             ],
             TextField(
               controller: _name,
@@ -371,7 +381,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       label = mute ? l.voiceUnmute : l.voiceMute;
     } else {
       final link = _voice.links.value[seat];
-      if (!_voice.joined.value) {
+      if (p['muted'] == true) {
+        // micro coupé chez lui : visible de tous
+        return Icon(Icons.mic_off,
+            key: ValueKey('voice-$seat'),
+            size: 14,
+            color: Colors.redAccent,
+            semanticLabel: l.voiceMutedOther);
+      } else if (!_voice.joined.value) {
         color = Colors.grey;
         label = l.voiceJoin;
       } else if (link == PeerLink.connected) {
@@ -385,7 +402,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         label = l.voiceConnecting;
       }
     }
-    return Icon(Icons.mic,
+    return Icon(
+        seat == g.you && _voice.muted.value ? Icons.mic_off : Icons.mic,
         key: ValueKey('voice-$seat'),
         size: 14,
         color: color,

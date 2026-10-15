@@ -85,6 +85,7 @@ class VoiceChat {
     for (final t in _local?.getAudioTracks() ?? const <MediaStreamTrack>[]) {
       t.enabled = !muted.value;
     }
+    client.voice(true, muted: muted.value); // les autres voient le micro coupé
   }
 
   /// Quitte le vocal (micro fermé, liaisons coupées).
@@ -147,7 +148,7 @@ class VoiceChat {
         for (final s in _pcs.keys.toList()) {
           _close(s);
         }
-        client.voice(true);
+        client.voice(true, muted: muted.value);
     }
   }
 

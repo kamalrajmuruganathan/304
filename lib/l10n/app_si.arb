@@ -185,5 +185,7 @@
   "voiceLeft": "හඬ කතාබහෙන් ඉවත් විය",
   "voiceConnected": "හඬ සම්බන්ධයි",
   "voiceConnecting": "හඬ සම්බන්ධ වෙමින්…",
-  "voiceFailed": "හඬ සම්බන්ධතාවය අසාර්ථකයි"
+  "voiceFailed": "හඬ සම්බන්ධතාවය අසාර්ථකයි",
+  "voiceMutedOther": "මයික්‍රෆෝනය නිහඬයි",
+  "openInApp": "304 යෙදුමේ විවෘත කරන්න"
 }

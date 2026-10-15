@@ -96,6 +96,7 @@ class Seat {
   WebSocket? socket;
   DateTime? offlineSince; // déconnexion du joueur humain (null = en ligne)
   bool voice = false; // a rejoint le chat vocal (micro ouvert ou coupé)
+  bool voiceMuted = false; // micro coupé (les autres le voient)
   Seat({this.name = 'Bot', this.isBot = true});
   bool get isHuman => !isBot;
   bool get connected => socket != null && socket!.readyState == WebSocket.open;
@@ -150,7 +151,8 @@ class Room {
                 'bot': p.isBot,
                 'online': p.connected,
                 'away': p.away,
-                'voice': p.voice && p.connected
+                'voice': p.voice && p.connected,
+                'muted': p.voice && p.voiceMuted
               }
           ];
         s.socket!.add(jsonEncode({'t': 'state', 'you': i, 'view': view}));
@@ -506,7 +508,9 @@ void handleMessage(WebSocket ws, String data) {
   }
   if (t == 'voice') {
     // rejoindre / quitter le chat vocal : les autres le voient (players[].voice)
-    room.seats[seat].voice = msg['on'] == true;
+    room.seats[seat]
+      ..voice = msg['on'] == true
+      ..voiceMuted = msg['muted'] == true;
     room.broadcast();
     return;
   }
