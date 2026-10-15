@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
@@ -34,7 +38,15 @@ Future<void> main() async {
     // préférences indisponibles : langue de l'appareil
   }
   await loadSettings();
-  runApp(const Game304App());
+  // appli Android ouverte par un lien d'invitation (game304://table/ABCD)
+  String? code;
+  if (!kIsWeb) {
+    try {
+      final link = await AppLinks().getInitialLink();
+      if (link != null) code = tableFromUrl(link);
+    } catch (_) {}
+  }
+  runApp(Game304App(inviteCode: code));
 }
 
 Future<void> setAppLanguage(String code) async {
@@ -96,9 +108,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  StreamSubscription<Uri>? _links;
+
   @override
   void initState() {
     super.initState();
+    // lien d'invitation reçu pendant que l'appli est déjà ouverte
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        _links = AppLinks().uriLinkStream.listen((uri) {
+          final c = tableFromUrl(uri);
+          if (c == null || !mounted) return;
+          Navigator.of(context).popUntil((r) => r.isFirst);
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => OnlineLobbyScreen(initialCode: c)));
+        }, onError: (_) {});
+      } catch (_) {}
+    }
     // lien d'invitation : on arrive directement au salon, code pré-rempli
     final code = widget.inviteCode;
     if (code != null) {
@@ -108,6 +134,12 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (_) => OnlineLobbyScreen(initialCode: code)));
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _links?.cancel();
+    super.dispose();
   }
 
   @override

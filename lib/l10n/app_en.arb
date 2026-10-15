@@ -384,5 +384,7 @@
   "voiceLeft": "Left voice chat",
   "voiceConnected": "Voice connected",
   "voiceConnecting": "Voice connecting…",
-  "voiceFailed": "Voice connection failed"
+  "voiceFailed": "Voice connection failed",
+  "voiceMutedOther": "Mic muted",
+  "openInApp": "Open in the 304 app"
 }

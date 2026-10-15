@@ -74,6 +74,19 @@ il faut alors un **relais TURN**. Offre gratuite suffisante pour la famille (la 
 Ces identifiants sont visibles par les joueurs (c'est le principe de TURN) : si l'usage explose,
 régénérer le mot de passe dans Metered et le remplacer sur Render.
 
+## 2 ter. Lien d'invitation → appli Android (facultatif)
+
+Déjà en place, sans rien faire : sur un téléphone Android, la page web d'invitation affiche
+**« Ouvrir dans l'appli 304 »** (lien `game304://table/CODE`) : l'appli s'ouvre au salon de la table si
+elle est installée, sinon la page de téléchargement de l'APK.
+
+Pour que le lien **https** partagé sur WhatsApp ouvre l'appli **directement** (App Links vérifiés),
+Android exige un fichier `https://kamalrajmuruganathan.github.io/.well-known/assetlinks.json`, à la
+**racine** du domaine — donc dans un dépôt GitHub nommé `kamalrajmuruganathan.github.io` (Pages), pas
+dans le dépôt `304`. Contenu : le nom du paquet `com.kjtech.game304` et l'empreinte SHA-256 du
+certificat de signature (Play Console → Intégrité de l'application, une fois l'app sur le Play Store).
+À faire après la publication Play : l'empreinte change avec la clé de signature finale.
+
 ## 3. Serveur multijoueur — Google Cloud Run
 
 Prérequis : [gcloud CLI](https://cloud.google.com/sdk/docs/install), un projet GCP avec facturation activée.

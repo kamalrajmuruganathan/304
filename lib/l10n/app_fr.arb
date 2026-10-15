@@ -185,5 +185,7 @@
   "voiceLeft": "Chat vocal quitté",
   "voiceConnected": "Vocal connecté",
   "voiceConnecting": "Vocal : connexion…",
-  "voiceFailed": "Vocal : échec de connexion"
+  "voiceFailed": "Vocal : échec de connexion",
+  "voiceMutedOther": "Micro coupé",
+  "openInApp": "Ouvrir dans l'appli 304"
 }

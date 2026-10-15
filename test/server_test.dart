@@ -442,6 +442,15 @@ void main() {
     final ans = await a.next('rtc');
     expect(ans['from'], 2);
     expect((ans['data'] as Map)['type'], 'answer');
+    // Bala coupe son micro : Ana le voit (et le revoit ouvert ensuite)
+    bool mutedOf(C c, int seat) =>
+        ((c.lastView?['players'] as List?)?[seat] as Map?)?['muted'] == true;
+    expect(mutedOf(a, 2), isFalse);
+    b.send({'t': 'voice', 'on': true, 'muted': true});
+    await until(() => mutedOf(a, 2), 'Ana voit le micro coupé de Bala');
+    expect(voiceOf(a, 2), isTrue, reason: 'micro coupé = toujours dans le vocal');
+    b.send({'t': 'voice', 'on': true, 'muted': false});
+    await until(() => !mutedOf(a, 2), 'micro de Bala rétabli');
     // Bala se déconnecte : il n'est plus affiché dans le vocal
     await b.ws.close();
     await until(() => !voiceOf(a, 2), 'Bala retiré du vocal');

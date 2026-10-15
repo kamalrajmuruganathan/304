@@ -81,8 +81,9 @@ table) ; le serveur ne relaie que la signalisation et n'entend rien.
 - `joined` contient `ice` : serveurs STUN/TURN à utiliser (`[{urls:[…]}, {urls, username, credential}]`),
   réglés côté serveur par `STUN_URLS` (défaut `stun:stun.l.google.com:19302`), `TURN_URLS`,
   `TURN_USERNAME`, `TURN_CREDENTIAL`.
-- Client → serveur `{"t":"voice","on":true|false}` : rejoindre / quitter le vocal ; la vue indique
-  `players[i].voice` (remis à `false` à la déconnexion : le client le renvoie après reconnexion).
+- Client → serveur `{"t":"voice","on":true|false,"muted":true|false}` : rejoindre / quitter le vocal,
+  micro coupé ou non ; la vue indique `players[i].voice` et `players[i].muted` (remis à `false` à la
+  déconnexion : le client les renvoie après reconnexion).
 - Client → serveur `{"t":"rtc","to":<siège>,"data":{…}}` → relayé au seul destinataire sous la forme
   `{"t":"rtc","from":<siège>,"data":{…}}`, si l'expéditeur et le destinataire sont dans le vocal
   (sinon ignoré ; 20 000 caractères max). `data` = `{type:"offer"|"answer", sdp}` ou

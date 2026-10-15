@@ -9,6 +9,7 @@
         android:label="304"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -29,6 +30,25 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Liens d'invitation lus par app_links (le routage profond de
+                 Flutter est désactivé plus bas pour ne pas les intercepter). -->
+            <!-- game304://table/ABCD : bouton « Ouvrir dans l'appli » de la page web -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="game304" android:host="table"/>
+            </intent-filter>
+            <!-- Lien https de l'invitation : ouvre l'appli seulement si l'utilisateur
+                 l'a autorisé (Paramètres > Applis > 304 > Ouvrir par défaut), tant que
+                 le domaine n'est pas vérifié (assetlinks.json, voir MISE_EN_LIGNE.md). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="kamalrajmuruganathan.github.io"
+                      android:pathPrefix="/304/app"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

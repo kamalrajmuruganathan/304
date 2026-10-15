@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 
 /// Adresse de l'app web (le lien ouvre la table directement, sans store).
@@ -20,11 +21,42 @@ String inviteLink(String code) {
   return '$base?table=$code';
 }
 
-/// Code de table présent dans l'adresse (?table=ABCD), sur le web.
+/// Code de table d'un lien d'invitation : `…/304/app/?table=ABCD` (web, ou
+/// lien https reçu par l'appli) ou `game304://table/ABCD` (appli Android
+/// ouverte depuis la page web). Sans argument : adresse de la page (web).
 String? tableFromUrl([Uri? uri]) {
   if (!kIsWeb && uri == null) return null;
-  final c = (uri ?? Uri.base).queryParameters['table']?.toUpperCase();
+  final u = uri ?? Uri.base;
+  final raw = u.scheme == kAppScheme && u.host == 'table'
+      ? (u.pathSegments.isEmpty ? null : u.pathSegments.first)
+      : u.queryParameters['table'];
+  final c = raw?.toUpperCase();
   return (c != null && RegExp(r'^[A-Z0-9]{4}$').hasMatch(c)) ? c : null;
+}
+
+/// Schéma des liens qui ouvrent l'appli Android (`game304://table/ABCD`).
+const String kAppScheme = 'game304';
+const String kAndroidPackage = 'com.kjtech.game304';
+
+/// Page de téléchargement de l'APK (si l'appli n'est pas installée).
+const String kApkPage =
+    'https://github.com/kamalrajmuruganathan/304/releases/latest';
+
+/// Lien « intent » de Chrome Android : ouvre l'appli à la table [code] si elle
+/// est installée, sinon la page de téléchargement de l'APK.
+String appIntentLink(String code) => 'intent://table/$code#Intent;'
+    'scheme=$kAppScheme;package=$kAndroidPackage;'
+    'S.browser_fallback_url=${Uri.encodeComponent(kApkPage)};end';
+
+/// Page web ouverte sur un téléphone Android : on propose l'appli.
+bool get offerAndroidApp =>
+    kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+Future<void> openInAndroidApp(String code) async {
+  try {
+    await launchUrl(Uri.parse(appIntentLink(code)),
+        webOnlyWindowName: '_self');
+  } catch (_) {}
 }
 
 /// Partage l'invitation. Téléphone : feuille de partage du système.
