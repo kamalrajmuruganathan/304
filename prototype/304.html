@@ -223,6 +223,8 @@ const STRENGTH = {}; RANKS.forEach((r,i)=>STRENGTH[r]=i);
 const VALUE = {J:30,'9':20,A:11,'10':10,K:3,Q:2,'8':0,'7':0};
 const SEAT_LETTER = ['S','E','N','W'];
 const SEAT_NAME = ['Sud','Est','Nord','Ouest'];
+// Caps annoncé juste, à temps : +1 jeton ; Wrong Caps : 2 jetons de pénalité
+const CAPS_BONUS = 1, WRONG_CAPS_PENALTY = 2;
 // ===== i18n =====  fr + en complets. ta (தமிழ்) / si (සිංහල) : à traduire
 // (repli automatique sur l'anglais). Relecture par locuteur natif requise.
 const AVATAR = ['S','E','N','O'];
@@ -266,6 +268,7 @@ const I18N = {
       suitS:'Pique', suitC:'Trèfle', suitD:'Carreau', suitH:'Cœur',
       hint:'💡 Conseil', hintBid:'Conseil : annoncer {b}.', hintPass:'Conseil : passer.', hintPlay:'Conseil : la carte en surbrillance.',
       hintDiscard:'Conseil : défaussez votre plus petite carte.',
+      callCaps:'Annoncer Caps', capsCalledBy:'{p} annonce Caps !', hintCaps:'Vous êtes sûr de faire tous les plis : annoncez Caps avant d\'entamer !', wrongCapsUs:'Wrong Caps : −{n} jetons pour nous', wrongCapsThem:'Wrong Caps : −{n} jetons pour eux',
       cutIndicator:'Couper avec l\'atout posé', hintCut:'Conseil : coupez avec l\'atout posé.',
       lastTrickBtn:'Dernier pli', lastTrickTitle:'Dernier pli — remporté par {p} (+{n})',
       language:'Langue', cardBack:'Dos de cartes', table:'Table', royal:'Royal', classic:'Classique', dark:'Sombre',
@@ -310,6 +313,7 @@ const I18N = {
       suitS:'Spades', suitC:'Clubs', suitD:'Diamonds', suitH:'Hearts',
       hint:'💡 Hint', hintBid:'Hint: bid {b}.', hintPass:'Hint: pass.', hintPlay:'Hint: the highlighted card.',
       hintDiscard:'Hint: discard your lowest card.',
+      callCaps:'Call Caps', capsCalledBy:'{p} calls Caps!', hintCaps:'You are sure to win every trick: call Caps before you lead!', wrongCapsUs:'Wrong Caps: −{n} tokens for us', wrongCapsThem:'Wrong Caps: −{n} tokens for them',
       cutIndicator:'Cut with the face-down trump', hintCut:'Hint: cut with the face-down trump.',
       lastTrickBtn:'Last trick', lastTrickTitle:'Last trick — won by {p} (+{n})',
       language:'Language', cardBack:'Card back', table:'Table', royal:'Royal', classic:'Classic', dark:'Dark',
@@ -402,6 +406,7 @@ const I18N = {
       hintPass:'குறிப்பு: பாஸ் செய்யுங்கள்.',
       hintPlay:'குறிப்பு: ஒளிரும் சீட்டு.',
       hintDiscard:'குறிப்பு: உங்கள் சிறிய சீட்டைக் கழியுங்கள்.',
+      callCaps:'Caps அறிவி', capsCalledBy:'{p} Caps அறிவிக்கிறார்!', hintCaps:'எல்லாப் பிடிகளையும் நீங்கள் உறுதியாக வெல்வீர்கள்: முதல் சீட்டை இடும் முன் Caps அறிவியுங்கள்!', wrongCapsUs:'தவறான Caps: நமக்கு −{n} நாணயங்கள்', wrongCapsThem:'தவறான Caps: அவர்களுக்கு −{n} நாணயங்கள்',
       cutIndicator:'வைத்த துருப்பால் வெட்டு', hintCut:'குறிப்பு: வைத்த துருப்பால் வெட்டுங்கள்.',
       lastTrickBtn:'கடைசிக் கை',
       lastTrickTitle:'கடைசிக் கை — வென்றவர் {p} (+{n})',
@@ -510,6 +515,7 @@ const I18N = {
       hintPass:'ඉඟිය: පාස් කරන්න.',
       hintPlay:'ඉඟිය: ආලෝකමත් කළ කාඩ්පත.',
       hintDiscard:'ඉඟිය: ඔබේ කුඩාම කාඩ්පත ඉවත දමන්න.',
+      callCaps:'Caps ප්‍රකාශ කරන්න', capsCalledBy:'{p} Caps ප්‍රකාශ කරයි!', hintCaps:'සියලු වාර ඔබ අනිවාර්යයෙන් දිනයි: පළමු කාඩ්පත දැමීමට පෙර Caps ප්‍රකාශ කරන්න!', wrongCapsUs:'වැරදි Caps: අපට කාසි −{n}', wrongCapsThem:'වැරදි Caps: ඔවුන්ට කාසි −{n}',
       cutIndicator:'තැබූ තුරුම්පුවෙන් කපන්න', hintCut:'ඉඟිය: තැබූ තුරුම්පුවෙන් කපන්න.',
       lastTrickBtn:'අවසාන අත',
       lastTrickTitle:'අවසාන අත — දිනුවේ {p} (+{n})',
@@ -606,6 +612,7 @@ class Engine{
     this.bid=null; this.trumpOpen=false;
     this.pcc=false; this.soloMode=false; this.mutedSeat=null;   // Partner Close Caps
     this.tricks=[]; this.trickWinsNS=0; this.trickWinsEW=0; this.trumpsPlayed=0; this.spoilt=false; this.seen=new Set(); this.currentTrick=[]; this.ledSuit=null;
+    this.capsChance={NS:null,EW:null}; this.capsCall=null;   // annonce Caps / Wrong Caps
     this.pointsNS=0; this.pointsEW=0;
     this.eldest=nextSeat(this.dealer);      // droite du donneur = parle en 1er
     this.phase='redeal';                    // on vérifie d'abord le redeal éventuel
@@ -741,6 +748,7 @@ class Engine{
     this.turn=this.leader;
     this.currentTrick=[]; this.ledSuit=null;
     this.log(`Jeu ! Atout ${open?'ouvert':'caché'} · enchère ${this.bid}. ${SEAT_NAME[this.leader]} entame.`);
+    this._noteCapsChance();
     return {playStarted:true};
   }
   // ---- PARTNER CLOSE CAPS : le preneur joue seul contre les 2 adversaires -
@@ -810,6 +818,55 @@ class Engine{
     return {played:true,faceDown};
   }
   // le preneur peut-il couper avec l'atout posé ? (jeu fermé, ne peut pas suivre)
+  // ---- CAPS : annonce des 8 plis (règle « Wrong Caps », pagat.com) --------
+  // Dès qu'un joueur DOIT savoir, avec ce qu'il a vu, que son équipe gagnera
+  // tous les plis restants, il doit annoncer Caps. Juste à la 1re occasion et
+  // au plus tard à l'entame du 7e pli : +1 jeton ; trop tôt, trop tard ou
+  // jamais : Wrong Caps. Occasion = joueur à l'entame (plis 1 à 7), son équipe
+  // ayant gagné tous les plis joués (au 8e pli, il ne reste qu'une carte).
+  // Pas de Caps en PCC.
+  canCallCaps(seat){
+    if(this.phase!=='play'||this.pcc||this.soloMode||this.capsCall) return false;
+    if(this.currentTrick.length||this.turn!==seat) return false;
+    if(this.tricks.length>6) return false;   // au plus tard à l'entame du 7e pli
+    const won = teamOf(seat)==='NS'?this.trickWinsNS:this.trickWinsEW;
+    return won===this.tricks.length;
+  }
+  capsCertain(seat){
+    if(!this.canCallCaps(seat)) return false;
+    const trump=this.trumpSuit;
+    if(!trump || (!this.trumpOpen && seat!==this.trumpMaker)) return false;
+    const hand=this.hands[seat];
+    const mine=hand.slice();
+    if(seat===this.trumpMaker && this.indicatorOnTable && this.indicator) mine.push(this.indicator);
+    if(!mine.length) return false;
+    const known=new Set(this.seen); for(const c of mine) known.add(cardKey(c));
+    for(const t of this.tricks) for(const p of t.cards) if(p.seat===seat) known.add(cardKey(p.card));
+    const unseen=buildDeck().filter(c=>!known.has(cardKey(c)));
+    const unseenTrumps=unseen.filter(c=>c.s===trump);
+    for(const c of mine.filter(c=>c.s===trump)){
+      if(unseenTrumps.some(u=>STRENGTH[u.r]>STRENGTH[c.r])) return false;
+    }
+    const drawers=hand.filter(c=>c.s===trump).length;
+    // l'atout posé d'un autre joueur ne tombe pas sur une entame atout (il peut couper)
+    const foreignIndicator = this.indicatorOnTable && seat!==this.trumpMaker;
+    const trumpsGone = !foreignIndicator && (unseenTrumps.length===0 || drawers>=unseenTrumps.length);
+    for(const c of mine.filter(c=>c.s!==trump)){
+      if(!trumpsGone) return false;
+      if(unseen.some(u=>u.s===c.s && STRENGTH[u.r]>STRENGTH[c.r])) return false;
+    }
+    return true;
+  }
+  _noteCapsChance(){
+    const team=teamOf(this.leader);
+    if(this.capsChance[team]===null && this.capsCertain(this.leader)) this.capsChance[team]=this.tricks.length;
+  }
+  callCaps(seat){
+    if(!this.canCallCaps(seat)) return false;
+    this.capsCall={seat,trick:this.tricks.length,certain:this.capsCertain(seat)};
+    this.log(`${SEAT_NAME[seat]} annonce Caps !`);
+    return true;
+  }
   canCutWithIndicator(seat){
     return this.phase==='play' && this.turn===seat && seat===this.trumpMaker &&
       this.indicatorOnTable && !this.trumpOpen && this.currentTrick.length>0 &&
@@ -871,6 +928,7 @@ class Engine{
     // prépare le pli suivant
     this.leader=win.seat; this.turn=win.seat;
     this.currentTrick=[]; this.ledSuit=null;
+    if(this.tricks.length<8) this._noteCapsChance();
     if(this.tricks.length===8){ res.handDone=true; this.scoreHand(res); }
     return res;
   }
@@ -900,17 +958,30 @@ class Engine{
     if(this.bid<200) delta=success?1:-2;
     else if(this.bid<250) delta=success?2:-3;
     else delta=success?3:-4;
-    // Caps (8 plis) : +1 bonus (simplifié)
-    const capsNS=this.trickWinsNS===8, capsEW=this.trickWinsEW===8;
-    let capsBonus=0;
-    if((tmTeam==='NS'&&capsNS)||(tmTeam==='EW'&&capsEW)) capsBonus=1;
     // transfert de jetons
-    let transfer = success ? Math.abs(delta)+capsBonus : Math.abs(delta);
+    const transfer = Math.abs(delta);
     if(success){ this.tokens[tmTeam]+=transfer; this.tokens[other]-=transfer; }
     else       { this.tokens[tmTeam]-=transfer; this.tokens[other]+=transfer; }
+    // Caps / Wrong Caps
+    const allTricks = this.trickWinsNS===8?'NS':(this.trickWinsEW===8?'EW':null);
+    let capsTeam=null, wrongCaps=null;
+    const call=this.capsCall;
+    if(call){
+      const x=teamOf(call.seat);
+      const ok = call.certain && allTricks===x && this.capsChance[x]===call.trick;
+      if(!ok) wrongCaps=x;               // trop tôt, trop tard, ou plis perdus
+      else if(call.trick<=6) capsTeam=x; // au plus tard à l'entame du 7e pli
+    }
+    for(const x of ['NS','EW']){
+      if(wrongCaps===null && this.capsChance[x]!==null && (!call || teamOf(call.seat)!==x)) wrongCaps=x; // pas d'annonce
+    }
+    if(capsTeam){ const o=capsTeam==='NS'?'EW':'NS'; this.tokens[capsTeam]+=CAPS_BONUS; this.tokens[o]-=CAPS_BONUS;
+      this.log(`Caps réussi : +${CAPS_BONUS} jeton pour ${capsTeam}.`); }
+    if(wrongCaps){ const o=wrongCaps==='NS'?'EW':'NS'; this.tokens[wrongCaps]-=WRONG_CAPS_PENALTY; this.tokens[o]+=WRONG_CAPS_PENALTY;
+      this.log(`Wrong Caps : ${wrongCaps} pénalisé de ${WRONG_CAPS_PENALTY} jetons.`); }
     this.tokens.NS=Math.max(0,Math.min(22,this.tokens.NS));
     this.tokens.EW=Math.max(0,Math.min(22,this.tokens.EW));
-    res.score={tmTeam,tmPoints,bid:this.bid,success,transfer,caps:capsBonus>0};
+    res.score={tmTeam,tmPoints,bid:this.bid,success,transfer,caps:capsTeam!==null,capsTeam,wrongCaps};
     res.gameOver = this.tokens.NS<=0 || this.tokens.EW<=0;
     if(res.gameOver) res.gameWinner = this.tokens.NS<=0 ? 'EW':'NS';
     // le donneur passe à droite
@@ -993,6 +1064,8 @@ function trumpsOut(e,seat){ // atouts encore chez les autres (estimation publiqu
   let seenT=0; for(const k of e.seen) if(k[0]===e.trumpSuit) seenT++;
   return 8-seenT-e.hands[seat].filter(c=>c.s===e.trumpSuit).length;
 }
+// Annonce « Caps » : le bot annonce dès que c'est certain (1re occasion)
+function botCallCaps(e,seat){ return e.capsCertain(seat); }
 function botPlay(engine,seat){
   const e=engine, legal=e.playableCards(seat);
   const led=e.ledSuit, trump=e.trumpSuit, tk=e.currentTrick;
@@ -1003,6 +1076,11 @@ function botPlay(engine,seat){
 
   // ---- ENTAME ----
   if(tk.length===0){
+    // Caps annoncé : il déroule l'ordre sûr (ses atouts du plus fort, puis le reste)
+    if(e.capsCall && e.capsCall.seat===seat && trump){
+      const order=(a,b)=> (b.s===trump)-(a.s===trump) || STRENGTH[b.r]-STRENGTH[a.r] || SUITS.indexOf(a.s)-SUITS.indexOf(b.s);
+      return legal.slice().sort(order)[0];
+    }
     // preneur, atout ouvert, maître à l'atout et atouts adverses dehors -> il tire
     if(isTM && e.trumpOpen && trump){
       const mt=legal.filter(c=>c.s===trump && isMaster(e,seat,c)).sort((a,b)=>STRENGTH[b.r]-STRENGTH[a.r]);
@@ -1357,10 +1435,12 @@ function stepPlay(){
     btn(t('hint'),'',showPlayHint);
     if(LAST_TRICK) btn(t('lastTrickBtn'),'',openLastTrick);
     if(eng.canCutWithIndicator(0)) btn(t('cutIndicator'),'primary',humanCutIndicator);
+    if(eng.canCallCaps(0)) btn(t('callCaps'),'primary',humanCallCaps);   // annonce Caps avant d'entamer
     setHint(eng.trumpOpen?tf('trumpOpenHint',{s:suitName(eng.trumpSuit)}):t('trumpHiddenHint'));
   }else{
     setMsgL(()=>tf('botPlays',{p:seatName(seat)})); clearControls();
     if(eng.soloMode && eng.mutedSeat===0) setHintL(()=>t('pccOut'));
+    if(botCallCaps(eng,seat)){ eng.callCaps(seat); setHintL(()=>tf('capsCalledBy',{p:seatName(seat)})); }
     setTimeout(()=>botTurn(seat), D(620));
   }
 }
@@ -1368,6 +1448,11 @@ function humanPlay(c){
   clearControls();                       // Conseil / Dernier pli disparaissent une fois la carte jouée
   const r=eng.playCard(0,c);
   afterPlay(r);
+}
+function humanCallCaps(){
+  if(!eng.callCaps(0)) return;
+  stepPlay();                              // le bouton disparaît
+  setHintL(()=>tf('capsCalledBy',{p:seatName(0)}));
 }
 function humanCutIndicator(){
   if(!eng.canCutWithIndicator(0)) return;
@@ -1434,7 +1519,7 @@ function showHandResult(r){
     <p>${t('makerLabel')} : <b>${SEAT_NAME[eng.trumpMaker!==null?eng.trumpMaker:0]}</b> (${s.tmTeam==='NS'?t('us'):t('them')})<br>
        ${s.pcc
          ? `<b>Partner Close Caps</b> · ${s.tricks}/8 plis — ${s.success?'<span class="win">'+t('succeeded')+'</span>':'<span class="lose">'+t('failedPcc')+'</span>'}`
-         : `Enchère <b>${s.bid}</b> · réalisé <b>${s.tmPoints}</b> pts — ${s.success?'<span class="win">'+t('succeeded')+'</span>':'<span class="lose">'+t('failedBid')+'</span>'}${s.caps?' · <b>'+t('caps')+'</b>':''}`}</p>
+         : `Enchère <b>${s.bid}</b> · réalisé <b>${s.tmPoints}</b> pts — ${s.success?'<span class="win">'+t('succeeded')+'</span>':'<span class="lose">'+t('failedBid')+'</span>'}${s.caps?' · <b>'+t('caps')+'</b>':''}`}${s.wrongCaps?'<br><span class="lose">'+tf(s.wrongCaps==='NS'?'wrongCapsUs':'wrongCapsThem',{n:WRONG_CAPS_PENALTY})+'</span>':''}</p>
     <div class="score">${t('tokens')} — ${t('us')} <b>${eng.tokens.NS}</b> · ${t('them')} <b>${eng.tokens.EW}</b> <span style="color:var(--dim)">(${s.success?'+':'−'}${s.transfer})</span></div>
     ${gameOver?`<p style="font-size:16px;color:${r.gameWinner==='NS'?'var(--green)':'var(--red)'}"><b>${r.gameWinner==='NS'?t('gameWon'):t('gameLost')}</b></p>`:''}
     <button class="primary" id="cont">${gameOver?t('playAgain'):t('nextDeal')}</button>
@@ -1514,7 +1599,7 @@ function showPlayHint(){
   document.querySelectorAll('#seat-S .card.hinted').forEach(el=>el.classList.remove('hinted'));
   const el=document.querySelector('#seat-S .handrow [data-k="'+cardKey(c)+'"]');
   if(el) el.classList.add('hinted');
-  setHintL(()=>t('hintPlay'));
+  setHintL(()=>t(eng.capsCertain(0)?'hintCaps':'hintPlay'));
 }
 // ---- Dernier pli ----
 function openLastTrick(){

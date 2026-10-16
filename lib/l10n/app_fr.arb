@@ -187,5 +187,10 @@
   "voiceConnecting": "Vocal : connexion…",
   "voiceFailed": "Vocal : échec de connexion",
   "voiceMutedOther": "Micro coupé",
-  "openInApp": "Ouvrir dans l'appli 304"
+  "openInApp": "Ouvrir dans l'appli 304",
+  "callCaps": "Annoncer Caps",
+  "capsCalledBy": "{p} annonce Caps !",
+  "hintCaps": "Vous êtes sûr de faire tous les plis : annoncez Caps avant d'entamer !",
+  "wrongCapsUs": "Wrong Caps : −{n} jetons pour nous",
+  "wrongCapsThem": "Wrong Caps : −{n} jetons pour eux"
 }

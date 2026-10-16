@@ -40,8 +40,8 @@ const rnd = { fn: Math.random };
 ctx.Math = Object.create(Math);
 ctx.Math.random = () => rnd.fn();
 vm.createContext(ctx);
-vm.runInContext(src + '\n;globalThis.__api={Engine,botBid,botBid2,botChooseTrump,botPlay};', ctx);
-const { Engine, botBid, botBid2, botChooseTrump, botPlay } = ctx.__api;
+vm.runInContext(src + '\n;globalThis.__api={Engine,botBid,botBid2,botChooseTrump,botPlay,botCallCaps};', ctx);
+const { Engine, botBid, botBid2, botChooseTrump, botPlay, botCallCaps } = ctx.__api;
 
 const k = c => c.s + c.r;
 
@@ -54,7 +54,9 @@ function fnv1a(str) {
 
 // Une donne pilotée par l'IA, mêmes choix que le test Dart.
 // mode : 'closed' | 'open' ; forcePCC : siège qui annonce PCC dès qu'il peut.
-function fullHand(e, tr, mode, forcePCC) {
+// caps0 : siège 0 pour Caps — 'bot' (dès que certain), 'never' (jamais :
+// Wrong Caps), 'eager' (dès qu'il peut, même sans certitude : trop tôt).
+function fullHand(e, tr, mode, forcePCC, caps0 = 'bot') {
   e.newHand();
   let rc = 0;
   while (e.canRedeal() && rc < 8) { e.redeal(); rc++; tr.push('redeal'); }
@@ -89,6 +91,8 @@ function fullHand(e, tr, mode, forcePCC) {
   while (e.tricks.length < 8 && guard++ < 200) {
     const s = e.turn;
     let r;
+    const call = (s === 0 && caps0 !== 'bot') ? (caps0 === 'eager' && e.canCallCaps(s)) : botCallCaps(e, s);
+    if (call) { tr.push('caps ' + s); e.callCaps(s); }
     if (e.hands[s].length === 0 && s === e.trumpMaker && e.indicatorOnTable) {
       tr.push('lastInd ' + s); r = e.playLastIndicator(s);
     } else {
@@ -112,7 +116,7 @@ for (let g = 0; g < 24; g++) {
     const mode = n % 3 === 0 ? 'open' : 'closed';
     const forcePCC = (g % 4 === 0 && n % 5 === 2) ? (n % 4) : null;
     tr.push('# hand ' + n + ' ' + mode + ' pcc=' + forcePCC);
-    fullHand(e, tr, mode, forcePCC);
+    fullHand(e, tr, mode, forcePCC, g % 3 === 1 ? 'never' : (g % 6 === 5 ? 'eager' : 'bot'));
     n++;
   }
   const log = e._log || [];

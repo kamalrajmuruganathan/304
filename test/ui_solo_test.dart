@@ -105,6 +105,22 @@ Future<int> playSolo(WidgetTester tester,
       }
     }
 
+    // annonce « Caps » : proposée au joueur qui entame quand son équipe a
+    // gagné tous les plis ; touchée parfois (juste ou trop tôt)
+    final caps = find.byKey(const ValueKey('call-caps'));
+    if (caps.evaluate().isNotEmpty) {
+      seen.add('bouton Caps');
+      if (rnd.nextInt(4) == 0) {
+        await tester.tap(caps);
+        await tester.pump();
+        expect(caps, findsNothing, reason: 'une seule annonce par donne');
+        expect(find.textContaining(l.capsCalledBy(l.mSud)), findsOneWidget);
+        seen.add('Caps annoncé (joueur)');
+        idle = 0;
+        continue;
+      }
+    }
+
     final playable = find.byWidgetPredicate((w) =>
         w.key is ValueKey<String> &&
         (w.key as ValueKey<String>).value.startsWith('play-'));

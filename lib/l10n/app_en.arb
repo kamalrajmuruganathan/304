@@ -386,5 +386,13 @@
   "voiceConnecting": "Voice connecting…",
   "voiceFailed": "Voice connection failed",
   "voiceMutedOther": "Mic muted",
-  "openInApp": "Open in the 304 app"
+  "openInApp": "Open in the 304 app",
+  "callCaps": "Call Caps",
+  "capsCalledBy": "{p} calls Caps!",
+  "@capsCalledBy": {"placeholders": {"p": {"type": "String"}}},
+  "hintCaps": "You are sure to win every trick: call Caps before you lead!",
+  "wrongCapsUs": "Wrong Caps: −{n} tokens for us",
+  "@wrongCapsUs": {"placeholders": {"n": {"type": "int"}}},
+  "wrongCapsThem": "Wrong Caps: −{n} tokens for them",
+  "@wrongCapsThem": {"placeholders": {"n": {"type": "int"}}}
 }

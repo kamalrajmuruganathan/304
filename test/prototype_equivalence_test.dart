@@ -50,7 +50,11 @@ int fnv1a(String s) {
 String k(Card c) => '${c.suit}${c.rank}';
 
 /// Même pilotage que fullHand() dans tools/diff-test/trace.js.
-void fullHand(Engine e, List<String> tr, String mode, int? forcePCC) {
+/// [caps0] : comportement du siège 0 pour Caps — 'bot' (annonce dès que
+/// c'est certain), 'never' (n'annonce jamais : Wrong Caps), 'eager' (annonce
+/// dès qu'il le peut, même sans certitude : annonces trop tôt).
+void fullHand(Engine e, List<String> tr, String mode, int? forcePCC,
+    [String caps0 = 'bot']) {
   e.newHand();
   var rc = 0;
   while (e.canRedeal() && rc < 8) {
@@ -97,6 +101,13 @@ void fullHand(Engine e, List<String> tr, String mode, int? forcePCC) {
   while (e.tricks.length < 8 && guard++ < 200) {
     final s = e.turn;
     Map<String, dynamic> r;
+    final call = s == 0 && caps0 != 'bot'
+        ? caps0 == 'eager' && e.canCallCaps(s)
+        : botCallCaps(e, s);
+    if (call) {
+      tr.add('caps $s');
+      e.callCaps(s);
+    }
     if (e.hands[s].isEmpty && s == e.trumpMaker && e.indicatorOnTable) {
       tr.add('lastInd $s');
       r = e.playLastIndicator(s);
@@ -143,7 +154,9 @@ void main() {
         final mode = n % 3 == 0 ? 'open' : 'closed';
         final forcePCC = (seed - 1000) % 4 == 0 && n % 5 == 2 ? n % 4 : null;
         tr.add('# hand $n $mode pcc=$forcePCC');
-        fullHand(e, tr, mode, forcePCC);
+        final gi = seed - 1000;
+        fullHand(e, tr, mode, forcePCC,
+            gi % 3 == 1 ? 'never' : (gi % 6 == 5 ? 'eager' : 'bot'));
         n++;
       }
       // première divergence, avec contexte, pour un diagnostic lisible

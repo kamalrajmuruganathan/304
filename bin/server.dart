@@ -297,6 +297,7 @@ class Room {
         e.startPlayClosed(); // les bots jouent fermé
         break;
       case 'play':
+        if (botCallCaps(e, seat)) e.callCaps(seat); // annonce Caps si certain
         final c = botPlay(e, seat);
         if (c is PlayIndicator) {
           e.playIndicatorToCut(seat);
@@ -338,6 +339,10 @@ class Room {
           break;
         case 'open':
           (action['open'] == true) ? e.startPlayOpen() : e.startPlayClosed();
+          break;
+        case 'caps':
+          // annonce « Caps » avant d'entamer ; jugée au décompte (Wrong Caps)
+          if (!e.callCaps(seat)) throw StateError('Caps impossible');
           break;
         case 'play':
           // le serveur fait autorité : un coup illégal envoyé par un client

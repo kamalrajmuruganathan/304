@@ -187,5 +187,10 @@
   "voiceConnecting": "හඬ සම්බන්ධ වෙමින්…",
   "voiceFailed": "හඬ සම්බන්ධතාවය අසාර්ථකයි",
   "voiceMutedOther": "මයික්‍රෆෝනය නිහඬයි",
-  "openInApp": "304 යෙදුමේ විවෘත කරන්න"
+  "openInApp": "304 යෙදුමේ විවෘත කරන්න",
+  "callCaps": "Caps ප්‍රකාශ කරන්න",
+  "capsCalledBy": "{p} Caps ප්‍රකාශ කරයි!",
+  "hintCaps": "සියලු වාර ඔබ අනිවාර්යයෙන් දිනයි: පළමු කාඩ්පත දැමීමට පෙර Caps ප්‍රකාශ කරන්න!",
+  "wrongCapsUs": "වැරදි Caps: අපට කාසි −{n}",
+  "wrongCapsThem": "වැරදි Caps: ඔවුන්ට කාසි −{n}"
 }

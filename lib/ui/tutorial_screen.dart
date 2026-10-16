@@ -45,8 +45,10 @@ const kTutorial = <String, List<(String, String)>>{
     (
       'Marquer',
       'Enchère réussie (points de l\'équipe du preneur ≥ enchère) : moins de '
-          '200 → +1, de 200 à 249 → +2, 250 et plus → +3 ; les 8 plis (Caps) → '
-          '+1 de bonus. Enchère chutée : −2, −3 ou −4.'
+          '200 → +1, de 200 à 249 → +2, 250 et plus → +3. Enchère chutée : −2, '
+          '−3 ou −4. Les 8 plis : annoncez « Caps » (bouton) dès que c\'est '
+          'sûr, au plus tard à l\'entame du 7e pli → +1 ; trop tôt, trop tard '
+          'ou oublié (Wrong Caps) → −2.'
     ),
     ('Astuce', 'Touchez 💡 Conseil pour voir ce que jouerait l\'IA.'),
   ],
@@ -85,8 +87,10 @@ const kTutorial = <String, List<(String, String)>>{
     (
       'Scoring',
       'Bid made (declarer\'s team points ≥ bid): under 200 → +1, 200 to 249 → '
-          '+2, 250 and up → +3; all 8 tricks (Caps) → +1 bonus. Bid failed: '
-          '−2, −3 or −4.'
+          '+2, 250 and up → +3. Bid failed: −2, −3 or −4. All 8 tricks: call '
+          '"Caps" (button) as soon as it is certain, by the lead to the 7th '
+          'trick at the latest → +1; too early, too late or forgotten (Wrong '
+          'Caps) → −2.'
     ),
     ('Tip', 'Tap 💡 Hint to see what the AI would play.'),
   ],
@@ -129,8 +133,10 @@ const kTutorial = <String, List<(String, String)>>{
     (
       'புள்ளிக் கணக்கு',
       'ஏலம் வெற்றி (ஏலதாரர் அணியின் புள்ளிகள் ≥ ஏலம்): 200-க்குக் குறைவு → '
-          '+1, 200 முதல் 249 வரை → +2, 250 அல்லது அதற்கு மேல் → +3; 8 கைகளும் '
-          '(Caps) → +1 கூடுதல். ஏலம் தோல்வி: −2, −3 அல்லது −4.'
+          '+1, 200 முதல் 249 வரை → +2, 250 அல்லது அதற்கு மேல் → +3. ஏலம் '
+          'தோல்வி: −2, −3 அல்லது −4. 8 கைகளும்: உறுதியானவுடன் Caps அறிவியுங்கள் '
+          '(பொத்தான்), 7வது கைக்கு முன் → +1; முன்கூட்டியோ தாமதமாகவோ அல்லது '
+          'மறந்தால் (தவறான Caps) → −2.'
     ),
     (
       'குறிப்பு',
@@ -173,8 +179,9 @@ const kTutorial = <String, List<(String, String)>>{
     (
       'ලකුණු ගණනය',
       'ලංසුව සාර්ථකයි (ලංසුකරුගේ කණ්ඩායමේ ලකුණු ≥ ලංසුව): 200ට අඩු → +1, '
-          '200 සිට 249 දක්වා → +2, 250 හෝ ඊට වැඩි → +3; අත් 8ම (Caps) → +1 '
-          'අමතර. ලංසුව අසාර්ථකයි: −2, −3 හෝ −4.'
+          '200 සිට 249 දක්වා → +2, 250 හෝ ඊට වැඩි → +3. ලංසුව අසාර්ථකයි: −2, '
+          '−3 හෝ −4. අත් 8ම: සහතික වූ වහාම Caps ප්‍රකාශ කරන්න (බොත්තම), 7 වන '
+          'අතට පෙර → +1; කලින්, ප්‍රමාද වී හෝ අමතක වී (වැරදි Caps) → −2.'
     ),
     ('ඉඟිය', 'AI කුමක් දමයිද යන්න බැලීමට 💡 ඉඟිය බොත්තම ස්පර්ශ කරන්න.'),
   ],

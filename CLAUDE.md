@@ -60,7 +60,7 @@ lib/
                            niveau des adversaires `level304` = normal | easy)
   sound.dart               sons (playSfx) : assets/sounds/{card,trick,win,lose}.wav, bips du prototype
   main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
-  l10n/app_{en,fr,ta,si}.arb  189 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
+  l10n/app_{en,fr,ta,si}.arb  194 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
@@ -150,13 +150,21 @@ Valeurs : J=30, 9=20, A=11, 10=10, K=3, Q=2, 8=0, 7=0 → **total 304**.
 | ≥ 250 | +3 | −4 |
 | PCC | +4 | −5 |
 
-Caps (8 plis, hors PCC) : **+1** bonus. Le donneur tourne d'un siège après chaque donne.
-Non implémenté : « Wrong Caps » (pénalité de timing d'annonce) — remplacé par le bonus automatique.
-Énoncé trouvé (pagat.com/jass/304.html, catsatcards.com) : dès qu'un joueur *devrait savoir*, avec les
-cartes déjà vues, que son équipe gagnera tous les plis restants, il doit annoncer « Caps » ; annonce
-correcte au plus tard à l'entame du 7e pli = +1 jeton ; annonce trop tôt, trop tard ou absente =
-pénalité (non chiffrée par Pagat ; 2 jetons ou 2 points de partie selon d'autres sources).
-**En attente d'une décision de Kamal** (pénalité, et si les bots annoncent) avant implémentation.
+Le donneur tourne d'un siège après chaque donne.
+
+**Caps / Wrong Caps** (16/10/2026, « comme dans les règles », pagat.com ; JS + Dart identiques) : le joueur
+qui **entame** (plis 1 à 7), son équipe ayant gagné tous les plis joués, peut **annoncer « Caps »**
+(`canCallCaps` / `callCaps`). Si, avec ce qu'il a vu, il est **certain** que son équipe gagnera tous les plis
+(`capsCertain` : il connaît l'atout ; ses atouts battent tous les atouts non vus ; il peut les faire tomber
+avant ses autres cartes — un atout posé chez un autre ne tombe pas — ; ses autres cartes sont maîtresses),
+l'occasion est notée (`capsChance`, 1re occasion par équipe). Décompte : annonce juste, à la 1re occasion →
+**+1 jeton** (`kCapsBonus`) ; annonce trop tôt (pas certaine), trop tard, suivie d'un pli perdu, ou
+**occasion certaine sans annonce** → **Wrong Caps −2 jetons** (`kWrongCapsPenalty` ; Pagat ne chiffre pas,
+2 = valeur la plus citée), en plus du barème de l'enchère. Plus de bonus automatique : 8 plis sans
+occasion certaine ni annonce = pas de bonus. Pas de Caps en PCC. Au 8e pli il ne reste qu'une carte :
+plus d'annonce (écart assumé avec Pagat, qui pénalise aussi l'oubli au 8e pli). Bots : annoncent dès que
+c'est certain (`botCallCaps`), puis déroulent atouts du plus fort puis le reste (1 277 annonces sur
+188 325 donnes simulées, toutes réussies).
 
 **Phases du moteur** : `idle → redeal → bid1 → (allpass) → chooseTrump1 → bid2 →
 (chooseTrump2 | chooseTrumpPCC) → preplay → play → (spoilt) → scored`.
@@ -218,8 +226,8 @@ pénalité (non chiffrée par Pagat ; 2 jetons ou 2 points de partie selon d'aut
 | Élément | Statut |
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
-| Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 1 074 donnes (dont 60 PCC, 2 atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 79/79 (liens d'invitation `game304://` et `intent://`, micro coupé, chat vocal : signalisation serveur + logique de liaison, niveau facile : 300 parties + UI, reprise d'une partie solo, bot remplaçant un joueur parti ou déconnecté, tables sans joueur figées, réactions traduites, lien d'invitation, quitter la partie avec confirmation, tablette portrait 800×1280, salon créer/rejoindre à l'écran, double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
+| Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 915 donnes (PCC, atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé, 21 annonces Caps : 4 réussies, 17 Wrong Caps — siège 0 qui oublie ou annonce trop tôt dans certaines parties) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
+| Tests Dart | ✅ `flutter test` : 83/83 (Caps/Wrong Caps : positions construites + 300 parties bots parfaits sans Wrong Caps + joueur qui oublie ou annonce trop tôt + bouton Caps en solo et action serveur, liens d'invitation `game304://` et `intent://`, micro coupé, chat vocal : signalisation serveur + logique de liaison, niveau facile : 300 parties + UI, reprise d'une partie solo, bot remplaçant un joueur parti ou déconnecté, tables sans joueur figées, réactions traduites, lien d'invitation, quitter la partie avec confirmation, tablette portrait 800×1280, salon créer/rejoindre à l'écran, double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
@@ -429,6 +437,11 @@ JS, blocage, ou texte non traduit après bascule de langue.
   étape qu'aucun pion n'en chevauche un autre.
 - Test « animation de distribution » instable : une redistribution par un bot (600 ms) relançait
   l'animation avant la vérification à 1 s → vérification à 500 ms (animation la plus longue : 470 ms).
+- En ligne : l'UI refaisait la règle « carte jouable » sans les atouts épuisés (le preneur qui a tous
+  les atouts restants doit mener atout) → « carte non jouable » renvoyé par le serveur. Corrigé : la vue
+  contient `playable` (liste du moteur), l'UI ne duplique plus la règle (16/10/2026).
+- Caps : un bot annonçait Caps « certain » puis perdait le dernier pli à cause de l'atout posé du preneur
+  resté sur la table (ne tombe pas sur une entame atout, peut couper) → pris en compte dans `capsCertain`.
 - Lobby : « 2ᵉ joueur » s'affichait avec un carré sur le web (pas de glyphe ᵉ) → « deuxième ».
 - Captures d'écran du build web : `flutter build web --no-web-resources-cdn` (sinon CanvasKit vient
   d'un CDN injoignable ici), Chromium via le proxy, accessibilité Flutter activée

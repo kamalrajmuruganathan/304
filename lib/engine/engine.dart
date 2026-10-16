@@ -39,6 +39,11 @@ const Map<String, int> kValue = {
 };
 const List<String> kSeatName = ['Sud', 'Est', 'Nord', 'Ouest'];
 
+/// Caps annoncé juste, à temps : +1 jeton. Wrong Caps : 2 jetons de pénalité
+/// (pagat.com ne chiffre pas la pénalité ; 2 = valeur la plus citée).
+const int kCapsBonus = 1;
+const int kWrongCapsPenalty = 2;
+
 final Map<String, int> kStrength = {
   for (var i = 0; i < kRanks.length; i++) kRanks[i]: i
 };
@@ -117,6 +122,15 @@ class Engine {
   int trumpsPlayed = 0; // atouts tombés (règle des atouts épuisés)
   Set<String> seen = {}; // mémoire publique : cartes vues face visible
 
+  // ---- CAPS (annonce des 8 plis, règle « Wrong Caps ») --------------------
+  /// Pli (0..7) où une équipe a eu pour la 1re fois l'occasion certaine
+  /// d'annoncer Caps (son joueur à l'entame pouvait savoir qu'elle gagnerait
+  /// tous les plis) ; null = jamais.
+  Map<String, int?> capsChance = {'NS': null, 'EW': null};
+
+  /// Annonce faite : siège, pli (0..7) et si elle était certaine à ce moment.
+  ({int seat, int trick, bool certain})? capsCall;
+
   String phase = 'idle';
   int eldest = 0;
 
@@ -179,6 +193,8 @@ class Engine {
     trickWinsNS = trickWinsEW = pointsNS = pointsEW = 0;
     trumpsPlayed = 0;
     seen = {};
+    capsChance = {'NS': null, 'EW': null};
+    capsCall = null;
     eldest = nextSeat(dealer);
     phase = 'redeal';
     bidTurn = eldest;
@@ -408,6 +424,7 @@ class Engine {
     ledSuit = null;
     _log(
         'Jeu ! Atout ${open ? 'ouvert' : 'caché'} · enchère $bid. ${kSeatName[leader]} entame.');
+    _noteCapsChance();
   }
 
   void _beginPlayPCC() {
@@ -432,6 +449,85 @@ class Engine {
   int get trickSize => soloMode ? 3 : 4;
   void _advanceTurn() =>
       turn = soloMode ? nextActiveSeat(turn) : nextSeat(turn);
+
+  // ---- CAPS ---------------------------------------------------------------
+  // Règle (pagat.com) : dès qu'un joueur DOIT savoir, avec ce qu'il a vu, que
+  // son équipe gagnera tous les plis restants (dans un ordre qu'il fixe), il
+  // doit annoncer « Caps ». Annonce juste à la 1re occasion et au plus tard à
+  // l'entame du 7e pli : +1 jeton. Trop tôt, trop tard ou jamais : Wrong Caps
+  // (pénalité). Ici l'occasion se présente au joueur qui ENTAME un pli (1er
+  // au 7e), son équipe ayant gagné tous les plis précédents ; au 8e pli il ne
+  // reste qu'une carte, l'annonce n'a plus d'objet. Pas de Caps en PCC.
+
+  /// Le joueur peut-il annoncer Caps maintenant ? (il entame, son équipe a
+  /// gagné tous les plis joués, rien n'a encore été annoncé) — sans dire si
+  /// l'annonce serait juste.
+  bool canCallCaps(int seat) {
+    if (phase != 'play' || pcc || soloMode || capsCall != null) return false;
+    if (currentTrick.isNotEmpty || turn != seat) return false;
+    if (tricks.length > 6) return false; // au plus tard à l'entame du 7e pli
+    final won = teamOf(seat) == 'NS' ? trickWinsNS : trickWinsEW;
+    return won == tricks.length;
+  }
+
+  /// Caps CERTAIN pour [seat] d'après SES informations : il connaît l'atout,
+  /// et en menant ses atouts puis ses autres cartes, chacune gagne quelle que
+  /// soit la répartition des cartes qu'il n'a pas vues.
+  bool capsCertain(int seat) {
+    if (!canCallCaps(seat)) return false;
+    final trump = trumpSuit;
+    if (trump == null || (!trumpOpen && seat != trumpMaker)) return false;
+    final hand = hands[seat];
+    final mine = <Card>[
+      ...hand,
+      if (seat == trumpMaker && indicatorOnTable && indicator != null)
+        indicator!,
+    ];
+    if (mine.isEmpty) return false;
+    final known = <String>{...seen, for (final c in mine) c.key};
+    for (final t in tricks) {
+      for (final p in t['cards'] as List<TrickPlay>) {
+        if (p.seat == seat) known.add(p.card.key); // ses cartes cachées
+      }
+    }
+    final unseen =
+        buildDeck().where((c) => !known.contains(c.key)).toList();
+    final unseenTrumps = unseen.where((c) => c.suit == trump).toList();
+    int str(Card c) => kStrength[c.rank]!;
+    // chacun de ses atouts bat tous les atouts qu'il n'a pas vus
+    for (final c in mine.where((c) => c.suit == trump)) {
+      if (unseenTrumps.any((u) => str(u) > str(c))) return false;
+    }
+    // il peut faire tomber les atouts adverses avant ses autres cartes
+    // (l'atout posé, lui, ne se joue qu'en dernier ; posé chez un autre, il
+    // ne tombe pas sur une entame atout et peut couper)
+    final drawers = hand.where((c) => c.suit == trump).length;
+    final foreignIndicator = indicatorOnTable && seat != trumpMaker;
+    final trumpsGone = !foreignIndicator &&
+        (unseenTrumps.isEmpty || drawers >= unseenTrumps.length);
+    for (final c in mine.where((c) => c.suit != trump)) {
+      if (!trumpsGone) return false;
+      if (unseen.any((u) => u.suit == c.suit && str(u) > str(c))) return false;
+    }
+    return true;
+  }
+
+  /// Première occasion certaine de l'équipe qui entame (appelé à chaque pli).
+  void _noteCapsChance() {
+    final team = teamOf(leader);
+    if (capsChance[team] == null && capsCertain(leader)) {
+      capsChance[team] = tricks.length;
+    }
+  }
+
+  /// Annonce « Caps » (avant d'entamer). Jugée au décompte.
+  bool callCaps(int seat) {
+    if (!canCallCaps(seat)) return false;
+    capsCall =
+        (seat: seat, trick: tricks.length, certain: capsCertain(seat));
+    _log('${kSeatName[seat]} annonce Caps !');
+    return true;
+  }
 
   // ---- JEU D'UN PLI ------------------------------------------------------
   List<Card> playableCards(int seat) {
@@ -566,6 +662,7 @@ class Engine {
     turn = win.seat;
     currentTrick = [];
     ledSuit = null;
+    if (tricks.length < 8) _noteCapsChance();
     if (tricks.length == 8) {
       res['handDone'] = true;
       _scoreHand(res);
@@ -614,16 +711,48 @@ class Engine {
     } else {
       delta = success ? 3 : -4;
     }
-    final capsNS = trickWinsNS == 8, capsEW = trickWinsEW == 8;
-    var capsBonus = 0;
-    if ((tmTeam == 'NS' && capsNS) || (tmTeam == 'EW' && capsEW)) capsBonus = 1;
-    final transfer = success ? delta.abs() + capsBonus : delta.abs();
+    final transfer = delta.abs();
     if (success) {
       tokens[tmTeam] = tokens[tmTeam]! + transfer;
       tokens[other] = tokens[other]! - transfer;
     } else {
       tokens[tmTeam] = tokens[tmTeam]! - transfer;
       tokens[other] = tokens[other]! + transfer;
+    }
+    // ---- Caps / Wrong Caps -------------------------------------------
+    final allTricks =
+        trickWinsNS == 8 ? 'NS' : (trickWinsEW == 8 ? 'EW' : null);
+    String? capsTeam, wrongCaps;
+    final call = capsCall;
+    if (call != null) {
+      final x = teamOf(call.seat);
+      final ok = call.certain &&
+          allTricks == x &&
+          capsChance[x] == call.trick; // à la 1re occasion
+      if (!ok) {
+        wrongCaps = x; // trop tôt (pas certain), trop tard, ou plis perdus
+      } else if (call.trick <= 6) {
+        capsTeam = x; // au plus tard à l'entame du 7e pli
+      }
+    }
+    for (final x in const ['NS', 'EW']) {
+      if (wrongCaps == null &&
+          capsChance[x] != null &&
+          (call == null || teamOf(call.seat) != x)) {
+        wrongCaps = x; // occasion certaine, pas d'annonce
+      }
+    }
+    if (capsTeam != null) {
+      final o = capsTeam == 'NS' ? 'EW' : 'NS';
+      tokens[capsTeam] = tokens[capsTeam]! + kCapsBonus;
+      tokens[o] = tokens[o]! - kCapsBonus;
+      _log('Caps réussi : +$kCapsBonus jeton pour $capsTeam.');
+    }
+    if (wrongCaps != null) {
+      final o = wrongCaps == 'NS' ? 'EW' : 'NS';
+      tokens[wrongCaps] = tokens[wrongCaps]! - kWrongCapsPenalty;
+      tokens[o] = tokens[o]! + kWrongCapsPenalty;
+      _log('Wrong Caps : $wrongCaps pénalisé de $kWrongCapsPenalty jetons.');
     }
     _clampTokens();
     res['score'] = {
@@ -632,7 +761,9 @@ class Engine {
       'bid': bid,
       'success': success,
       'transfer': transfer,
-      'caps': capsBonus > 0,
+      'caps': capsTeam != null,
+      'capsTeam': capsTeam,
+      'wrongCaps': wrongCaps,
     };
     _finishHand(res);
   }
@@ -735,6 +866,12 @@ class Engine {
           : (phase == 'bid2' ? legalBids2() : <int>[]),
       'canPCC': phase == 'bid2' ? canPCC() : false,
       'canCut': forSeat != null && canCutWithIndicator(forSeat),
+      'canCaps': forSeat != null && canCallCaps(forSeat),
+      // cartes que ce joueur peut jouer maintenant (l'UI ne refait pas la règle)
+      'playable': forSeat != null && phase == 'play' && turn == forSeat
+          ? playableCards(forSeat).map(cardJson).toList()
+          : const [],
+      'capsBy': capsCall?.seat,
       'yourTurn': forSeat != null && _isSeatToAct(forSeat),
       'lastScore': phase == 'scored' ? lastScore : null,
     };
