@@ -151,6 +151,19 @@ Object botPlay(Engine e, int seat) {
 
   // ---- ENTAME ----
   if (tk.isEmpty) {
+    // Caps annoncé : il déroule l'ordre sûr (ses atouts du plus fort, puis
+    // le reste) — même ordre que le prototype
+    if (e.capsCall?.seat == seat && trump != null) {
+      int order(Card a, Card b) {
+        final ta = a.suit == trump ? 1 : 0, tb = b.suit == trump ? 1 : 0;
+        if (ta != tb) return tb - ta;
+        final st = kStrength[b.rank]! - kStrength[a.rank]!;
+        if (st != 0) return st;
+        return kSuits.indexOf(a.suit) - kSuits.indexOf(b.suit);
+      }
+
+      return (List.of(legal)..sort(order)).first;
+    }
     if (isTM && e.trumpOpen && trump != null) {
       final mt = legal
           .where((c) => c.suit == trump && _isMaster(e, seat, c))
@@ -263,6 +276,10 @@ Object botPlay(Engine e, int seat) {
 class PlayIndicator {
   const PlayIndicator();
 }
+
+/// Annonce « Caps » : le bot annonce dès que c'est certain (1re occasion),
+/// comme le prototype.
+bool botCallCaps(Engine e, int seat) => e.capsCertain(seat);
 
 // ============================================================================
 // NIVEAUX DE DIFFICULTÉ (partie solo). Le niveau « normal » est l'IA ci-dessus,

@@ -37,6 +37,7 @@ void playHand(Engine e, double slip, Random rng) {
       e.playLastIndicator(s);
       continue;
     }
+    if (botCallCaps(e, s)) e.callCaps(s);
     Object c = botPlay(e, s);
     if (s.isOdd && rng.nextDouble() < slip) {
       final legal = e.playableCards(s);

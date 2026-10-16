@@ -75,6 +75,12 @@ on action(seat, a):
 - Chat : un texte `:r:<clé>` (clés `wellPlayed`, `comeOn`, `oops`, `thanks`, `hurry`, `goodGame`)
   est une réaction rapide, affichée traduite par chaque client.
 
+## Caps (16/10/2026)
+- Action `{"type":"caps"}` : annonce « Caps » avant d'entamer ; acceptée si `canCaps` (sinon
+  `invalidAction`) ; jugée par le moteur au décompte (bonus +1 ou Wrong Caps −2).
+- Vue : `canCaps` (je peux annoncer), `capsBy` (siège qui a annoncé), `playable` (mes cartes jouables,
+  calculées par le moteur), `lastScore.capsTeam` / `lastScore.wrongCaps` (équipe bonifiée / pénalisée).
+
 ## Chat vocal (13/10/2026)
 L'audio passe **directement d'un appareil à l'autre** (WebRTC, maillage entre les humains de la
 table) ; le serveur ne relaie que la signalisation et n'entend rien.

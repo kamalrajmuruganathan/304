@@ -33,9 +33,20 @@ Version Jaffna (référence [pagat.com](https://www.pagat.com/jass/304.html)), t
 | ≥ 250 | +3 | −4 |
 | Partner Close Caps | +4 | −5 |
 
-- **Caps** (les 8 plis) : **+1** bonus.
+- **Caps** (les 8 plis, règle de pagat.com) : dès qu'un joueur **doit savoir**, avec les cartes qu'il
+  a vues, que son équipe gagnera **tous** les plis restants, il doit **annoncer « Caps »** avant
+  d'entamer. Annonce juste à la **1re occasion**, au plus tard à l'entame du **7e pli** : **+1** jeton.
+  **Wrong Caps** — annonce trop tôt (pas encore certaine), trop tard (occasion déjà passée), oubliée, ou
+  suivie d'un pli perdu : **−2 jetons** pour l'équipe fautive (Pagat ne chiffre pas la pénalité ; 2 est
+  la valeur la plus citée). Les 8 plis sans annonce ni occasion certaine ne rapportent pas de bonus.
+  Pas de Caps en Partner Close Caps (déjà une enchère « 8 plis »).
+- **Mise en œuvre** : l'occasion est évaluée pour le joueur qui entame (plis 1 à 7), son équipe ayant
+  gagné tous les plis joués ; « certain » = il connaît l'atout et, en menant ses atouts du plus fort
+  puis ses autres cartes, chacune gagne quelle que soit la répartition des cartes qu'il n'a pas vues
+  (un atout posé chez un autre joueur ne tombe pas sur une entame atout). Les bots annoncent dès que
+  c'est certain (vérifié : 1 277 annonces sur 188 325 donnes simulées, toutes réussies).
 - Une équipe gagne la **partie** quand l'adversaire tombe à **0 jeton**.
 
 ## Sous-règles (statut)
-- **Wrong Caps** (pénalité de timing d'annonce) — remplacé par le bonus Caps automatique.
+- ~~Wrong Caps~~ → implémenté (16/10/2026), voir Score.
 - Half-Court (variante à 4 cartes).

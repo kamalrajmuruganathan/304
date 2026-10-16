@@ -254,7 +254,8 @@ void main() {
 
   /// Joue automatiquement pour [c] (humain de test) : garde sa main, passe
   /// aux enchères, fournit la couleur quand il peut.
-  Future<void> autoPlay(C c, bool Function() until) async {
+  Future<void> autoPlay(C c, bool Function() until,
+      {bool Function(Map view)? stopAt}) async {
     final end = DateTime.now().add(const Duration(seconds: 40));
     var lastSent = -1;
     while (!until()) {
@@ -262,6 +263,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
       final v = c.lastView;
       if (v == null || v['yourTurn'] != true) continue;
+      if (stopAt != null && stopAt(v)) return; // à ce joueur d'agir lui-même
       // une réponse par état reçu (une signature phase/pli se répète après
       // une donne où tout le monde passe : la partie restait bloquée)
       if (c.states == lastSent) continue;
@@ -456,4 +458,35 @@ void main() {
     await until(() => !voiceOf(a, 2), 'Bala retiré du vocal');
     await a.ws.close();
   });
+
+  test('Caps : annonce acceptée à l\'entame, refusée sinon, visible de tous',
+      () async {
+    final a = await C.open();
+    a.send({'t': 'create', 'name': 'Ana'});
+    await a.next('joined');
+    a.send({'t': 'start'});
+    // jusqu'à ce qu'Ana puisse annoncer (elle entame, son équipe a tout pris)
+    var reached = false;
+    await autoPlay(a, () => reached, stopAt: (v) {
+      if (v['canCaps'] == true) reached = true;
+      return reached;
+    });
+    expect(a.lastView?['capsBy'], isNull);
+    a.send({
+      't': 'action',
+      'action': {'type': 'caps'}
+    });
+    for (var i = 0; i < 50 && a.lastView?['capsBy'] == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    expect(a.lastView?['capsBy'], 0, reason: 'annonce enregistrée');
+    expect(a.lastView?['canCaps'], isFalse, reason: 'une seule annonce');
+    // une 2e annonce est refusée
+    a.send({
+      't': 'action',
+      'action': {'type': 'caps'}
+    });
+    expect((await a.next('error'))['code'], 'invalidAction');
+    await a.ws.close();
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }

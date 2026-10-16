@@ -98,7 +98,7 @@ void main() {
         final s = (e.widget as Text).data ?? '';
         // aucun texte latin hors noms de jeu / joueurs / code de table
         final rest = s
-            .replaceAll(RegExp(r'Partner Close Caps|AI|Testeur'), '')
+            .replaceAll(RegExp(r'Partner Close Caps|Caps|AI|Testeur'), '')
             .replaceAll(c.code!, '');
         if (RegExp(r'[A-Za-z]{3,}').hasMatch(rest)) leaks.add(s);
       }

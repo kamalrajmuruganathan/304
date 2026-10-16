@@ -271,6 +271,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     if (c.code != null && c.token != null) saveTable(c.code!, c.token!);
     _s1 = c.states.listen((view) {
       _sounds(v, view);
+      // annonce « Caps » d'un joueur : affichée à toute la table
+      final by = view.capsBy;
+      if (by != null && v?.capsBy == null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.capsCalledBy(_playerName(by)))));
+      }
       // jetons avant la donne (les jetons ne changent qu'en phase scored)
       if (view.phase != 'scored') _tokensBefore = Map.of(view.tokens);
       if (mounted) {
@@ -474,6 +480,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     if (_waiting) return false;
     if (_choosingTrump) return true;
     if (!g.yourTurn || g.phase != 'play') return false;
+    // le serveur donne la liste exacte (atouts épuisés : il faut mener atout…)
+    final legal = g.playable;
+    if (legal != null) return legal.any((x) => x.key == card.key);
     if (g.currentTrick.isEmpty) return true;
     final canFollow = _myCards.any((x) => x.suit == g.ledSuit);
     return !canFollow || card.suit == g.ledSuit; // le serveur revalide tout
@@ -600,6 +609,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         ];
       case 'play':
         return [
+          // annonce « Caps » avant d'entamer (le serveur juge : Wrong Caps)
+          if (g.canCaps && g.yourTurn)
+            FilledButton(
+                key: const ValueKey('call-caps'),
+                style: FilledButton.styleFrom(
+                    backgroundColor: _gold,
+                    foregroundColor: const Color(0xFF2A1C06)),
+                onPressed: () => _send(c.callCaps),
+                child: Text(l.callCaps)),
           if (g.canCut)
             FilledButton(
                 key: const ValueKey('cut-indicator'),
@@ -715,7 +733,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             '${success ? l.succeeded : l.failedPcc}'
         : '${l.bid} ${sc['bid']} · ${l.pointsN(sc['tmPoints'] as int)} — '
             '${success ? l.succeeded : l.failedBid}'
-            '${sc['caps'] == true ? ' · ${l.caps}' : ''}';
+            '${sc['caps'] == true ? ' · ${l.caps}' : ''}'
+            '${sc['wrongCaps'] == null ? '' : '\n${sc['wrongCaps'] == us ? l.wrongCapsUs(kWrongCapsPenalty) : l.wrongCapsThem(kWrongCapsPenalty)}'}';
     return Container(
       key: const ValueKey('score-card'),
       margin: const EdgeInsets.all(24),

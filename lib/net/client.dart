@@ -56,6 +56,9 @@ class GameView {
   final bool canPCC;
   final bool
       canCut; // je peux couper avec l'atout posé (calculé par le serveur)
+  final bool canCaps; // je peux annoncer Caps (j'entame, mon équipe a tout pris)
+  final List<Card>? playable; // mes cartes jouables (null : serveur ancien)
+  final int? capsBy; // siège qui a annoncé Caps dans cette donne
   final String? code;
   final bool started;
   final List<Map> players; // [{name, bot, online, away, voice}] par siège
@@ -86,6 +89,9 @@ class GameView {
     required this.legalBids,
     required this.canPCC,
     required this.canCut,
+    required this.canCaps,
+    required this.playable,
+    required this.capsBy,
     required this.code,
     required this.started,
     required this.players,
@@ -143,6 +149,11 @@ class GameView {
       legalBids: (j['legalBids'] as List).map((e) => e as int).toList(),
       canPCC: (j['canPCC'] as bool?) ?? false,
       canCut: (j['canCut'] as bool?) ?? false,
+      canCaps: (j['canCaps'] as bool?) ?? false,
+      playable: (j['playable'] as List?)
+          ?.map((c) => Engine.cardFromJson(c as Map))
+          .toList(),
+      capsBy: j['capsBy'] as int?,
       code: j['code'] as String?,
       started: (j['started'] as bool?) ?? false,
       players: ((j['players'] as List?) ?? const []).cast<Map>(),
@@ -299,6 +310,9 @@ class GameClient {
   void setOpen(bool open) => _action({'type': 'open', 'open': open});
   void play(Card c) => _action({'type': 'play', 'card': Engine.cardJson(c)});
   void playIndicator() => _action({'type': 'play', 'indicator': true});
+
+  /// Annonce « Caps » avant d'entamer (jugée par le serveur au décompte).
+  void callCaps() => _action({'type': 'caps'});
   void redeal({required bool keep}) =>
       _action({'type': 'redeal', 'keep': keep});
 

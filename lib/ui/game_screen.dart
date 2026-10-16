@@ -383,6 +383,10 @@ class _GameScreenState extends State<GameScreen> {
           if (e.canCutWithIndicator(human))
             _btn(l.cutIndicator, _humanCutIndicator,
                 primary: true, key: const ValueKey('cut-indicator')),
+          // annonce « Caps » avant d'entamer (jugée au décompte : Wrong Caps)
+          if (e.canCallCaps(human))
+            _btn(l.callCaps, _humanCallCaps,
+                gold: true, key: const ValueKey('call-caps')),
         ];
       });
     } else {
@@ -391,6 +395,10 @@ class _GameScreenState extends State<GameScreen> {
         if (e.soloMode && e.mutedSeat == human) tip = l.pccOut;
         actions = [];
       });
+      if (botCallCaps(e, seat)) {
+        e.callCaps(seat); // le bot annonce Caps avant d'entamer
+        setState(() => tip = l.capsCalledBy(_seat(seat)));
+      }
       _bots(() {
         // niveau « facile » : seuls les adversaires (Est/Ouest) se trompent
         final c = botPlayLevel(e, seat,
@@ -404,6 +412,15 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   /// Le joueur (preneur, jeu fermé) coupe avec l'atout posé.
+  /// Le joueur annonce « Caps » (il entame ; jugé au décompte).
+  void _humanCallCaps() {
+    if (!e.callCaps(human)) return;
+    setState(() {
+      tip = l.capsCalledBy(l.mSud);
+      actions.removeWhere((w) => w.key == const ValueKey('call-caps'));
+    });
+  }
+
   void _humanCutIndicator() {
     if (!e.canCutWithIndicator(human) || _doneTrick != null) return;
     haptic();
@@ -425,6 +442,9 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       if (ch is PlayIndicator) {
         tip = e.canCutWithIndicator(human) ? l.hintCut : l.hintDiscard;
+      } else if (e.capsCertain(human)) {
+        _hinted = (ch as Card).key;
+        tip = l.hintCaps;
       } else {
         _hinted = (ch as Card).key;
         tip = l.hintPlay;
@@ -571,7 +591,7 @@ class _GameScreenState extends State<GameScreen> {
             style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(
-            '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
+            '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}${s['wrongCaps'] != null ? '\n${s['wrongCaps'] == 'NS' ? l.wrongCapsUs(kWrongCapsPenalty) : l.wrongCapsThem(kWrongCapsPenalty)}' : ''}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
             style: const TextStyle(color: _dim),
           ),
           const SizedBox(height: 12),
@@ -607,6 +627,7 @@ class _GameScreenState extends State<GameScreen> {
     }
     if (gold) {
       return FilledButton(
+          key: key,
           onPressed: onTap,
           style: FilledButton.styleFrom(
               backgroundColor: _gold, foregroundColor: const Color(0xFF2A1C06)),

@@ -315,7 +315,10 @@ Future<void> recordDeal(
       if (score['success'] == true) made[t] = (made[t] ?? 0) + 1;
     }
     // Caps de notre équipe (preneuse) : bonus des 8 plis ou PCC réussi
-    if (score['caps'] == true && score['tmTeam'] == 'NS') caps++;
+    // équipe qui a réussi Caps (annonce juste) ; ancien format : le preneur
+    final capsTeam =
+        score['capsTeam'] ?? (score['caps'] == true ? score['tmTeam'] : null);
+    if (capsTeam == 'NS') caps++;
   }
   final streak = won ? s.streak + 1 : 0;
   stats.value = Stats(
