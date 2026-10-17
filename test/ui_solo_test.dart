@@ -111,11 +111,22 @@ Future<int> playSolo(WidgetTester tester,
     if (caps.evaluate().isNotEmpty) {
       seen.add('bouton Caps');
       if (rnd.nextInt(4) == 0) {
+        // confirmation (rappel de la pénalité) : parfois « Annuler »
         await tester.tap(caps);
-        await tester.pump();
-        expect(caps, findsNothing, reason: 'une seule annonce par donne');
-        expect(find.textContaining(l.capsCalledBy(l.mSud)), findsOneWidget);
-        seen.add('Caps annoncé (joueur)');
+        await tester.pumpAndSettle();
+        expect(find.text(l.capsConfirm(2)), findsOneWidget);
+        if (rnd.nextBool()) {
+          await tester.tap(find.byKey(const ValueKey('caps-cancel')));
+          await tester.pumpAndSettle();
+          expect(caps, findsOneWidget, reason: 'annulé : bouton toujours là');
+          seen.add('Caps annulé');
+        } else {
+          await tester.tap(find.byKey(const ValueKey('caps-confirm')));
+          await tester.pumpAndSettle();
+          expect(caps, findsNothing, reason: 'une seule annonce par donne');
+          expect(find.textContaining(l.capsCalledBy(l.mSud)), findsOneWidget);
+          seen.add('Caps annoncé (joueur)');
+        }
         idle = 0;
         continue;
       }

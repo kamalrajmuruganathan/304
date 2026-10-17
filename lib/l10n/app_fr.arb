@@ -192,5 +192,7 @@
   "capsCalledBy": "{p} annonce Caps !",
   "hintCaps": "Vous êtes sûr de faire tous les plis : annoncez Caps avant d'entamer !",
   "wrongCapsUs": "Wrong Caps : −{n} jetons pour nous",
-  "wrongCapsThem": "Wrong Caps : −{n} jetons pour eux"
+  "wrongCapsThem": "Wrong Caps : −{n} jetons pour eux",
+  "capsConfirm": "Annoncer Caps ? Vous devez être sûr de faire tous les plis restants — sinon Wrong Caps : −{n} jetons.",
+  "cancel": "Annuler"
 }

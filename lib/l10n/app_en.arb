@@ -394,5 +394,8 @@
   "wrongCapsUs": "Wrong Caps: −{n} tokens for us",
   "@wrongCapsUs": {"placeholders": {"n": {"type": "int"}}},
   "wrongCapsThem": "Wrong Caps: −{n} tokens for them",
-  "@wrongCapsThem": {"placeholders": {"n": {"type": "int"}}}
+  "@wrongCapsThem": {"placeholders": {"n": {"type": "int"}}},
+  "capsConfirm": "Call Caps? You must be sure to win every remaining trick — otherwise Wrong Caps: −{n} tokens.",
+  "@capsConfirm": {"placeholders": {"n": {"type": "int"}}},
+  "cancel": "Cancel"
 }

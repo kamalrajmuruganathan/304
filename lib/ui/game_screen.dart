@@ -8,6 +8,7 @@ import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
+import 'caps.dart';
 import 'leave.dart';
 
 // Palette « table royale » (miroir du prototype web validé).
@@ -397,7 +398,9 @@ class _GameScreenState extends State<GameScreen> {
       });
       if (botCallCaps(e, seat)) {
         e.callCaps(seat); // le bot annonce Caps avant d'entamer
-        setState(() => tip = l.capsCalledBy(_seat(seat)));
+        // bandeau : reste visible pendant les plis suivants
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.capsCalledBy(_seat(seat)))));
       }
       _bots(() {
         // niveau « facile » : seuls les adversaires (Est/Ouest) se trompent
@@ -411,16 +414,18 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  /// Le joueur (preneur, jeu fermé) coupe avec l'atout posé.
-  /// Le joueur annonce « Caps » (il entame ; jugé au décompte).
-  void _humanCallCaps() {
-    if (!e.callCaps(human)) return;
+  /// Le joueur annonce « Caps » (il entame ; jugé au décompte), après
+  /// confirmation : une annonce sans certitude coûte 2 jetons.
+  Future<void> _humanCallCaps() async {
+    if (!e.canCallCaps(human) || !await confirmCaps(context)) return;
+    if (!mounted || !e.callCaps(human)) return;
     setState(() {
       tip = l.capsCalledBy(l.mSud);
       actions.removeWhere((w) => w.key == const ValueKey('call-caps'));
     });
   }
 
+  /// Le joueur (preneur, jeu fermé) coupe avec l'atout posé.
   void _humanCutIndicator() {
     if (!e.canCutWithIndicator(human) || _doneTrick != null) return;
     haptic();

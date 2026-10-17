@@ -52,6 +52,7 @@ lib/
   ui/recap.dart            DealRecap : récapitulatif de fin de donne (plis, points, jetons ±), solo et en ligne
   ui/invite.dart           lien d'invitation (?table=CODE), partage (share_plus / presse-papiers),
                            réactions rapides du chat (« :r:clé », traduites chez chacun)
+  ui/caps.dart             confirmCaps : « Annoncer Caps ? » (rappel de la pénalité Wrong Caps)
   ui/leave.dart            LeaveGuard / confirmLeave : « Quitter la partie ? » (retour du téléphone, flèche)
   ui/anim.dart             animations : DealIn (distribution en cascade), GatherTo (pli ramassé vers le gagnant)
   settings.dart            préférences mémorisées (vitesse, son, dos, tapis, grandes cartes `size304`,
@@ -60,7 +61,7 @@ lib/
                            niveau des adversaires `level304` = normal | easy)
   sound.dart               sons (playSfx) : assets/sounds/{card,trick,win,lose}.wav, bips du prototype
   main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
-  l10n/app_{en,fr,ta,si}.arb  194 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
+  l10n/app_{en,fr,ta,si}.arb  196 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
@@ -164,7 +165,9 @@ l'occasion est notée (`capsChance`, 1re occasion par équipe). Décompte : anno
 occasion certaine ni annonce = pas de bonus. Pas de Caps en PCC. Au 8e pli il ne reste qu'une carte :
 plus d'annonce (écart assumé avec Pagat, qui pénalise aussi l'oubli au 8e pli). Bots : annoncent dès que
 c'est certain (`botCallCaps`), puis déroulent atouts du plus fort puis le reste (1 277 annonces sur
-188 325 donnes simulées, toutes réussies).
+188 325 donnes simulées, toutes réussies) ; au niveau Facile, un bot qui a annoncé ne fait plus d'erreur.
+UI : le bouton « Annoncer Caps » demande confirmation (rappel −2) sans dire si l'annonce serait juste ;
+l'annonce d'un bot s'affiche en bandeau (solo et en ligne).
 
 **Phases du moteur** : `idle → redeal → bid1 → (allpass) → chooseTrump1 → bid2 →
 (chooseTrump2 | chooseTrumpPCC) → preplay → play → (spoilt) → scored`.
