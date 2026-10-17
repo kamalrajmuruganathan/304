@@ -268,6 +268,7 @@ const I18N = {
       suitS:'Pique', suitC:'Trèfle', suitD:'Carreau', suitH:'Cœur',
       hint:'💡 Conseil', hintBid:'Conseil : annoncer {b}.', hintPass:'Conseil : passer.', hintPlay:'Conseil : la carte en surbrillance.',
       hintDiscard:'Conseil : défaussez votre plus petite carte.',
+      capsConfirm:'Annoncer Caps ? Vous devez être sûr de faire tous les plis restants — sinon Wrong Caps : −{n} jetons.',
       callCaps:'Annoncer Caps', capsCalledBy:'{p} annonce Caps !', hintCaps:'Vous êtes sûr de faire tous les plis : annoncez Caps avant d\'entamer !', wrongCapsUs:'Wrong Caps : −{n} jetons pour nous', wrongCapsThem:'Wrong Caps : −{n} jetons pour eux',
       cutIndicator:'Couper avec l\'atout posé', hintCut:'Conseil : coupez avec l\'atout posé.',
       lastTrickBtn:'Dernier pli', lastTrickTitle:'Dernier pli — remporté par {p} (+{n})',
@@ -313,6 +314,7 @@ const I18N = {
       suitS:'Spades', suitC:'Clubs', suitD:'Diamonds', suitH:'Hearts',
       hint:'💡 Hint', hintBid:'Hint: bid {b}.', hintPass:'Hint: pass.', hintPlay:'Hint: the highlighted card.',
       hintDiscard:'Hint: discard your lowest card.',
+      capsConfirm:'Call Caps? You must be sure to win every remaining trick — otherwise Wrong Caps: −{n} tokens.',
       callCaps:'Call Caps', capsCalledBy:'{p} calls Caps!', hintCaps:'You are sure to win every trick: call Caps before you lead!', wrongCapsUs:'Wrong Caps: −{n} tokens for us', wrongCapsThem:'Wrong Caps: −{n} tokens for them',
       cutIndicator:'Cut with the face-down trump', hintCut:'Hint: cut with the face-down trump.',
       lastTrickBtn:'Last trick', lastTrickTitle:'Last trick — won by {p} (+{n})',
@@ -406,6 +408,7 @@ const I18N = {
       hintPass:'குறிப்பு: பாஸ் செய்யுங்கள்.',
       hintPlay:'குறிப்பு: ஒளிரும் சீட்டு.',
       hintDiscard:'குறிப்பு: உங்கள் சிறிய சீட்டைக் கழியுங்கள்.',
+      capsConfirm:'Caps அறிவிக்கவா? மீதமுள்ள எல்லாப் பிடிகளையும் வெல்வது உறுதியாக இருக்க வேண்டும் — இல்லையெனில் தவறான Caps: −{n} நாணயங்கள்.',
       callCaps:'Caps அறிவி', capsCalledBy:'{p} Caps அறிவிக்கிறார்!', hintCaps:'எல்லாப் பிடிகளையும் நீங்கள் உறுதியாக வெல்வீர்கள்: முதல் சீட்டை இடும் முன் Caps அறிவியுங்கள்!', wrongCapsUs:'தவறான Caps: நமக்கு −{n} நாணயங்கள்', wrongCapsThem:'தவறான Caps: அவர்களுக்கு −{n} நாணயங்கள்',
       cutIndicator:'வைத்த துருப்பால் வெட்டு', hintCut:'குறிப்பு: வைத்த துருப்பால் வெட்டுங்கள்.',
       lastTrickBtn:'கடைசிக் கை',
@@ -515,6 +518,7 @@ const I18N = {
       hintPass:'ඉඟිය: පාස් කරන්න.',
       hintPlay:'ඉඟිය: ආලෝකමත් කළ කාඩ්පත.',
       hintDiscard:'ඉඟිය: ඔබේ කුඩාම කාඩ්පත ඉවත දමන්න.',
+      capsConfirm:'Caps ප්‍රකාශ කරනවාද? ඉතිරි සියලු වාර දිනන බව ඔබට සහතික විය යුතුය — නැතහොත් වැරදි Caps: කාසි −{n}.',
       callCaps:'Caps ප්‍රකාශ කරන්න', capsCalledBy:'{p} Caps ප්‍රකාශ කරයි!', hintCaps:'සියලු වාර ඔබ අනිවාර්යයෙන් දිනයි: පළමු කාඩ්පත දැමීමට පෙර Caps ප්‍රකාශ කරන්න!', wrongCapsUs:'වැරදි Caps: අපට කාසි −{n}', wrongCapsThem:'වැරදි Caps: ඔවුන්ට කාසි −{n}',
       cutIndicator:'තැබූ තුරුම්පුවෙන් කපන්න', hintCut:'ඉඟිය: තැබූ තුරුම්පුවෙන් කපන්න.',
       lastTrickBtn:'අවසාන අත',
@@ -1272,8 +1276,9 @@ function renderTrick(){
 function renderAll(){updScore();renderHands();rememberHand();renderTrick();}
 
 /* ---------- déroulé d'une donne ---------- */
+let TOK_BEFORE_NS=11;   // jetons de Nous au début de la donne (variation affichée)
 function startHand(){
-  _prevLen=[0,0,0,0]; LAST_TRICK=null;
+  _prevLen=[0,0,0,0]; LAST_TRICK=null; TOK_BEFORE_NS=eng.tokens.NS;
   eng.newHand();
   addLog(`— Nouvelle donne — Donneur : ${SEAT_NAME[eng.dealer]} —`);
   renderAll();
@@ -1450,6 +1455,8 @@ function humanPlay(c){
   afterPlay(r);
 }
 function humanCallCaps(){
+  if(!eng.canCallCaps(0)) return;
+  if(typeof window.confirm==='function' && !window.confirm(tf('capsConfirm',{n:WRONG_CAPS_PENALTY}))) return;
   if(!eng.callCaps(0)) return;
   stepPlay();                              // le bouton disparaît
   setHintL(()=>tf('capsCalledBy',{p:seatName(0)}));
@@ -1520,7 +1527,7 @@ function showHandResult(r){
        ${s.pcc
          ? `<b>Partner Close Caps</b> · ${s.tricks}/8 plis — ${s.success?'<span class="win">'+t('succeeded')+'</span>':'<span class="lose">'+t('failedPcc')+'</span>'}`
          : `Enchère <b>${s.bid}</b> · réalisé <b>${s.tmPoints}</b> pts — ${s.success?'<span class="win">'+t('succeeded')+'</span>':'<span class="lose">'+t('failedBid')+'</span>'}${s.caps?' · <b>'+t('caps')+'</b>':''}`}${s.wrongCaps?'<br><span class="lose">'+tf(s.wrongCaps==='NS'?'wrongCapsUs':'wrongCapsThem',{n:WRONG_CAPS_PENALTY})+'</span>':''}</p>
-    <div class="score">${t('tokens')} — ${t('us')} <b>${eng.tokens.NS}</b> · ${t('them')} <b>${eng.tokens.EW}</b> <span style="color:var(--dim)">(${s.success?'+':'−'}${s.transfer})</span></div>
+    <div class="score">${t('tokens')} — ${t('us')} <b>${eng.tokens.NS}</b> · ${t('them')} <b>${eng.tokens.EW}</b> <span style="color:var(--dim)">(${t('us')} ${eng.tokens.NS-TOK_BEFORE_NS>=0?'+':'−'}${Math.abs(eng.tokens.NS-TOK_BEFORE_NS)})</span></div>
     ${gameOver?`<p style="font-size:16px;color:${r.gameWinner==='NS'?'var(--green)':'var(--red)'}"><b>${r.gameWinner==='NS'?t('gameWon'):t('gameLost')}</b></p>`:''}
     <button class="primary" id="cont">${gameOver?t('playAgain'):t('nextDeal')}</button>
   </div>`;

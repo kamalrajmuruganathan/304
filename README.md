@@ -27,15 +27,15 @@ Le 304 a déjà des joueurs (diaspora sri-lankaise / sud-indienne), mais l'offre
 
 | Brique | État |
 |---|---|
-| Moteur de règles Dart (`lib/engine`) | ✅ **identique au prototype coup par coup** (test différentiel, 1 074 donnes) |
+| Moteur de règles Dart (`lib/engine`) | ✅ **identique au prototype coup par coup** (test différentiel, 915 donnes), règles complètes dont **Partner Close Caps** et **Caps / Wrong Caps** (annonce des 8 plis) |
 | IA v3 (`lib/ai`) | ✅ portée, même trace que le prototype |
-| App Flutter solo | ✅ table royale, Conseil, Dernier pli, lignes d'aide, vitesse des bots, tutoriel, sons, animations, statistiques détaillées, grandes cartes, jeu 4 couleurs |
-| Tables privées en ligne | ✅ créer/rejoindre par code, partenaire = 2ᵉ joueur, bots sur les sièges vides, résultat de chaque donne, relance, chat, reconnexion automatique, récapitulatif de chaque donne |
+| App Flutter solo | ✅ table royale, Conseil, Dernier pli, lignes d'aide, vitesse des bots, **niveau des adversaires (Facile / Normal)**, **reprise de la partie** après fermeture, tutoriel, sons, animations, statistiques détaillées, grandes cartes, jeu 4 couleurs |
+| Tables privées en ligne | ✅ créer/rejoindre par code ou **lien d'invitation** (WhatsApp…, ouvre l'appli Android si installée), partenaire = 2ᵉ joueur, bots sur les sièges vides, **bot remplaçant** un joueur parti ou déconnecté, chat + **réactions rapides**, **chat vocal** (WebRTC pair-à-pair, gratuit), reconnexion automatique, récapitulatif de chaque donne |
 | Serveur autoritatif (`bin/server.dart`) | ✅ valide chaque coup, codes d'erreur traduits, tables abandonnées supprimées ; image Docker 16 Mo |
 | 4 langues | ✅ FR · EN · தமிழ் · සිංහල (ta/si : relecture native bienvenue, voir `docs/TRANSLATIONS.md`) |
 | Tests | ✅ `flutter test` : moteur, différentiel, serveur WebSocket, interface solo/en ligne, i18n ; CI GitHub |
 | Android / iOS | 🟡 APK construit par la CI ; `.aab` Play Store signé dès que la clé d'upload est configurée ; visuels prêts (`docs/store/`) |
-| Voice chat | ⏳ roadmap |
+| Chat vocal | ✅ vérifié entre deux navigateurs (micro simulé) ; ⚠️ pas encore essayé sur de vrais téléphones ; relais TURN gratuit optionnel (`docs/MISE_EN_LIGNE.md` §2 bis) |
 
 Le détail des règles : [`docs/RULES.md`](docs/RULES.md). Le contexte complet du projet : [`CLAUDE.md`](CLAUDE.md).
 
@@ -58,6 +58,7 @@ Après toute modification des règles ou de l'IA : modifier **le prototype et le
 lib/engine/engine.dart   moteur de règles (Dart pur) + vue réseau rédigée par joueur
 lib/ai/bots.dart         IA v3
 lib/net/client.dart      client WebSocket
+lib/net/voice.dart       chat vocal (WebRTC)
 lib/ui/                  écrans : jeu solo, en ligne, tutoriel
 lib/l10n/                traductions (ARB, 4 langues)
 bin/server.dart          serveur multijoueur autoritatif

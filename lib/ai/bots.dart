@@ -294,7 +294,8 @@ const double kEasySlip = 0.25;
 /// Décision de jeu selon le niveau. [easy] : le bot joue une carte légale au
 /// hasard avec la probabilité [kEasySlip] (jamais la coupe à l'atout posé).
 Object botPlayLevel(Engine e, int seat, {required bool easy, Random? rng}) {
-  if (easy) {
+  // après une annonce Caps, le bot déroule son ordre sûr (pas d'erreur)
+  if (easy && e.capsCall?.seat != seat) {
     final r = rng ?? Random();
     if (r.nextDouble() < kEasySlip) {
       final legal = e.playableCards(seat);

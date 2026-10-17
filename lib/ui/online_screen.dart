@@ -15,6 +15,7 @@ import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
+import 'caps.dart';
 import 'leave.dart';
 import 'invite.dart';
 
@@ -273,7 +274,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       _sounds(v, view);
       // annonce « Caps » d'un joueur : affichée à toute la table
       final by = view.capsBy;
-      if (by != null && v?.capsBy == null && mounted) {
+      // (pas au 1er état reçu : reconnexion, annonce déjà faite)
+      if (by != null && v != null && v!.capsBy == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l.capsCalledBy(_playerName(by)))));
       }
@@ -610,13 +612,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       case 'play':
         return [
           // annonce « Caps » avant d'entamer (le serveur juge : Wrong Caps)
-          if (g.canCaps && g.yourTurn)
+          if (g.canCaps)
             FilledButton(
                 key: const ValueKey('call-caps'),
                 style: FilledButton.styleFrom(
                     backgroundColor: _gold,
                     foregroundColor: const Color(0xFF2A1C06)),
-                onPressed: () => _send(c.callCaps),
+                onPressed: () async {
+                  if (await confirmCaps(context)) _send(c.callCaps);
+                },
                 child: Text(l.callCaps)),
           if (g.canCut)
             FilledButton(

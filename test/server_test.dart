@@ -255,8 +255,8 @@ void main() {
   /// Joue automatiquement pour [c] (humain de test) : garde sa main, passe
   /// aux enchères, fournit la couleur quand il peut.
   Future<void> autoPlay(C c, bool Function() until,
-      {bool Function(Map view)? stopAt}) async {
-    final end = DateTime.now().add(const Duration(seconds: 40));
+      {bool Function(Map view)? stopAt, int seconds = 40}) async {
+    final end = DateTime.now().add(Duration(seconds: seconds));
     var lastSent = -1;
     while (!until()) {
       if (DateTime.now().isAfter(end)) fail('la partie n\'avance pas');
@@ -467,7 +467,9 @@ void main() {
     a.send({'t': 'start'});
     // jusqu'à ce qu'Ana puisse annoncer (elle entame, son équipe a tout pris)
     var reached = false;
-    await autoPlay(a, () => reached, stopAt: (v) {
+    // (Ana entame avec son équipe sans pli perdu : ~1 donne sur 3 ou 4,
+    // ~15 s par donne avec les pauses du serveur)
+    await autoPlay(a, () => reached, seconds: 200, stopAt: (v) {
       if (v['canCaps'] == true) reached = true;
       return reached;
     });
@@ -488,5 +490,5 @@ void main() {
     });
     expect((await a.next('error'))['code'], 'invalidAction');
     await a.ws.close();
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 4)));
 }
