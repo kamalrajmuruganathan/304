@@ -539,8 +539,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final p = v!.players.length > seat ? v!.players[seat] : null;
     if (p == null) return [l.mSud, l.seatEast, l.seatNorth, l.seatWest][seat];
     if (p['bot'] == true) return l.mAI;
+    // table publique : pas de prénom entre inconnus, « Joueur N »
+    final name = '${p['name'] ?? ''}'.isEmpty
+        ? '${l.defaultPlayer} ${seat + 1}'
+        : '${p['name']}';
     // joueur absent trop longtemps : un bot joue à sa place
-    return p['away'] == true ? '${p['name']} (${l.mAI})' : '${p['name']}';
+    return p['away'] == true ? '$name (${l.mAI})' : name;
   }
 
   void _openReplay() {

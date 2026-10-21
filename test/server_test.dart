@@ -261,6 +261,87 @@ void main() {
     await b.ws.close();
   });
 
+  test('messages piégés : le serveur ne tombe pas', () async {
+    final c = await C.open();
+    c.ws.add([1, 2, 3]); // trame binaire : ignorée
+    for (final m in [
+      {'t': 'watch', 'code': 5},
+      {'t': 'join', 'code': 42, 'name': 'x'},
+      {'t': 'reconnect', 'token': 7},
+      {'t': 'create', 'name': 12345, 'avatar': 'x'},
+    ]) {
+      c.send(m);
+    }
+    c.send({'t': 'action', 'action': null});
+    c.send({
+      't': 'action',
+      'action': {'type': 'play', 'card': 'pas une carte'}
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    // toujours vivant : une nouvelle connexion crée une table
+    final d = await C.open();
+    d.send({'t': 'create', 'name': 'ok'});
+    expect((await d.next('joined'))['seat'], 0);
+    final h = await HttpClient()
+        .getUrl(Uri.parse('http://127.0.0.1:$port/health'))
+        .then((r) => r.close());
+    expect(h.statusCode, 200);
+    await c.ws.close();
+    await d.ws.close();
+  });
+
+  test('une connexion = une seule place (pas deux mains)', () async {
+    final a = await C.open();
+    a.send({'t': 'quick', 'name': 'a'});
+    final code = (await a.next('joined'))['code'];
+    final cheat = await C.open();
+    cheat.send({'t': 'quick', 'name': 'c'});
+    expect((await cheat.next('joined'))['code'], code);
+    for (final m in [
+      {'t': 'quick', 'name': 'c'},
+      {'t': 'join', 'code': code, 'name': 'c'},
+      {'t': 'create', 'name': 'c'},
+      {'t': 'watch', 'code': code},
+    ]) {
+      cheat.send(m);
+      expect((await cheat.next('error'))['code'], 'invalidAction');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final p = a.lastView!['players'] as List;
+    expect(p.where((x) => (x as Map)['bot'] == false).length, 2);
+    await a.ws.close();
+    await cheat.ws.close();
+  });
+
+  test('table publique : prénoms masqués, place d\'un absent reprise',
+      () async {
+    final players = <C>[];
+    String? code;
+    for (var i = 0; i < 4; i++) {
+      final c = await C.open();
+      c.send({'t': 'quick', 'name': 'P\u202Ei$i'});
+      final j = await c.next('joined');
+      code ??= j['code'] as String;
+      expect(j['code'], code);
+      players.add(c);
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    for (final p in players[0].lastView!['players'] as List) {
+      expect((p as Map)['name'], '', reason: 'pas de prénom entre inconnus');
+    }
+    // le 4e ferme l'appli sans « Quitter » : absent après 1 s (bot)
+    await players[3].ws.close();
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    final n = await C.open();
+    n.send({'t': 'quick', 'name': 'nouveau'});
+    final j = await n.next('joined');
+    expect(j['code'], code, reason: 'la place abandonnée est reprise');
+    expect(j['seat'], 3);
+    for (final c in [...players.take(3), n]) {
+      await c.ws.close();
+    }
+  });
+
   test('table publique sans joueur connecté : pas proposée', () async {
     final a = await C.open();
     a.send({'t': 'quick', 'name': 'a'});

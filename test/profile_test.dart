@@ -12,6 +12,10 @@ void main() {
   test('prénom nettoyé (une ligne, 16 caractères)', () {
     expect(cleanName('  Kamal \n  Raj  '), 'Kamal Raj');
     expect(cleanName('x' * 30).length, kMaxName);
+    // caractères invisibles / inversion du sens d'écriture retirés,
+    // ZWJ du cingalais gardé
+    expect(cleanName('Ka\u202Emal\u200B'), 'Kamal');
+    expect(cleanName('ක්\u200Dරීඩා'), 'ක්\u200Dරීඩා');
     // caractères tamouls composés : coupés entre deux lettres, jamais dedans
     final ta = cleanName('கமல்ராஜ் முருகநாதன் கமல்ராஜ்');
     expect(ta.characters.length, lessThanOrEqualTo(kMaxName));

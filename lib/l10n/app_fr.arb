@@ -255,5 +255,7 @@
   "installApp": "Installer l'appli (jouable sans internet)",
   "installInfo": "L'appli s'ouvre depuis l'écran d'accueil, et la partie contre les bots marche sans internet.",
   "installIos": "Sur iPhone : touchez le bouton Partager de Safari, puis « Sur l'écran d'accueil ».",
-  "publicChatInfo": "Table publique : pour jouer en sécurité entre inconnus, seules les réactions rapides (menu en haut) sont permises. Le chat écrit et le vocal sont réservés aux tables privées entre amis."
+  "publicChatInfo": "Table publique : pour jouer en sécurité entre inconnus, seules les réactions rapides (menu en haut) sont permises. Le chat écrit et le vocal sont réservés aux tables privées entre amis.",
+  "hintBid2Points": "Votre couleur est bonne, mais il faut aussi au moins 150 points en main pour viser 250.",
+  "hintBid2High": "L'enchère dépasse déjà 250, ou votre partenaire est déjà preneur : inutile de monter."
 }

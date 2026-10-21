@@ -17,7 +17,8 @@ List<String> handKeys(WidgetTester t) => [
       for (final e in find
           .byWidgetPredicate((w) =>
               w.key is ValueKey<String> &&
-              RegExp(r'^(play|hand)-').hasMatch((w.key as ValueKey<String>).value))
+              RegExp(r'^(play|hand)-')
+                  .hasMatch((w.key as ValueKey<String>).value))
           .evaluate())
         (e.widget.key as ValueKey<String>).value.split('-').last
     ]..sort();
@@ -59,7 +60,8 @@ void main() {
     for (var i = 0; i < 100; i++) {
       expect(a.nextInt(1000), b.nextInt(1000));
     }
-    expect(DailyRandom(1).nextInt(1 << 30), isNot(DailyRandom(2).nextInt(1 << 30)));
+    expect(DailyRandom(1).nextInt(1 << 30),
+        isNot(DailyRandom(2).nextInt(1 << 30)));
     // 23 h à Los Angeles le 20/10 = 21/10 en UTC : même donne qu'à Jaffna
     expect(dayKey(DateTime.parse('2026-10-20T23:00:00-07:00')), '2026-10-21');
     expect(dailySeed('2026-10-21'), 20261021);
@@ -74,23 +76,30 @@ void main() {
     final d1 = DateTime.utc(2026, 10, 20, 12);
     final d2 = DateTime.utc(2026, 10, 21, 12);
     final d4 = DateTime.utc(2026, 10, 23, 12);
-    expect(await startDaily(d1), isTrue);
-    expect(await startDaily(d1), isFalse, reason: 'quitter puis rejouer');
-    await finishDaily(2, 180, d1);
+    expect(await startDaily(now: d1), isTrue);
+    expect(await startDaily(now: d1), isFalse, reason: 'quitter puis rejouer');
+    await finishDaily(2, 180, now: d1);
     expect(daily.value.today(d1)!.delta, 2);
     expect(daily.value.streak, 1);
-    expect(await startDaily(d2), isTrue);
-    await finishDaily(-3, 90, d2);
+    expect(await startDaily(now: d2), isTrue);
+    await finishDaily(-3, 90, now: d2);
     expect(daily.value.streak, 2);
     expect(daily.value.today(d2)!.points, 90);
     expect(daily.value.today(d4), isNull);
-    expect(await startDaily(d4), isTrue);
-    await finishDaily(1, 160, d4);
+    expect(await startDaily(now: d4), isTrue);
+    await finishDaily(1, 160, now: d4);
     expect(daily.value.streak, 1, reason: 'un jour sauté : la série repart');
+    // donne ouverte le 23 à 23:58 UTC, finie le 24 à 00:02 : elle compte
+    // pour le 23 (déjà joué ce jour-là : pas officielle), pas pour le 24
+    expect(await startDaily(day: '2026-10-23'), isFalse);
+    expect(await startDaily(day: '2026-10-24'), isTrue);
+    await finishDaily(2, 200, day: '2026-10-24');
+    expect(daily.value.streak, 2, reason: 'le 23 puis le 24');
+    expect(daily.value.last!.day, '2026-10-24');
     // relu après redémarrage
     daily.value = const DailyState();
     await loadDaily();
-    expect(daily.value.today(d4)!.points, 160);
+    expect(daily.value.last!.points, 200);
   });
 
   testWidgets('accueil → donne du jour : même donne, 1er essai officiel',

@@ -290,6 +290,9 @@ class GameClient {
         _states.add(last!);
         break;
       case 'error':
+        if (watchCode != null && m['code'] == 'tableNotFound') {
+          watchCode = null; // table regardée fermée : on ne la redemande plus
+        }
         if (_reconnecting && m['code'] == 'sessionExpired') {
           // la table n'existe plus : inutile de réessayer
           _reconnecting = false;

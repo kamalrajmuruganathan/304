@@ -226,11 +226,20 @@ Engine? sampleWorld(Engine e, int seat, Random r) {
       hands[p] = h;
     }
     if (fail) continue;
+    // atouts tombés, comptés avec ce que [seat] a vu et l'atout imaginé (le
+    // vrai compteur trahirait l'atout caché : règle des atouts épuisés)
+    var fallen = 0;
+    for (final t in e.tricks) {
+      for (final p in t['cards'] as List<TrickPlay>) {
+        if (known.contains(p.card.key) && p.card.suit == trump) fallen++;
+      }
+    }
     final w = e.copy()
       ..hands = hands
       ..currentTrick = current
       ..indicator = indicator
-      ..trumpSuit = trump;
+      ..trumpSuit = trump
+      ..trumpsPlayed = fallen;
     return w;
   }
   return null;
