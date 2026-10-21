@@ -58,7 +58,19 @@ int? botBid(Engine e, int seat) {
 }
 
 /// 2e tour (sur 8 cartes). Renvoie un int, la chaîne 'PCC', ou null (passe).
-Object? botBid2(Engine e, int seat) {
+Object? botBid2(Engine e, int seat) => botBid2Why(e, seat).bid;
+
+/// Raison d'une décision du 2e tour (bouton Conseil).
+enum Bid2Why {
+  pcc, // 7 cartes d'une couleur avec J et 9, beaucoup de points
+  strong, // 5 cartes d'une couleur avec J et 9, assez de points
+  weakSuit, // pas 5 cartes d'une couleur avec J et 9
+  fewPoints, // la couleur y est, mais pas assez de points
+  tooHigh, // 250 déjà dépassé (ou partenaire déjà preneur)
+}
+
+/// Même décision que [botBid2], avec la raison.
+({Object? bid, Bid2Why why}) botBid2Why(Engine e, int seat) {
   final legal = e.legalBids2();
   final canPcc = e.canPCC();
   final h = e.hands[seat];
@@ -79,16 +91,16 @@ Object? botBid2(Engine e, int seat) {
   final hasJ = tr.any((c) => c.rank == 'J');
   final has9 = tr.any((c) => c.rank == '9');
   final pts = h.fold(0, (a, c) => a + c.points);
-  if (canPcc && bestLen >= 7 && hasJ && has9 && pts >= 200) return 'PCC';
-  if (legal.isNotEmpty &&
-      bestLen >= 5 &&
-      hasJ &&
-      has9 &&
-      pts >= 150 &&
-      legal.contains(250)) {
-    return 250;
+  if (canPcc && bestLen >= 7 && hasJ && has9 && pts >= 200) {
+    return (bid: 'PCC', why: Bid2Why.pcc);
   }
-  return null;
+  final shape = bestLen >= 5 && hasJ && has9;
+  if (legal.isNotEmpty && shape && pts >= 150 && legal.contains(250)) {
+    return (bid: 250, why: Bid2Why.strong);
+  }
+  if (!shape) return (bid: null, why: Bid2Why.weakSuit);
+  if (pts < 150) return (bid: null, why: Bid2Why.fewPoints);
+  return (bid: null, why: Bid2Why.tooHigh);
 }
 
 /// Choix de l'atout : couleur la plus forte, on pose une carte faible dedans.

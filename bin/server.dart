@@ -38,7 +38,17 @@ void sweepRooms() {
       r.lastSeen = now;
       return false;
     }
-    return now.difference(r.lastSeen) > roomTtl;
+    final gone = now.difference(r.lastSeen) > roomTtl;
+    if (gone) {
+      // spectateurs restés seuls : prévenus, puis déconnectés
+      for (final w in r.spectators) {
+        try {
+          w.add(jsonEncode(err('tableNotFound', 'Table fermée')));
+          w.close();
+        } catch (_) {}
+      }
+    }
+    return gone;
   });
 }
 
@@ -86,9 +96,17 @@ String joinedMsg(String code, int seat, String? token, {bool public = false}) =>
       'ice': iceServers(),
     });
 
+/// Caractères invisibles ou de contrôle (dont l'inversion du sens d'écriture)
+/// retirés des prénoms ; ZWJ/ZWNJ (U+200C/D) restent : le cingalais en a besoin.
+final RegExp _badChars = RegExp(
+    '[\u0000-\u001F\u007F-\u009F\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]');
+
 /// Prénom reçu d'un client : une ligne, 24 caractères au plus, jamais vide.
 String cleanName(Object? raw) {
-  final t = '${raw ?? ''}'.replaceAll(RegExp(r'\s+'), ' ').trim();
+  final t = (raw is String ? raw : '')
+      .replaceAll(_badChars, '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
   if (t.isEmpty) return 'Joueur';
   final r = t.runes.toList();
   return r.length > 24 ? String.fromCharCodes(r.take(24)) : t;
@@ -97,6 +115,12 @@ String cleanName(Object? raw) {
 /// Avatar choisi (indice de la liste de l'app, 0 à 11) ; null sinon.
 int? cleanAvatar(Object? raw) =>
     raw is int && raw >= 0 && raw < 12 ? raw : null;
+
+/// Réactions rapides (« :r:clé », traduites par l'app) : seul « chat » permis
+/// aux tables publiques, entre inconnus (pas de texte libre ni de vocal :
+/// règles des stores sur les échanges entre inconnus).
+final RegExp reactionText =
+    RegExp(r'^:r:(wellPlayed|comeOn|oops|thanks|hurry|goodGame)$');
 
 /// Spectateurs au plus par table.
 const int maxSpectators = 20;
@@ -165,6 +189,18 @@ class Room {
     return null;
   }
 
+  /// Table publique : une place libre, sinon celle d'un joueur parti sans
+  /// « Quitter » (absent, un bot joue pour lui) — sinon elle ne se
+  /// remplirait plus jamais.
+  int? publicSeat() {
+    final f = freeSeat();
+    if (f != null) return f;
+    for (final i in const [0, 2, 1, 3]) {
+      if (seats[i].away) return i;
+    }
+    return null;
+  }
+
   Map<String, dynamic> _decorate(Map<String, dynamic> view) => view
     ..['code'] = code
     ..['started'] = started
@@ -173,7 +209,9 @@ class Room {
     ..['players'] = [
       for (final p in seats)
         {
-          'name': p.name,
+          // table publique (inconnus) : pas de prénom libre, « Joueur N »
+          // affiché par l'app
+          'name': public && !p.isBot ? '' : p.name,
           'bot': p.isBot,
           'online': p.connected,
           'away': p.away,
@@ -494,6 +532,12 @@ void sit(Room room, int seat, WebSocket ws, Map msg) {
       joinedMsg(room.code, seat, room.seats[seat].token, public: room.public));
 }
 
+/// La socket a-t-elle déjà une place (joueur) ou regarde-t-elle une table ?
+/// Une même connexion ne peut pas tenir deux places : elle verrait deux mains
+/// et figerait la table (ses coups ne vaudraient que pour l'une des deux).
+bool engaged(WebSocket ws) => rooms.values
+    .any((r) => r.seatOfSocket(ws) != null || r.spectators.contains(ws));
+
 void handleMessage(WebSocket ws, String data) {
   Map msg;
   try {
@@ -503,6 +547,11 @@ void handleMessage(WebSocket ws, String data) {
     return;
   }
   final t = msg['t'];
+  if (const {'create', 'quick', 'watch', 'join', 'reconnect'}.contains(t) &&
+      engaged(ws)) {
+    ws.add(jsonEncode(err('invalidAction', 'Déjà à une table')));
+    return;
+  }
 
   if (t == 'create') {
     final room = newRoom();
@@ -517,14 +566,14 @@ void handleMessage(WebSocket ws, String data) {
     final open = rooms.values
         .where((r) =>
             r.public &&
-            r.freeSeat() != null &&
+            r.publicSeat() != null &&
             r.humansOnline > 0 &&
             !r.gameOver)
         .toList()
       ..sort((a, b) => b.humansOnline - a.humansOnline);
     if (open.isNotEmpty) {
       final room = open.first;
-      sit(room, room.freeSeat()!, ws, msg);
+      sit(room, room.publicSeat()!, ws, msg);
       room.broadcast();
       room.loop(); // si la partie attendait ce siège
     } else {
@@ -634,6 +683,8 @@ void handleMessage(WebSocket ws, String data) {
     return;
   }
   if (t == 'voice') {
+    // table publique (inconnus) : pas de vocal
+    if (room.public) return;
     // rejoindre / quitter le chat vocal : les autres le voient (players[].voice)
     room.seats[seat]
       ..voice = msg['on'] == true
@@ -658,10 +709,12 @@ void handleMessage(WebSocket ws, String data) {
     // texte nettoyé : une ligne, 200 caractères au plus, jamais vide
     final text = '${msg['text'] ?? ''}'.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (text.isEmpty) return;
+    // table publique (inconnus) : réactions rapides seulement
+    if (room.public && !reactionText.hasMatch(text)) return;
     final out = jsonEncode({
       't': 'chat',
       'seat': seat,
-      'name': room.seats[seat].name,
+      'name': room.public ? '' : room.seats[seat].name,
       'text': text.length > 200 ? text.substring(0, 200) : text,
     });
     room.sendAll(out);
@@ -669,7 +722,27 @@ void handleMessage(WebSocket ws, String data) {
   }
 }
 
-Future<void> main() async {
+/// Message reçu : jamais d'exception qui remonterait et arrêterait le
+/// serveur (toutes les tables seraient perdues) ; trames binaires ignorées.
+void onMessage(WebSocket ws, Object? data) {
+  if (data is! String) return;
+  try {
+    handleMessage(ws, data);
+  } catch (e) {
+    stderr.writeln('message rejeté : $e');
+    try {
+      ws.add(jsonEncode(err('invalidAction', 'Message invalide')));
+    } catch (_) {}
+  }
+}
+
+Future<void> main() => runZonedGuarded(_serve, (e, st) {
+      // erreur d'une tâche de fond (boucle d'une table…) : journalisée,
+      // le serveur continue
+      stderr.writeln('erreur : $e\n$st');
+    })!;
+
+Future<void> _serve() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
   final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
   stdout.writeln('304 server — ws://localhost:$port/ws');
@@ -678,7 +751,7 @@ Future<void> main() async {
     if (req.uri.path == '/ws' && WebSocketTransformer.isUpgradeRequest(req)) {
       final ws = await WebSocketTransformer.upgrade(req);
       ws.listen(
-        (data) => handleMessage(ws, data as String),
+        (data) => onMessage(ws, data),
         onDone: () {
           // on garde le siège (reconnexion possible via token) ; on détache
           // la socket ; un bot le remplacera s'il ne revient pas à temps

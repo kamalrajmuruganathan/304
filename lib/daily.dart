@@ -70,21 +70,24 @@ Future<void> _save() async {
 }
 
 /// Début d'un essai : renvoie true s'il est officiel (et le note).
-Future<bool> startDaily([DateTime? now]) async {
+/// [day] : jour de la donne jouée (fixé à l'ouverture de l'écran : une
+/// donne commencée avant minuit UTC compte pour son propre jour).
+Future<bool> startDaily({DateTime? now, String? day}) async {
   final s = daily.value;
-  if (!s.officialNow(now)) return false;
-  daily.value =
-      DailyState(last: s.last, started: dayKey(now), streak: s.streak);
+  day ??= dayKey(now);
+  if (s.last?.day == day || s.started == day) return false;
+  daily.value = DailyState(last: s.last, started: day, streak: s.streak);
   await _save();
   return true;
 }
 
 /// Fin d'un essai officiel : mémorise le score et met à jour la série.
-Future<void> finishDaily(int delta, int points, [DateTime? now]) async {
+Future<void> finishDaily(int delta, int points,
+    {DateTime? now, String? day}) async {
   final s = daily.value;
-  final day = dayKey(now);
-  final yesterday =
-      dayKey((now ?? DateTime.now()).toUtc().subtract(const Duration(days: 1)));
+  day ??= dayKey(now);
+  final yesterday = dayKey(
+      DateTime.parse('${day}T12:00:00Z').subtract(const Duration(days: 1)));
   final streak = s.last?.day == yesterday ? s.streak + 1 : 1;
   daily.value = DailyState(
       last: DailyResult(day, delta, points), started: day, streak: streak);

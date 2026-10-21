@@ -494,8 +494,13 @@ const kAvatars = <(IconData, Color)>[
 const kMaxName = 16;
 
 /// Prénom nettoyé : une ligne, espaces réduits, [kMaxName] caractères au plus.
+/// Caractères invisibles ou de contrôle retirés (même liste que le serveur ;
+/// ZWJ/ZWNJ restent : le cingalais en a besoin).
+final RegExp _badChars = RegExp(
+    '[\u0000-\u001F\u007F-\u009F\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]');
+
 String cleanName(String s) {
-  final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  final t = s.replaceAll(_badChars, '').replaceAll(RegExp(r'\s+'), ' ').trim();
   final c = t.characters;
   return c.length > kMaxName ? c.take(kMaxName).toString() : t;
 }

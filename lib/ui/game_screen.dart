@@ -92,7 +92,8 @@ class _GameScreenState extends State<GameScreen> {
     if (widget.daily) {
       _official = daily.value.officialNow();
       // noté après l'affichage (l'accueil, qui l'affiche, est encore construit)
-      WidgetsBinding.instance.addPostFrameCallback((_) => startDaily());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => startDaily(day: _day));
     } else if (widget.resume && saved != null) {
       e.tokens = {'NS': saved.ns, 'EW': saved.ew};
       e.dealer = saved.dealer;
@@ -282,12 +283,16 @@ class _GameScreenState extends State<GameScreen> {
             setState(_stepBid2);
           }),
           _btn(_hintLabel, () {
-            final v = botBid2(e, human);
-            setState(() => tip = v == null
-                ? '${l.hintPass} ${l.hintBid2Why}'
-                : v == 'PCC'
-                    ? '${l.hintBid('Partner Close Caps')} ${l.hintPccWhy}'
-                    : '${l.hintBid('$v')} ${l.hintBid2Strong}');
+            final r = botBid2Why(e, human);
+            final v = r.bid;
+            setState(() => tip = switch (r.why) {
+                  Bid2Why.pcc =>
+                    '${l.hintBid('Partner Close Caps')} ${l.hintPccWhy}',
+                  Bid2Why.strong => '${l.hintBid('$v')} ${l.hintBid2Strong}',
+                  Bid2Why.weakSuit => '${l.hintPass} ${l.hintBid2Why}',
+                  Bid2Why.fewPoints => '${l.hintPass} ${l.hintBid2Points}',
+                  Bid2Why.tooHigh => '${l.hintPass} ${l.hintBid2High}',
+                });
           }),
         ];
       });
@@ -471,7 +476,11 @@ class _GameScreenState extends State<GameScreen> {
   /// 💡 Conseil pendant le jeu : la carte que jouerait l'IA (comme le prototype).
   void _showPlayHint() {
     if (e.phase != 'play' || e.turn != human || e.hands[human].isEmpty) return;
-    final r = botPlayWhy(e, human);
+    // atout caché pour le joueur : le conseil ne doit pas s'en servir (l'IA
+    // normale lit l'atout) — il est calculé sur une répartition imaginée
+    final knows = e.trumpOpen || e.trumpMaker == human;
+    final view = knows ? e : (sampleWorld(e, human, math.Random()) ?? e);
+    final r = botPlayWhy(view, human);
     final ch = r.choice;
     setState(() {
       if (ch is PlayIndicator) {
@@ -602,7 +611,7 @@ class _GameScreenState extends State<GameScreen> {
     // partie finie : rien à reprendre
     if (widget.daily) {
       if (_official) {
-        finishDaily(e.tokens['NS']! - 11, e.pointsNS);
+        finishDaily(e.tokens['NS']! - 11, e.pointsNS, day: _day);
       }
     } else if (over) {
       clearSolo();

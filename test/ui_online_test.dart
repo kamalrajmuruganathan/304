@@ -376,7 +376,7 @@ void main() {
     }
   }
 
-  testWidgets('table publique (accueil) : partie lancée, prénom et avatar',
+  testWidgets('table publique (accueil) : partie lancée, avatar, sans prénom',
       (tester) async {
     HttpOverrides.global = null;
     SharedPreferences.setMockInitialValues({});
@@ -397,7 +397,9 @@ void main() {
         tester.widget<OnlineGameScreen>(find.byType(OnlineGameScreen)).client;
     await waitFor(tester, () => me.last?.started == true);
     expect(me.last!.public, isTrue);
-    expect(me.last!.players[me.seat!]['name'], 'Kamal');
+    // table publique : pas de prénom envoyé aux inconnus (« Joueur N »)
+    expect(me.last!.players[me.seat!]['name'], '');
+    expect(find.textContaining('Joueur ${me.seat! + 1}'), findsWidgets);
     expect(me.last!.players[me.seat!]['avatar'], 5);
     // mon avatar à côté de mon nom
     expect(find.byIcon(kAvatars[5].$1), findsWidgets);

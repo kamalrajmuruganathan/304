@@ -520,7 +520,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         messages: _chat,
         you: v?.you,
         nameOf: _playerName,
-        onSend: _spec ? null : c.chat,
+        // spectateur, ou table publique (inconnus) : réactions seulement
+        onSend: _spec || (v?.public ?? false) ? null : c.chat,
+        note: _spec
+            ? l.spectatingInfo
+            : (v?.public ?? false)
+                ? l.publicChatInfo
+                : null,
       ),
     );
     if (mounted) setState(() => _chatOpen = false);
@@ -533,8 +539,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final p = v!.players.length > seat ? v!.players[seat] : null;
     if (p == null) return [l.mSud, l.seatEast, l.seatNorth, l.seatWest][seat];
     if (p['bot'] == true) return l.mAI;
+    // table publique : pas de prénom entre inconnus, « Joueur N »
+    final name = '${p['name'] ?? ''}'.isEmpty
+        ? '${l.defaultPlayer} ${seat + 1}'
+        : '${p['name']}';
     // joueur absent trop longtemps : un bot joue à sa place
-    return p['away'] == true ? '${p['name']} (${l.mAI})' : '${p['name']}';
+    return p['away'] == true ? '$name (${l.mAI})' : name;
   }
 
   void _openReplay() {
@@ -928,7 +938,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             ),
           // chat vocal : toucher = micro (rejoindre, couper, rétablir),
           // appui long = quitter le vocal
-          if (!g.spectating)
+          // pas de vocal entre inconnus (table publique)
+          if (!g.spectating && !g.public)
             GestureDetector(
               onLongPress: _leaveVoice,
               child: IconButton(
@@ -1102,11 +1113,13 @@ class _ChatSheet extends StatefulWidget {
       {required this.messages,
       required this.you,
       required this.nameOf,
-      required this.onSend});
+      required this.onSend,
+      this.note});
   final ValueNotifier<List<(int, String, String)>> messages;
   final int? you;
   final String Function(int seat) nameOf;
   final void Function(String text)? onSend; // null : lecture seule
+  final String? note; // pourquoi on ne peut pas écrire
 
   @override
   State<_ChatSheet> createState() => _ChatSheetState();
@@ -1169,6 +1182,13 @@ class _ChatSheetState extends State<_ChatSheet> {
             ),
           ),
         ),
+        if (widget.onSend == null && widget.note != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(widget.note!,
+                key: const ValueKey('chat-note'),
+                style: const TextStyle(color: _dim, fontSize: 12)),
+          ),
         if (widget.onSend != null)
           Row(children: [
             Expanded(
