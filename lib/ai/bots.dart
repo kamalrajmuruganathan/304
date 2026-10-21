@@ -140,7 +140,30 @@ int _ptsDesc(Card a, Card b) => b.points - a.points;
 
 /// Décision de jeu d'un pli (IA à mémoire). Renvoie une [Card] ou le marqueur
 /// [PlayIndicator] (le preneur coupe avec sa carte-atout cachée).
-Object botPlay(Engine e, int seat) {
+Object botPlay(Engine e, int seat) => botPlayWhy(e, seat).choice;
+
+/// Raisons possibles d'un coup de l'IA (traduites par l'interface : bouton
+/// Conseil). Même décision que [botPlay], avec le pourquoi.
+enum PlayWhy {
+  capsRun, // Caps annoncé : ordre sûr
+  drawTrumps, // preneur maître à l'atout : il tire les atouts
+  cashMaster, // carte maîtresse qui rapporte
+  leadLow, // entame petite
+  loadPartner, // partenaire sûr : on le charge en points
+  partnerLow, // partenaire mène : petite carte
+  cantWin, // impossible de gagner : petite carte
+  lastSmallWin, // dernier à jouer : plus petite gagnante
+  sureWin, // carte imbattable
+  worthTaking, // le pli vaut des points : on le prend
+  notWorth, // le pli rapporte peu : on garde ses fortes
+  ruff, // coupe (atout ouvert)
+  discard, // défausse
+  ruffSmall, // preneur, atout fermé : petite coupe
+  cutIndicator, // coupe avec l'atout posé
+  guessRuff, // défenseur, atout caché : coupe devinée
+}
+
+({Object choice, PlayWhy why}) botPlayWhy(Engine e, int seat) {
   final legal = e.playableCards(seat);
   final led = e.ledSuit;
   final trump = e.trumpSuit;
@@ -162,21 +185,31 @@ Object botPlay(Engine e, int seat) {
         return kSuits.indexOf(a.suit) - kSuits.indexOf(b.suit);
       }
 
-      return (List.of(legal)..sort(order)).first;
+      return (
+        choice: (List.of(legal)..sort(order)).first,
+        why: PlayWhy.capsRun
+      );
     }
     if (isTM && e.trumpOpen && trump != null) {
       final mt = legal
           .where((c) => c.suit == trump && _isMaster(e, seat, c))
           .toList()
         ..sort((a, b) => kStrength[b.rank]! - kStrength[a.rank]!);
-      if (mt.isNotEmpty && _trumpsOut(e, seat) > 0) return mt.first;
+      if (mt.isNotEmpty && _trumpsOut(e, seat) > 0) {
+        return (choice: mt.first, why: PlayWhy.drawTrumps);
+      }
     }
     final nonTrump = legal.where((c) => c.suit != trump).toList();
     final masters = nonTrump.where((c) => _isMaster(e, seat, c)).toList()
       ..sort(_ptsDesc);
-    if (masters.isNotEmpty && masters.first.points > 0) return masters.first;
+    if (masters.isNotEmpty && masters.first.points > 0) {
+      return (choice: masters.first, why: PlayWhy.cashMaster);
+    }
     final pool = List.of(nonTrump.isNotEmpty ? nonTrump : legal)..sort(_asc);
-    return pool.firstWhere((c) => c.points == 0, orElse: () => pool.first);
+    return (
+      choice: pool.firstWhere((c) => c.points == 0, orElse: () => pool.first),
+      why: PlayWhy.leadLow
+    );
   }
 
   // force actuelle du pli (cartes visibles)
@@ -209,18 +242,26 @@ Object botPlay(Engine e, int seat) {
           teamOf(e.trumpMaker!) != teamOf(seat) &&
           !last;
       if (partnerSafe && !riskyClosed) {
-        return (List.of(follow)..sort(_ptsDesc))
-            .first; // on charge le partenaire
+        // on charge le partenaire
+        return (
+          choice: (List.of(follow)..sort(_ptsDesc)).first,
+          why: PlayWhy.loadPartner
+        );
       }
-      return follow.first;
+      return (choice: follow.first, why: PlayWhy.partnerLow);
     }
     final winners =
         follow.where((c) => trickStrength(c, trump, led) > bestStr).toList();
-    if (winners.isEmpty) return follow.first;
-    if (last) return winners.first; // dernier : plus petite gagnante
+    if (winners.isEmpty) return (choice: follow.first, why: PlayWhy.cantWin);
+    // dernier : plus petite gagnante
+    if (last) return (choice: winners.first, why: PlayWhy.lastSmallWin);
     final mw = winners.where((c) => _isMaster(e, seat, c)).toList();
-    if (mw.isNotEmpty) return mw.first; // gagnante sûre
-    return pot >= 10 ? winners.first : follow.first;
+    if (mw.isNotEmpty) {
+      return (choice: mw.first, why: PlayWhy.sureWin); // gagnante sûre
+    }
+    return pot >= 10
+        ? (choice: winners.first, why: PlayWhy.worthTaking)
+        : (choice: follow.first, why: PlayWhy.notWorth);
   }
 
   // ---- JE NE PEUX PAS SUIVRE ----
@@ -229,27 +270,45 @@ Object botPlay(Engine e, int seat) {
     final disc = legal.where((c) => c.suit != trump).toList();
     if (partnerWinning) {
       if (partnerSafe && disc.isNotEmpty) {
-        return (List.of(disc)..sort(_ptsDesc)).first;
+        return (
+          choice: (List.of(disc)..sort(_ptsDesc)).first,
+          why: PlayWhy.loadPartner
+        );
       }
-      return disc.isNotEmpty ? (List.of(disc)..sort(_asc)).first : trumps.first;
+      return (
+        choice:
+            disc.isNotEmpty ? (List.of(disc)..sort(_asc)).first : trumps.first,
+        why: PlayWhy.partnerLow
+      );
     }
     final w =
         trumps.where((c) => trickStrength(c, trump, led) > bestStr).toList();
-    if (w.isNotEmpty && (pot > 0 || disc.isEmpty)) return w.first;
-    return disc.isNotEmpty ? (List.of(disc)..sort(_asc)).first : trumps.first;
+    if (w.isNotEmpty && (pot > 0 || disc.isEmpty)) {
+      return (choice: w.first, why: PlayWhy.ruff);
+    }
+    return (
+      choice:
+          disc.isNotEmpty ? (List.of(disc)..sort(_asc)).first : trumps.first,
+      why: PlayWhy.discard
+    );
   }
 
   // atout FERMÉ : le preneur connaît l'atout
   if (isTM) {
     final trumps = e.hands[seat].where((c) => c.suit == trump).toList()
       ..sort(_asc);
-    if (!partnerWinning && trumps.isNotEmpty && pot >= 10) return trumps.first;
+    if (!partnerWinning && trumps.isNotEmpty && pot >= 10) {
+      return (choice: trumps.first, why: PlayWhy.ruffSmall);
+    }
     if (!partnerWinning && e.indicatorOnTable && trumps.isEmpty && pot >= 20) {
-      return const PlayIndicator();
+      return (choice: const PlayIndicator(), why: PlayWhy.cutIndicator);
     }
     final disc = e.hands[seat].where((c) => c.suit != trump).toList()
       ..sort(_asc);
-    return disc.isNotEmpty ? disc.first : e.hands[seat].first;
+    return (
+      choice: disc.isNotEmpty ? disc.first : e.hands[seat].first,
+      why: PlayWhy.discard
+    );
   }
 
   // défenseur, atout caché : coupe « devinée » si le pli vaut le coup
@@ -267,9 +326,17 @@ Object botPlay(Engine e, int seat) {
         guess = en.key;
       }
     }
-    if (guess != null) return (bySuit[guess]!..sort(_asc)).first;
+    if (guess != null) {
+      return (
+        choice: (bySuit[guess]!..sort(_asc)).first,
+        why: PlayWhy.guessRuff
+      );
+    }
   }
-  return sorted.firstWhere((c) => c.points == 0, orElse: () => sorted.first);
+  return (
+    choice: sorted.firstWhere((c) => c.points == 0, orElse: () => sorted.first),
+    why: PlayWhy.discard
+  );
 }
 
 /// Marqueur : le preneur coupe en jouant sa carte-atout cachée.

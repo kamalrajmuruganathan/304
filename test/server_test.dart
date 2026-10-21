@@ -203,6 +203,136 @@ void main() {
     await b.ws.close();
   });
 
+  test('table publique : créée et lancée, puis remplie ; jamais une privée',
+      () async {
+    final priv = await C.open();
+    priv.send({'t': 'create', 'name': 'priv'});
+    final privCode = (await priv.next('joined'))['code'];
+    final players = <C>[];
+    final seats = <int>[];
+    String? code;
+    for (var i = 0; i < 4; i++) {
+      final c = await C.open();
+      c.send({'t': 'quick', 'name': 'p$i', 'avatar': i});
+      final j = await c.next('joined');
+      expect(j['public'], isTrue);
+      expect(j['code'], isNot(privCode));
+      code ??= j['code'] as String;
+      expect(j['code'], code, reason: 'même table publique');
+      seats.add(j['seat'] as int);
+      players.add(c);
+    }
+    expect(seats, [0, 2, 1, 3]);
+    // la partie a démarré sans attendre (bots aux places libres)
+    for (var i = 0; i < 50 && players[0].lastView?['started'] != true; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    expect(players[0].lastView!['started'], isTrue);
+    expect(players[0].lastView!['public'], isTrue);
+    // table pleine : le suivant ouvre une nouvelle table publique
+    final extra = await C.open();
+    extra.send({'t': 'quick', 'name': 'extra'});
+    final j = await extra.next('joined');
+    expect(j['code'], isNot(code));
+    expect(j['seat'], 0);
+    for (final c in [priv, ...players, extra]) {
+      await c.ws.close();
+    }
+  });
+
+  test('table publique sans joueur connecté : pas proposée', () async {
+    final a = await C.open();
+    a.send({'t': 'quick', 'name': 'a'});
+    final code = (await a.next('joined'))['code'];
+    await a.ws.close();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final b = await C.open();
+    b.send({'t': 'quick', 'name': 'b'});
+    final j = await b.next('joined');
+    expect(j['code'], isNot(code));
+    expect(j['seat'], 0);
+    await b.ws.close();
+  });
+
+  test('prénom et avatar nettoyés et transmis aux autres', () async {
+    final a = await C.open();
+    a.send({
+      't': 'create',
+      'name': '  Kamal\n   Raj ${'x' * 50}',
+      'avatar': 3,
+    });
+    final code = (await a.next('joined'))['code'];
+    final b = await C.open();
+    b.send({'t': 'join', 'code': code, 'name': '   ', 'avatar': 99});
+    await b.next('joined');
+    for (var i = 0; i < 30; i++) {
+      final p = b.lastView?['players'] as List?;
+      if (p != null && (p[2] as Map)['bot'] == false) break;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    final p = b.lastView!['players'] as List;
+    expect((p[0] as Map)['name'], 'Kamal Raj ${'x' * 14}');
+    expect((p[0] as Map)['avatar'], 3);
+    expect((p[2] as Map)['name'], 'Joueur');
+    expect((p[2] as Map)['avatar'], isNull);
+    expect((p[1] as Map)['avatar'], isNull); // bot
+    await a.ws.close();
+    await b.ws.close();
+  });
+
+  test('spectateur : aucune main visible, ne joue pas, voit le chat', () async {
+    final unknown = await C.open();
+    unknown.send({'t': 'watch', 'code': 'ZZZZ'});
+    expect((await unknown.next('error'))['code'], 'tableNotFound');
+    await unknown.ws.close();
+
+    final a = await C.open();
+    a.send({'t': 'create', 'name': 'a'});
+    final code = (await a.next('joined'))['code'];
+    a.send({'t': 'start'});
+    final s = await C.open();
+    s.send({'t': 'watch', 'code': (code as String).toLowerCase()});
+    expect((await s.next('watching'))['code'], code);
+    // pendant ~4 s de jeu : jamais une carte en main ni un atout fermé
+    var views = 0;
+    final end = DateTime.now().add(const Duration(seconds: 4));
+    while (DateTime.now().isBefore(end)) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final v = s.lastView;
+      if (v == null) continue;
+      views++;
+      for (final h in v['hands'] as List) {
+        expect(h, isA<Map>(), reason: 'main visible par le spectateur');
+      }
+      if (v['trumpOpen'] != true) expect(v['trumpSuit'], isNull);
+      expect(v['yourTurn'], isFalse);
+      expect(v['playable'], isEmpty);
+      for (final p in v['currentTrick'] as List) {
+        if ((p as Map)['faceDown'] == true && v['trumpOpen'] != true) {
+          expect(p['card'], isNull);
+        }
+      }
+    }
+    expect(views, greaterThan(10));
+    expect(a.lastView!['spectators'], 1);
+    // une action du spectateur est ignorée ; le chat des joueurs lui arrive
+    s.send({
+      't': 'action',
+      'action': {'type': 'bid', 'value': null}
+    });
+    s.send({'t': 'chat', 'text': 'je triche'});
+    a.send({'t': 'chat', 'text': 'bonjour'});
+    expect((await s.next('chat'))['text'], 'bonjour');
+    expect((await a.next('chat'))['text'], 'bonjour',
+        reason: 'le message du spectateur n\'est pas relayé');
+    await s.ws.close();
+    for (var i = 0; i < 30 && a.lastView!['spectators'] != 0; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    expect(a.lastView!['spectators'], 0);
+    await a.ws.close();
+  });
+
   /// Attend un événement du client réseau de l'app.
   Future<Map> event(GameClient c, String t) => c.events
       .firstWhere((m) => m['t'] == t)
@@ -450,7 +580,8 @@ void main() {
     expect(mutedOf(a, 2), isFalse);
     b.send({'t': 'voice', 'on': true, 'muted': true});
     await until(() => mutedOf(a, 2), 'Ana voit le micro coupé de Bala');
-    expect(voiceOf(a, 2), isTrue, reason: 'micro coupé = toujours dans le vocal');
+    expect(voiceOf(a, 2), isTrue,
+        reason: 'micro coupé = toujours dans le vocal');
     b.send({'t': 'voice', 'on': true, 'muted': false});
     await until(() => !mutedOf(a, 2), 'micro de Bala rétabli');
     // Bala se déconnecte : il n'est plus affiché dans le vocal

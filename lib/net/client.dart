@@ -56,12 +56,20 @@ class GameView {
   final bool canPCC;
   final bool
       canCut; // je peux couper avec l'atout posé (calculé par le serveur)
-  final bool canCaps; // je peux annoncer Caps (j'entame, mon équipe a tout pris)
+  final bool
+      canCaps; // je peux annoncer Caps (j'entame, mon équipe a tout pris)
   final List<Card>? playable; // mes cartes jouables (null : serveur ancien)
   final int? capsBy; // siège qui a annoncé Caps dans cette donne
+  final Map? replay; // donne terminée : tout dévoilé (« Revoir la donne »)
   final String? code;
   final bool started;
-  final List<Map> players; // [{name, bot, online, away, voice}] par siège
+  final List<Map>
+      players; // [{name, bot, online, away, voice, avatar}] par siège
+  final bool public; // table publique (« Jouer en ligne »)
+  final int spectators; // nombre de spectateurs
+
+  /// Spectateur : [you] vaut -1, aucune main n'est visible.
+  bool get spectating => you < 0;
 
   GameView._({
     required this.you,
@@ -92,9 +100,12 @@ class GameView {
     required this.canCaps,
     required this.playable,
     required this.capsBy,
+    required this.replay,
     required this.code,
     required this.started,
     required this.players,
+    required this.public,
+    required this.spectators,
   });
 
   bool get gameOver =>
@@ -154,9 +165,12 @@ class GameView {
           ?.map((c) => Engine.cardFromJson(c as Map))
           .toList(),
       capsBy: j['capsBy'] as int?,
+      replay: j['replay'] as Map?,
       code: j['code'] as String?,
       started: (j['started'] as bool?) ?? false,
       players: ((j['players'] as List?) ?? const []).cast<Map>(),
+      public: (j['public'] as bool?) ?? false,
+      spectators: (j['spectators'] as int?) ?? 0,
     );
   }
 }
@@ -185,6 +199,9 @@ class GameClient {
   Stream<Map> get events => _events.stream;
 
   bool _disposed = false;
+
+  /// Table regardée en spectateur (reprise automatique après une coupure).
+  String? watchCode;
   bool _reconnecting = false; // un `reconnect` est en cours
   int _retry = 0;
   Timer? _retryTimer;
@@ -210,12 +227,14 @@ class GameClient {
     if (token != null) {
       _reconnecting = true;
       ch.sink.add(jsonEncode({'t': 'reconnect', 'token': token}));
+    } else if (watchCode != null) {
+      ch.sink.add(jsonEncode({'t': 'watch', 'code': watchCode}));
     }
   }
 
   void _onClosed(WebSocketChannel ch) {
     if (_disposed || !identical(ch, _ch)) return;
-    if (token == null) {
+    if (token == null && watchCode == null) {
       // jamais entré à une table : rien à reprendre
       _events.add({'t': 'disconnected'});
       return;
@@ -247,7 +266,9 @@ class GameClient {
         token = m['token'] as String?;
         final ice = m['ice'];
         if (ice is List) {
-          iceServers = [for (final x in ice) Map<String, dynamic>.from(x as Map)];
+          iceServers = [
+            for (final x in ice) Map<String, dynamic>.from(x as Map)
+          ];
         }
         _retry = 0;
         if (_reconnecting) {
@@ -256,6 +277,13 @@ class GameClient {
         } else {
           _events.add(m);
         }
+        break;
+      case 'watching':
+        seat = -1;
+        code = m['code'] as String?;
+        watchCode = code;
+        _retry = 0;
+        _events.add(m);
         break;
       case 'state':
         last = GameView.fromJson(m['view'] as Map, m['you'] as int);
@@ -275,9 +303,22 @@ class GameClient {
   }
 
   // ---- commandes de table ----
-  void create(String name) => _send({'t': 'create', 'name': name});
-  void join(String code, String name) =>
-      _send({'t': 'join', 'code': code, 'name': name});
+  void create(String name, {int? avatar}) =>
+      _send({'t': 'create', 'name': name, 'avatar': avatar});
+  void join(String code, String name, {int? avatar}) =>
+      _send({'t': 'join', 'code': code, 'name': name, 'avatar': avatar});
+
+  /// Table publique : place libre chez des joueurs connectés, sinon nouvelle
+  /// table (lancée tout de suite, les bots tiennent les places libres).
+  void quick(String name, {int? avatar}) =>
+      _send({'t': 'quick', 'name': name, 'avatar': avatar});
+
+  /// Regarder une table en spectateur (aucune main visible).
+  void watch(String code) {
+    watchCode = code;
+    _send({'t': 'watch', 'code': code});
+  }
+
   void start() => _send({'t': 'start'});
   void chat(String text) => _send({'t': 'chat', 'text': text});
 
@@ -293,6 +334,7 @@ class GameClient {
   void leave() {
     _send({'t': 'leave'});
     token = null;
+    watchCode = null;
   }
 
   // ---- actions de jeu ----

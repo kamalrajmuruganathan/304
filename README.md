@@ -18,7 +18,7 @@ Le 304 a déjà des joueurs (diaspora sri-lankaise / sud-indienne), mais l'offre
 
 | | Adresse |
 |---|---|
-| **App web** (solo + tables privées en ligne) | https://kamalrajmuruganathan.github.io/304/app/ |
+| **App web** (solo, donne du jour, tables publiques et privées ; installable, solo jouable sans internet) | https://kamalrajmuruganathan.github.io/304/app/ |
 | **APK Android de test** (signé debug, hors Play Store) | https://github.com/kamalrajmuruganathan/304/releases/latest/download/304.apk |
 | Prototype web (référence des règles) | https://kamalrajmuruganathan.github.io/304/ |
 | Serveur multijoueur (Render, offre gratuite) | `wss://three04-bivu.onrender.com/ws` — s'endort après 15 min sans joueur, réveil ≈ 50 s |
@@ -28,9 +28,9 @@ Le 304 a déjà des joueurs (diaspora sri-lankaise / sud-indienne), mais l'offre
 | Brique | État |
 |---|---|
 | Moteur de règles Dart (`lib/engine`) | ✅ **identique au prototype coup par coup** (test différentiel, 915 donnes), règles complètes dont **Partner Close Caps** et **Caps / Wrong Caps** (annonce des 8 plis) |
-| IA v3 (`lib/ai`) | ✅ portée, même trace que le prototype |
-| App Flutter solo | ✅ table royale, Conseil, Dernier pli, lignes d'aide, vitesse des bots, **niveau des adversaires (Facile / Normal)**, **reprise de la partie** après fermeture, tutoriel, sons, animations, statistiques détaillées, grandes cartes, jeu 4 couleurs |
-| Tables privées en ligne | ✅ créer/rejoindre par code ou **lien d'invitation** (WhatsApp…, ouvre l'appli Android si installée), partenaire = 2ᵉ joueur, bots sur les sièges vides, **bot remplaçant** un joueur parti ou déconnecté, chat + **réactions rapides**, **chat vocal** (WebRTC pair-à-pair, gratuit), reconnexion automatique, récapitulatif de chaque donne |
+| IA v3 (`lib/ai`) | ✅ portée, même trace que le prototype ; **IA difficile** Monte-Carlo (`lib/ai/hard.dart`) : +0,22 jeton par donne, 92 % des parties gagnées contre l'IA normale (`tool/hard_sim.dart`) |
+| App Flutter solo | ✅ table royale, **Conseil expliqué** (la carte et pourquoi), Dernier pli, **Revoir la donne** (les 8 plis, mains dévoilées), lignes d'aide, vitesse des bots, **niveau des adversaires (Facile / Normal / Difficile)**, **donne du jour** (la même pour tous, score à partager), **prénom et avatar**, **dos de cartes et tapis à débloquer**, **reprise de la partie** après fermeture, tutoriel, sons, animations, statistiques détaillées, grandes cartes, jeu 4 couleurs |
+| Tables en ligne | ✅ **table publique** en un toucher (joueurs inconnus, bots aux places libres), **spectateurs** (regarder une table par son code) ; tables privées : créer/rejoindre par code ou **lien d'invitation** (WhatsApp…, ouvre l'appli Android si installée), partenaire = 2ᵉ joueur, bots sur les sièges vides, **bot remplaçant** un joueur parti ou déconnecté, chat + **réactions rapides**, **chat vocal** (WebRTC pair-à-pair, gratuit), reconnexion automatique, récapitulatif de chaque donne |
 | Serveur autoritatif (`bin/server.dart`) | ✅ valide chaque coup, codes d'erreur traduits, tables abandonnées supprimées ; image Docker 16 Mo |
 | 4 langues | ✅ FR · EN · தமிழ் · සිංහල (ta/si : relecture native bienvenue, voir `docs/TRANSLATIONS.md`) |
 | Tests | ✅ `flutter test` : moteur, différentiel, serveur WebSocket, interface solo/en ligne, i18n ; CI GitHub |
@@ -56,10 +56,13 @@ Après toute modification des règles ou de l'IA : modifier **le prototype et le
 
 ```
 lib/engine/engine.dart   moteur de règles (Dart pur) + vue réseau rédigée par joueur
-lib/ai/bots.dart         IA v3
+lib/ai/bots.dart         IA v3 (+ raison de chaque coup : Conseil expliqué)
+lib/ai/hard.dart         IA difficile (Monte-Carlo, sans triche)
+lib/daily.dart           donne du jour (générateur identique téléphone / web)
 lib/net/client.dart      client WebSocket
 lib/net/voice.dart       chat vocal (WebRTC)
-lib/ui/                  écrans : jeu solo, en ligne, tutoriel
+lib/ui/                  écrans : jeu solo, en ligne, revoir la donne, profil, tutoriel
+web/sw.js                appli web installable, solo sans internet
 lib/l10n/                traductions (ARB, 4 langues)
 bin/server.dart          serveur multijoueur autoritatif
 test/                    tests (moteur, différentiel, serveur, interface, i18n)

@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game304/l10n/app_localizations.dart';
 import 'package:game304/net/client.dart';
+import 'package:game304/settings.dart';
 import 'package:game304/ui/online_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -361,6 +362,110 @@ void main() {
     await tester.runAsync(() async {
       await sub.cancel();
       other.dispose();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+  }, timeout: const Timeout(Duration(minutes: 2)));
+
+  /// Laisse passer le réseau réel (les écouteurs ne tournent qu'aux pump).
+  Future<void> waitFor(WidgetTester tester, bool Function() ok,
+      {int tries = 100}) async {
+    for (var i = 0; i < tries && !ok(); i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
+  testWidgets('table publique (accueil) : partie lancée, prénom et avatar',
+      (tester) async {
+    HttpOverrides.global = null;
+    SharedPreferences.setMockInitialValues({});
+    serverUrl = 'ws://127.0.0.1:$port/ws';
+    tester.view.physicalSize = const Size(360, 640) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    playerName.value = 'Kamal';
+    avatar.value = 5;
+    await tester.pumpWidget(const MaterialApp(
+        locale: Locale('fr'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: OnlineLobbyScreen(autoQuick: true)));
+    await waitFor(
+        tester, () => find.byType(OnlineGameScreen).evaluate().isNotEmpty);
+    final me =
+        tester.widget<OnlineGameScreen>(find.byType(OnlineGameScreen)).client;
+    await waitFor(tester, () => me.last?.started == true);
+    expect(me.last!.public, isTrue);
+    expect(me.last!.players[me.seat!]['name'], 'Kamal');
+    expect(me.last!.players[me.seat!]['avatar'], 5);
+    // mon avatar à côté de mon nom
+    expect(find.byIcon(kAvatars[5].$1), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 5));
+    playerName.value = '';
+    avatar.value = 0;
+  }, timeout: const Timeout(Duration(minutes: 2)));
+
+  testWidgets('spectateur (tamoul, 360×640) : table vue, aucune carte jouable',
+      (tester) async {
+    HttpOverrides.global = null;
+    SharedPreferences.setMockInitialValues({});
+    serverUrl = 'ws://127.0.0.1:$port/ws';
+    tester.view.physicalSize = const Size(360, 640) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final l = lookupAppLocalizations(const Locale(lang));
+    final host = GameClient('ws://127.0.0.1:$port/ws');
+    late StreamSubscription<Map> sub;
+    await tester.runAsync(() async {
+      final created = Completer<void>();
+      sub = host.events.listen((m) {
+        if (m['t'] == 'joined' && !created.isCompleted) created.complete();
+      });
+      host
+        ..connect()
+        ..create('Hôte');
+      await created.future.timeout(const Duration(seconds: 10));
+      host.start();
+    });
+    final code = host.code!;
+    await tester.pumpWidget(const MaterialApp(
+        locale: Locale(lang),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: OnlineLobbyScreen()));
+    await tester.enterText(find.byType(TextField).at(1), code);
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const ValueKey('watch')));
+    await tester.tap(find.byKey(const ValueKey('watch')));
+    await waitFor(tester,
+        () => find.byKey(const ValueKey('spectating')).evaluate().isNotEmpty);
+    expect(find.byKey(const ValueKey('spectating')), findsOneWidget);
+    // quelques secondes de jeu des bots : jamais de carte jouable
+    for (var i = 0; i < 20; i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 150)));
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(tester.takeException(), isNull);
+      expect(
+          find.byWidgetPredicate((w) =>
+              w.key is ValueKey<String> &&
+              (w.key as ValueKey<String>).value.startsWith('play-')),
+          findsNothing);
+    }
+    expect(find.text(l.spectatingInfo), findsWidgets);
+    // l'hôte voit qu'un spectateur regarde
+    await waitFor(tester, () => host.last?.spectators == 1);
+    expect(host.last!.spectators, 1);
+    await tester.pumpWidget(const SizedBox()); // le spectateur s'en va
+    await waitFor(tester, () => host.last?.spectators == 0, tries: 50);
+    expect(host.last!.spectators, 0);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.runAsync(() async {
+      await sub.cancel();
+      host.dispose();
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
   }, timeout: const Timeout(Duration(minutes: 2)));

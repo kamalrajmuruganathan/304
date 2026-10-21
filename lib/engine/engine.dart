@@ -122,6 +122,14 @@ class Engine {
   int trumpsPlayed = 0; // atouts tombés (règle des atouts épuisés)
   Set<String> seen = {}; // mémoire publique : cartes vues face visible
 
+  /// Mains au début du jeu des plis (pour « Revoir la donne ») ; l'atout
+  /// posé, s'il est encore sur la table, est dans [indicator]. null avant.
+  List<List<Card>>? playHands;
+
+  /// Atout posé encore sur la table au début du jeu (null : jeu ouvert/PCC
+  /// sans carte posée).
+  Card? playIndicator;
+
   // ---- CAPS (annonce des 8 plis, règle « Wrong Caps ») --------------------
   /// Pli (0..7) où une équipe a eu pour la 1re fois l'occasion certaine
   /// d'annoncer Caps (son joueur à l'entame pouvait savoir qu'elle gagnerait
@@ -160,6 +168,57 @@ class Engine {
     dealer = _rng.nextInt(4);
   }
 
+  /// Copie indépendante de l'état (simulations de l'IA « difficile » : on
+  /// rejoue la fin de la donne sur une copie sans toucher à la vraie partie).
+  Engine copy() {
+    final c = Engine(rng: Random(0))
+      ..tokens = Map.of(tokens)
+      ..dealer = dealer
+      ..hands = [for (final h in hands) List.of(h)]
+      ..dealt = dealt
+      ..trumpSuit = trumpSuit
+      ..trumpMaker = trumpMaker
+      ..trumpMaker1 = trumpMaker1
+      ..bid1 = bid1
+      ..bid = bid
+      ..indicator = indicator
+      ..indicatorOnTable = indicatorOnTable
+      ..trumpOpen = trumpOpen
+      ..pcc = pcc
+      ..soloMode = soloMode
+      ..mutedSeat = mutedSeat
+      ..tricks = List.of(tricks)
+      ..trickWinsNS = trickWinsNS
+      ..trickWinsEW = trickWinsEW
+      ..pointsNS = pointsNS
+      ..pointsEW = pointsEW
+      ..trumpsPlayed = trumpsPlayed
+      ..seen = Set.of(seen)
+      ..capsChance = Map.of(capsChance)
+      ..capsCall = capsCall
+      ..phase = phase
+      ..eldest = eldest
+      ..bidTurn = bidTurn
+      ..highBid = highBid
+      ..highBidder = highBidder
+      ..passStreak = passStreak
+      ..spoken = Set.of(spoken)
+      ..bid2Turn = bid2Turn
+      ..bid2Count = bid2Count
+      ..bid2High = bid2High
+      ..bid2Bidder = bid2Bidder
+      ..bid2Pcc = bid2Pcc
+      ..currentTrick = List.of(currentTrick)
+      ..ledSuit = ledSuit
+      ..leader = leader
+      ..turn = turn
+      ..playHands = playHands
+      ..playIndicator = playIndicator
+      ..lastScore = lastScore;
+    if (phase != 'idle') c.deck = deck;
+    return c;
+  }
+
   void _log(String m) => onLog?.call(m);
 
   void _shuffle(List<Card> a) {
@@ -195,6 +254,8 @@ class Engine {
     seen = {};
     capsChance = {'NS': null, 'EW': null};
     capsCall = null;
+    playHands = null;
+    playIndicator = null;
     eldest = nextSeat(dealer);
     phase = 'redeal';
     bidTurn = eldest;
@@ -417,6 +478,8 @@ class Engine {
 
   void _beginPlay(bool open) {
     phase = 'play';
+    playHands = [for (final h in hands) List.of(h)];
+    playIndicator = indicatorOnTable ? indicator : null;
     soloMode = false;
     leader = nextSeat(dealer);
     turn = leader;
@@ -429,6 +492,8 @@ class Engine {
 
   void _beginPlayPCC() {
     phase = 'play';
+    playHands = [for (final h in hands) List.of(h)];
+    playIndicator = indicatorOnTable ? indicator : null;
     soloMode = true;
     mutedSeat = (trumpMaker! + 2) % 4;
     leader = trumpMaker!;
@@ -490,8 +555,7 @@ class Engine {
         if (p.seat == seat) known.add(p.card.key); // ses cartes cachées
       }
     }
-    final unseen =
-        buildDeck().where((c) => !known.contains(c.key)).toList();
+    final unseen = buildDeck().where((c) => !known.contains(c.key)).toList();
     final unseenTrumps = unseen.where((c) => c.suit == trump).toList();
     int str(Card c) => kStrength[c.rank]!;
     // chacun de ses atouts bat tous les atouts qu'il n'a pas vus
@@ -523,8 +587,7 @@ class Engine {
   /// Annonce « Caps » (avant d'entamer). Jugée au décompte.
   bool callCaps(int seat) {
     if (!canCallCaps(seat)) return false;
-    capsCall =
-        (seat: seat, trick: tricks.length, certain: capsCertain(seat));
+    capsCall = (seat: seat, trick: tricks.length, certain: capsCertain(seat));
     _log('${kSeatName[seat]} annonce Caps !');
     return true;
   }
@@ -797,6 +860,40 @@ class Engine {
   // C'est cette vue que le serveur autoritatif envoie à chaque client.
   // ==========================================================================
   static Map<String, String> cardJson(Card c) => {'s': c.suit, 'r': c.rank};
+
+  /// Toute la donne, cartes visibles (« Revoir la donne ») : mains au début du
+  /// jeu, atout posé, plis dans l'ordre. À n'envoyer qu'une fois la donne
+  /// terminée (phase `scored`) : tout y est dévoilé. null avant le jeu.
+  Map<String, dynamic>? replayJson() {
+    final h = playHands;
+    if (h == null) return null;
+    return {
+      'hands': [for (final x in h) x.map(cardJson).toList()],
+      'indicator': playIndicator == null ? null : cardJson(playIndicator!),
+      'trumpSuit': trumpSuit,
+      'trumpMaker': trumpMaker,
+      'bid': bid,
+      'pcc': pcc,
+      'mutedSeat': mutedSeat,
+      'tricks': [
+        for (final t in tricks)
+          {
+            'winner': t['winner'],
+            'points': t['points'],
+            'cards': [
+              for (final p in t['cards'] as List<TrickPlay>)
+                {
+                  'seat': p.seat,
+                  'card': cardJson(p.card),
+                  'faceDown': p.faceDown,
+                  'indicator': p.isIndicator,
+                }
+            ],
+          }
+      ],
+    };
+  }
+
   static Card cardFromJson(Map j) => Card(j['s'] as String, j['r'] as String);
 
   Map<String, dynamic> snapshot({int? forSeat}) {
@@ -874,6 +971,8 @@ class Engine {
       'capsBy': capsCall?.seat,
       'yourTurn': forSeat != null && _isSeatToAct(forSeat),
       'lastScore': phase == 'scored' ? lastScore : null,
+      // donne terminée : tout est dévoilé pour « Revoir la donne »
+      'replay': phase == 'scored' ? replayJson() : null,
     };
   }
 

@@ -54,8 +54,7 @@ bool get offerAndroidApp =>
 
 Future<void> openInAndroidApp(String code) async {
   try {
-    await launchUrl(Uri.parse(appIntentLink(code)),
-        webOnlyWindowName: '_self');
+    await launchUrl(Uri.parse(appIntentLink(code)), webOnlyWindowName: '_self');
   } catch (_) {}
 }
 
@@ -63,7 +62,31 @@ Future<void> openInAndroidApp(String code) async {
 /// Ordinateur (web) : copie dans le presse-papiers.
 Future<void> shareInvite(BuildContext context, String code) async {
   final l = AppLocalizations.of(context)!;
-  final text = l.inviteText(inviteLink(code), code);
+  await _shareText(context, l.inviteText(inviteLink(code), code), l.linkCopied);
+}
+
+/// Lien qui ouvre directement la donne du jour (app web).
+String dailyLink() {
+  final base = kIsWeb ? '${Uri.base.origin}${Uri.base.path}' : kInviteBase;
+  return '$base?daily=1';
+}
+
+/// L'adresse de la page demande-t-elle la donne du jour ? (`?daily=1`)
+bool dailyFromUrl([Uri? uri]) {
+  if (!kIsWeb && uri == null) return false;
+  return (uri ?? Uri.base).queryParameters['daily'] == '1';
+}
+
+/// Partage le score de la donne du jour (même logique que l'invitation).
+Future<void> shareDaily(BuildContext context, String day, String score) async {
+  final l = AppLocalizations.of(context)!;
+  await _shareText(
+      context, l.dailyShareText(day, score, dailyLink()), l.scoreCopied);
+}
+
+/// Feuille de partage du téléphone, sinon copie (message [copied]).
+Future<void> _shareText(
+    BuildContext context, String text, String copied) async {
   final messenger = ScaffoldMessenger.of(context);
   final mobile = defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
@@ -76,7 +99,7 @@ Future<void> shareInvite(BuildContext context, String code) async {
   try {
     await Clipboard.setData(ClipboardData(text: text));
   } catch (_) {}
-  messenger.showSnackBar(SnackBar(content: Text(l.linkCopied)));
+  messenger.showSnackBar(SnackBar(content: Text(copied)));
 }
 
 /// Réactions rapides : envoyées comme message de chat « :r:clé », affichées

@@ -42,13 +42,20 @@ firebase.json              hosting de build/web (optionnel)
 lib/
   engine/engine.dart       MOTEUR (Dart pur, aucune dépendance Flutter) + snapshot/viewFor réseau
   ai/bots.dart             IA v3 : est4/botBid, botBid2, botChooseTrump, botPlay (mémoire)
+                           + botPlayWhy (même coup + raison `PlayWhy` : Conseil expliqué)
                            + botPlayLevel (niveau « facile » des adversaires en solo, `kEasySlip`)
+  ai/hard.dart             IA « difficile » (solo, Est/Ouest) : Monte-Carlo sans triche (botPlayHard, sampleWorld)
+  daily.dart               donne du jour : DailyState (`daily304`), startDaily/finishDaily ; générateur
+                           dans engine/daily_random.dart (xorshift32, identique natif / web)
+  pwa.dart                 web : bouton « Installer l'appli » (pwa_web.dart via dart:js_interop, pwa_stub.dart)
   net/client.dart          client WebSocket + GameView (vue rédigée reçue du serveur)
   net/voice.dart           chat vocal WebRTC pair-à-pair (flutter_webrtc) : VoiceChat, voicePeers, callsFirst
   ui/game_screen.dart      table « royale » solo vs 3 bots (UI Flutter)
   ui/online_screen.dart    salon (créer/rejoindre code, reprise de table) + table en ligne (chat, bandeau de reconnexion)
   ui/tutorial_screen.dart  tutoriel « Apprendre le 304 » en 4 langues
   ui/stats_screen.dart     statistiques détaillées (prises par palier, Caps, parties, séries)
+  ui/replay.dart           « Revoir la donne » : DealReplay (Engine.replayJson / vue `replay`), ReplayScreen
+  ui/profile.dart          ProfileChip / ProfileDialog : prénom + avatar (accueil)
   ui/recap.dart            DealRecap : récapitulatif de fin de donne (plis, points, jetons ±), solo et en ligne
   ui/invite.dart           lien d'invitation (?table=CODE), partage (share_plus / presse-papiers),
                            réactions rapides du chat (« :r:clé », traduites chez chacun)
@@ -58,10 +65,11 @@ lib/
   settings.dart            préférences mémorisées (vitesse, son, dos, tapis, grandes cartes `size304`,
                            jeu 4 couleurs `deck304`, vibrations `vibe304`, stats `Stats`, table en cours,
                            partie solo en cours `solo304` = jetons + donneur → « Reprendre la partie »,
-                           niveau des adversaires `level304` = normal | easy)
+                           niveau des adversaires `level304` = normal | easy | hard, profil `name304` /
+                           `avatar304` (kAvatars), dos/tapis à débloquer `kUnlockWins` (parties gagnées))
   sound.dart               sons (playSfx) : assets/sounds/{card,trick,win,lose}.wav, bips du prototype
   main.dart                accueil : partie solo / table privée + choix de langue (mémorisé, clé `lang304`)
-  l10n/app_{en,fr,ta,si}.arb  196 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
+  l10n/app_{en,fr,ta,si}.arb  255 clés chacune, câblées via AppLocalizations (fichiers Dart générés, non commités)
 bin/server.dart            serveur autoritatif WebSocket (dart:io), réutilise engine + bots
 test/engine_test.dart      tests du moteur (régression + Partner Close Caps)
 test/prototype_equivalence_test.dart  test différentiel Dart == prototype (coup par coup)
@@ -73,6 +81,16 @@ test/server_test.dart      serveur par WebSocket : codes d'erreur, table complè
 test/voice_test.dart       chat vocal : qui se relie à qui (logique pure)
 test/i18n_test.dart        cohérence des ARB + donnes jouées en en/ta/si sans texte français + sélecteur de langue
 tool/level_sim.dart        simulation du niveau « facile » (`dart run tool/level_sim.dart 1000 0.25`)
+tool/hard_sim.dart         mesure du niveau « difficile » (`dart run tool/hard_sim.dart 3000 24 400`)
+tool/daily_check.dart      donne du jour : même résultat en Dart natif et compilé en JS (à comparer)
+tool/precache.sh           liste des fichiers copiés par web/sw.js (après `flutter build web`)
+tools/pwa-test/run.js      test Chromium : appli web installée, rechargée et jouée hors ligne
+web/sw.js                  service worker (réseau d'abord, copie hors ligne) ; web/flutter_bootstrap.js
+                           charge Flutter SANS son service worker (abandonné, il se désinscrit)
+test/hard_test.dart        IA difficile : coups légaux, pas de triche (mains cachées échangées), plus forte
+test/replay_test.dart      revoir la donne : données + écran (4 langues, 360×640)
+test/daily_test.dart       donne du jour : générateur, essai officiel / entraînement, série, écran
+test/profile_test.dart     profil (prénom, avatar) et dos/tapis à débloquer
 tools/diff-test/trace.js   génère / vérifie (--check) la trace de référence du prototype
 android/ ios/ web/         générés par `flutter create` (org com.kjtech)
 prototype/304.html         PROTOTYPE WEB VALIDÉ — référence des règles, de l'IA et du design
@@ -194,7 +212,16 @@ l'annonce d'un bot s'affiche en bandeau (solo et en ligne).
   0,25, une carte légale au hasard (jamais la coupe à l'atout posé) ; enchères inchangées ; Nord
   (partenaire) reste normal. Mesuré (`tool/level_sim.dart`, 1 000 parties, IA normale en NS) :
   NS gagne 49,7 % à slip 0 · 69,8 % à 0,1 · 82,5 % à 0,2 · **89,4 % à 0,25** · 97,5 % à 0,5.
-  Pas de niveau « expert » : aucune amélioration de l'IA mesurée pour l'instant.
+- **Niveau « difficile »** (21/10/2026, solo, Dart seulement) : Est/Ouest jouent avec `botPlayHard`
+  (`lib/ai/hard.dart`) : avant chaque carte, 24 répartitions des cartes non vues compatibles avec ce que
+  le bot sait (nombre de cartes, couleurs où un joueur n'a pas fourni, cartes cachées hors couleur demandée
+  et hors atout si le pli est resté fermé, atout posé = atout ; atout tiré au sort s'il est caché pour lui),
+  chaque carte jouable est essayée et la fin de donne jouée avec l'IA normale ; gain = jetons ×100 +
+  points. Il ne lit jamais les mains des autres ni l'atout caché (test : mains cachées échangées → même
+  coup ; l'égalité est départagée par `botPlay` sur une répartition imaginée, car `botPlay` lit l'atout).
+  Enchères inchangées. Mesuré (`tool/hard_sim.dart`) : **+0,217 ± 0,049 jeton par donne** pour Est-Ouest
+  (3 000 donnes appariées) et **92 % des parties gagnées** contre l'IA normale (400 parties ; 91,7 % sur 300 parties avec la version finale).
+  ~3 ms par décision sur PC (24 tirages).
 
 ## 5. Multijoueur
 
@@ -218,6 +245,12 @@ l'annonce d'un bot s'affiche en bandeau (solo et en ligne).
   rejoindre + autoriser le micro, puis couper/rétablir ; appui long = quitter), petit micro à côté du
   nom (vert relié / orange connexion / rouge échec ou micro coupé). Haut-parleur activé sur mobile.
   Micro coupé visible de tous (`players[].muted`, micro barré rouge, 15/10/2026).
+- **Tables publiques et spectateurs** (21/10/2026) : message `quick` → table publique avec une place
+  libre et au moins un humain connecté (la plus remplie), sinon nouvelle table lancée aussitôt (bots aux
+  places libres, un arrivant prend la place d'un bot même en cours de donne) ; relance automatique après la
+  fin d'une partie. `watch` → spectateur (`viewFor(-1)` : aucune main, atout fermé caché ; 20 au plus ;
+  reçoit le chat, ne peut rien envoyer d'autre que `leave`). Prénom nettoyé par le serveur (24 car.),
+  `avatar` 0–11. Vue `replay` en phase `scored`. Voir `docs/PROTOCOL.md`.
 - **Lien d'invitation → appli Android** (15/10/2026) : l'APK déclare `game304://table/CODE` (lu par
   `app_links` au démarrage et pendant l'exécution ; `flutter_deeplinking_enabled=false`) et le lien
   https `…/304/app` (non vérifié : il faudrait `assetlinks.json` à la racine du domaine, MISE_EN_LIGNE
@@ -230,7 +263,7 @@ l'annonce d'un bot s'affiche en bandeau (solo et en ligne).
 |---|---|
 | Prototype web `prototype/304.html` | ✅ **Validé** : >100 000 donnes simulées (invariants : points=304, 8 plis, jetons=22, coups légaux) + test d'interface jsdom (80 donnes via les boutons, 0 erreur, en FR/EN/TA/SI) |
 | Moteur Dart, IA Dart | ✅ **Compilés (Flutter 3.47.6 / Dart 3.13.5) et identiques au prototype** : test différentiel `test/prototype_equivalence_test.dart` — 24 parties / 915 donnes (PCC, atouts gâchés, coupes à l'atout posé, jeu ouvert et fermé, 21 annonces Caps : 4 réussies, 17 Wrong Caps — siège 0 qui oublie ou annonce trop tôt dans certaines parties) rejouées avec le même générateur aléatoire : chaque enchère, carte, pli, score et ligne du journal est identique |
-| Tests Dart | ✅ `flutter test` : 83/83 (Caps/Wrong Caps : positions construites + 300 parties bots parfaits sans Wrong Caps + joueur qui oublie ou annonce trop tôt + bouton Caps en solo et action serveur, liens d'invitation `game304://` et `intent://`, micro coupé, chat vocal : signalisation serveur + logique de liaison, niveau facile : 300 parties + UI, reprise d'une partie solo, bot remplaçant un joueur parti ou déconnecté, tables sans joueur figées, réactions traduites, lien d'invitation, quitter la partie avec confirmation, tablette portrait 800×1280, salon créer/rejoindre à l'écran, double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
+| Tests Dart | ✅ `flutter test` : 105/105 (21/10/2026 : IA difficile — coups légaux, sans triche, plus forte — ; revoir la donne en 4 langues ; donne du jour — générateur, essai officiel/entraînement, série, écran — ; profil et dos/tapis à débloquer ; table publique, spectateur, prénom/avatar côté serveur et à l'écran ; Caps/Wrong Caps : positions construites + 300 parties bots parfaits sans Wrong Caps + joueur qui oublie ou annonce trop tôt + bouton Caps en solo et action serveur, liens d'invitation `game304://` et `intent://`, micro coupé, chat vocal : signalisation serveur + logique de liaison, niveau facile : 300 parties + UI, reprise d'une partie solo, bot remplaçant un joueur parti ou déconnecté, tables sans joueur figées, réactions traduites, lien d'invitation, quitter la partie avec confirmation, tablette portrait 800×1280, salon créer/rejoindre à l'écran, double toucher rapide sur une carte, stats, écran Statistiques en tamoul, grandes cartes + 4 couleurs sur 360×640, récap de donne, coupe à l'atout posé : 300 parties, régression 300 parties, PCC, 24 parties différentielles, serveur WebSocket dont chat et reconnexion, tests d'interface solo/en ligne, animations, i18n) ; `flutter analyze` : 0 remarque |
 | i18n Flutter (FR/EN/TA/SI) | ✅ Câblée (§9) : `test/i18n_test.dart` joue des donnes en en/ta/si via l'UI et échoue sur tout texte français ou latin resté en dur (sensibilité vérifiée) ; l'écran en ligne est testé en tamoul. **Rendu vérifié à l'œil** (captures Chromium du build web, 360×640 et 390×844, ta/si/fr) |
 | Serveur Dart | ✅ Compilé (`dart compile exe`) et lancé : `/health` = ok ; partie complète jouée par 2 clients WebSocket (créateur siège 0, partenaire siège 2) + 2 bots jusqu'à 0 jeton, 0 erreur, aucun blocage ; 20/20 coups illégaux rejetés |
 | UI Flutter solo (game_screen, main) | ✅ **Testée par widget tests** (`test/ui_solo_test.dart`) : 45 donnes jouées en touchant les vrais boutons/cartes sur téléphone 390×844, petit écran 360×640 et tablette 1024×768 ; campagne longue `--dart-define=DEALS=300` : 300 donnes, 0 erreur, tous les cas couverts (preneur, choix d'atout, fermé/ouvert, face cachée, dernier pli à l'atout posé, PCC). Rendu regardé sur captures Chromium (build web) ; ⚠️ jamais vu sur un vrai téléphone |
@@ -362,6 +395,27 @@ JS, blocage, ou texte non traduit après bascule de langue.
 - ~~privacy.html à compléter~~ → fait (date, hébergeurs Render/GitHub Pages/Google Fonts, contact = issues GitHub ;
   pas d'e-mail publié — à ajouter si Kamal le souhaite, les stores demandent souvent un e-mail).
 - ~~Icônes PNG~~ → faites depuis `assets/icon.svg` (web, Android 5 densités, iOS carré opaque) ; nom affiché « 304 ».
+
+- **Fait (21/10/2026, « fais de 1 à 9 »)** :
+  1. **Table publique** (accueil et salon) : un toucher, pas de code (serveur `quick`).
+  2. **Donne du jour** : même donne pour tous (date UTC, générateur xorshift32 vérifié identique en natif
+     et en JS), une seule donne, adversaires au niveau normal, 1er essai officiel (`startDaily` dès
+     l'ouverture : quitter puis rejouer = entraînement), série de jours, partage du score + lien `?daily=1`,
+     ne touche pas à la partie solo mémorisée.
+  3. **Appli web installable + solo sans internet** : `web/sw.js` + `precache.json` (pages.yml) ; build
+     `--no-web-resources-cdn` (CanvasKit servi par le site) ; bouton « Installer l'appli » (Chrome/Edge/
+     Android : invitation du navigateur ; iPhone : explication). Testé dans Chromium (`tools/pwa-test`) :
+     copie faite, rechargement et partie solo hors ligne, lien `?daily=1` hors ligne, 0 erreur JS.
+     Polices ta/si (Google Fonts) gardées seulement si elles ont déjà été chargées en ligne.
+  4. **Revoir la donne** (solo, donne du jour, en ligne : bouton du résultat + icône de la barre).
+  5. **Conseil expliqué** : jeu (`PlayWhy`, 16 raisons) et enchères (estimation `est4`, raisons du 2e tour).
+  6. **Niveau Difficile** (§4).
+  7. **Prénom + avatar** (accueil → profil ; pré-remplit le salon ; avatar à côté du nom en ligne).
+  8. **Dos de cartes / tapis à débloquer** : Émeraude 1, Bordeaux 2, Rubis 3, Nuit 5, Paon 8, Sable 12
+     parties solo gagnées (cadenas + infobulle ; « Débloqué : … ! » dans le résultat).
+  9. **Spectateur** : bouton « Regarder » du salon (code), compteur d'yeux dans la barre.
+  ⚠️ Rien de tout cela n'a été essayé sur un vrai téléphone ; traductions ta/si de ces écrans par Claude.
+  Fenêtres de résultat solo rendues défilables (débordaient avec le bouton « Revoir la donne »).
 
 ## 10. Publication — pièges déjà identifiés
 

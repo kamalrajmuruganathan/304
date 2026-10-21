@@ -5,9 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
+import 'daily.dart';
+import 'pwa.dart';
 import 'settings.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
+import 'ui/profile.dart';
 import 'ui/invite.dart';
 import 'ui/stats_screen.dart';
 import 'ui/tutorial_screen.dart';
@@ -38,6 +41,7 @@ Future<void> main() async {
     // préférences indisponibles : langue de l'appareil
   }
   await loadSettings();
+  await loadDaily();
   // appli Android ouverte par un lien d'invitation (game304://table/ABCD)
   String? code;
   if (!kIsWeb) {
@@ -93,15 +97,20 @@ class Game304App extends StatelessWidget {
             secondary: const Color(0xFFD4A72C),
           ),
         ),
-        home: HomeScreen(inviteCode: inviteCode ?? tableFromUrl()),
+        home: HomeScreen(
+            inviteCode: inviteCode ?? tableFromUrl(),
+            openDaily: inviteCode == null && dailyFromUrl()),
       ),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.inviteCode});
+  const HomeScreen({super.key, this.inviteCode, this.openDaily = false});
   final String? inviteCode;
+
+  /// Lien de partage de la donne du jour (`?daily=1`) : on y va directement.
+  final bool openDaily;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -113,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    watchPwa(); // web : bouton « Installer l'appli » quand c'est possible
     // lien d'invitation reçu pendant que l'appli est déjà ouverte
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       try {
@@ -124,6 +134,13 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (_) => OnlineLobbyScreen(initialCode: c)));
         }, onError: (_) {});
       } catch (_) {}
+    }
+    if (widget.openDaily) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const GameScreen(daily: true)));
+      });
     }
     // lien d'invitation : on arrive directement au salon, code pré-rempli
     final code = widget.inviteCode;
@@ -163,6 +180,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text('three-nought-four',
                     style:
                         TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                const SizedBox(height: 10),
+                // profil : avatar + prénom (touche : modifier)
+                const ProfileChip(),
                 ValueListenableBuilder(
                   valueListenable: stats,
                   builder: (context, st, _) => st.played == 0
@@ -218,6 +238,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                // donne du jour : la même pour tout le monde
+                ValueListenableBuilder(
+                  valueListenable: daily,
+                  builder: (context, d, _) {
+                    final today = d.today();
+                    return OutlinedButton.icon(
+                      key: const ValueKey('daily'),
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const GameScreen(daily: true))),
+                      icon: const Icon(Icons.today),
+                      label: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                            today == null
+                                ? '${l.dailyDeal}\n${l.dailyNew}'
+                                : '${l.dailyDeal}\n${l.dailyDone(l.dailyScore(today.delta > 0 ? '+${today.delta}' : '${today.delta}', today.points))}',
+                            textAlign: TextAlign.center),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                // table publique : d'autres joueurs, sans code
+                OutlinedButton.icon(
+                  key: const ValueKey('home-public'),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) =>
+                          const OnlineLobbyScreen(autoQuick: true))),
+                  icon: const Icon(Icons.public),
+                  label: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text(l.publicTable, textAlign: TextAlign.center),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const OnlineLobbyScreen())),
@@ -229,6 +285,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                // web : installer l'appli (jouable sans internet en solo)
+                ValueListenableBuilder<bool>(
+                  valueListenable: pwaInstallable,
+                  builder: (context, can, _) => can || pwaIosHint
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: TextButton.icon(
+                            key: const ValueKey('install-app'),
+                            onPressed: () => can
+                                ? installPwa()
+                                : showDialog<void>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                          title: Text(l.installApp),
+                                          content: Text(
+                                              '${l.installIos}\n\n${l.installInfo}'),
+                                          actions: [
+                                            TextButton(
+                                                onPressed: () =>
+                                                    Navigator.of(ctx).pop(),
+                                                child: Text(l.close)),
+                                          ],
+                                        )),
+                            icon: const Icon(Icons.install_mobile),
+                            label: Text(l.installApp),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
                 TextButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const TutorialScreen())),
@@ -259,7 +344,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 _OptionRow(
                     label: l.botLevel,
                     notifier: botLevel,
-                    options: {'easy': l.levelEasy, 'normal': l.normal},
+                    options: {
+                      'easy': l.levelEasy,
+                      'normal': l.normal,
+                      'hard': l.levelHard
+                    },
                     onSelect: setBotLevel,
                     keyPrefix: 'level'),
                 const SizedBox(height: 20),
@@ -269,9 +358,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     options: {
                       'royal': l.royal,
                       'classic': l.classic,
-                      'dark': l.dark
+                      'dark': l.dark,
+                      'emerald': l.backEmerald,
+                      'ruby': l.backRuby,
+                      'peacock': l.backPeacock,
                     },
                     onSelect: setCardBack,
+                    lockKind: 'back',
                     keyPrefix: 'back'),
                 const SizedBox(height: 20),
                 _OptionRow(
@@ -280,9 +373,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     options: {
                       'green': l.green,
                       'blue': l.blue,
-                      'violet': l.violet
+                      'violet': l.violet,
+                      'crimson': l.feltCrimson,
+                      'midnight': l.feltMidnight,
+                      'sand': l.feltSand,
                     },
                     onSelect: setFelt,
+                    lockKind: 'felt',
                     keyPrefix: 'felt'),
                 const SizedBox(height: 20),
                 _OptionRow(
@@ -353,8 +450,12 @@ class _OptionRow extends StatelessWidget {
       required this.notifier,
       required this.options,
       required this.onSelect,
-      required this.keyPrefix});
+      required this.keyPrefix,
+      this.lockKind});
   final String label;
+
+  /// 'back' / 'felt' : certains choix se débloquent en gagnant des parties.
+  final String? lockKind;
   final ValueNotifier<String> notifier;
   final Map<String, String> options;
   final Future<void> Function(String) onSelect;
@@ -367,19 +468,38 @@ class _OptionRow extends StatelessWidget {
       const SizedBox(height: 8),
       ValueListenableBuilder<String>(
         valueListenable: notifier,
-        builder: (context, v, _) => Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: [
-            for (final e in options.entries)
-              ChoiceChip(
-                key: ValueKey('$keyPrefix-${e.key}'),
-                label: Text(e.value),
-                selected: v == e.key,
-                onSelected: (_) => onSelect(e.key),
-              ),
-          ],
+        builder: (context, v, _) => ValueListenableBuilder(
+          valueListenable: stats, // parties gagnées : déverrouillages
+          builder: (context, st, _) => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              for (final e in options.entries)
+                if (lockKind != null &&
+                    winsToUnlock(lockKind!, e.key, st.gamesWon) > 0)
+                  // verrouillé : cadenas + nombre de parties à gagner
+                  Tooltip(
+                    message: AppLocalizations.of(context)!
+                        .unlockHint(kUnlockWins['$lockKind:${e.key}']!),
+                    triggerMode: TooltipTriggerMode.tap,
+                    child: ChoiceChip(
+                      key: ValueKey('$keyPrefix-${e.key}'),
+                      avatar: const Icon(Icons.lock, size: 16),
+                      label: Text(e.value),
+                      selected: false,
+                      onSelected: null,
+                    ),
+                  )
+                else
+                  ChoiceChip(
+                    key: ValueKey('$keyPrefix-${e.key}'),
+                    label: Text(e.value),
+                    selected: v == e.key,
+                    onSelected: (_) => onSelect(e.key),
+                  ),
+            ],
+          ),
         ),
       ),
     ]);
