@@ -76,13 +76,30 @@ List<Map<String, dynamic>> iceServers([Map<String, String>? env]) {
 }
 
 /// Message `joined` (création, arrivée, reconnexion) : place + serveurs ICE.
-String joinedMsg(String code, int seat, String? token) => jsonEncode({
+String joinedMsg(String code, int seat, String? token, {bool public = false}) =>
+    jsonEncode({
       't': 'joined',
       'code': code,
       'seat': seat,
       'token': token,
+      'public': public,
       'ice': iceServers(),
     });
+
+/// Prénom reçu d'un client : une ligne, 24 caractères au plus, jamais vide.
+String cleanName(Object? raw) {
+  final t = '${raw ?? ''}'.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (t.isEmpty) return 'Joueur';
+  final r = t.runes.toList();
+  return r.length > 24 ? String.fromCharCodes(r.take(24)) : t;
+}
+
+/// Avatar choisi (indice de la liste de l'app, 0 à 11) ; null sinon.
+int? cleanAvatar(Object? raw) =>
+    raw is int && raw >= 0 && raw < 12 ? raw : null;
+
+/// Spectateurs au plus par table.
+const int maxSpectators = 20;
 
 String genCode() {
   const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -97,6 +114,7 @@ class Seat {
   DateTime? offlineSince; // déconnexion du joueur humain (null = en ligne)
   bool voice = false; // a rejoint le chat vocal (micro ouvert ou coupé)
   bool voiceMuted = false; // micro coupé (les autres le voient)
+  int? avatar; // avatar choisi dans l'app (indice), null pour un bot
   Seat({this.name = 'Bot', this.isBot = true});
   bool get isHuman => !isBot;
   bool get connected => socket != null && socket!.readyState == WebSocket.open;
@@ -111,6 +129,13 @@ class Seat {
 
 class Room {
   final String code;
+
+  /// Table publique : ouverte à « Jouer en ligne » (joueurs inconnus), lancée
+  /// dès sa création, relancée seule après la fin d'une partie.
+  final bool public;
+
+  /// Spectateurs : reçoivent la vue d'un siège vide (aucune main visible).
+  final List<WebSocket> spectators = [];
   final Engine engine = Engine();
   final List<Seat> seats = [
     for (var i = 0; i < 4; i++) Seat(name: 'Bot ${i + 1}')
@@ -119,7 +144,10 @@ class Room {
   bool _looping = false;
   DateTime lastSeen = DateTime.now(); // dernier instant avec un joueur connecté
 
-  Room(this.code);
+  Room(this.code, {this.public = false});
+
+  /// Joueurs humains connectés.
+  int get humansOnline => seats.where((s) => s.isHuman && s.connected).length;
 
   int? seatOfSocket(WebSocket ws) {
     for (var i = 0; i < 4; i++) {
@@ -137,26 +165,54 @@ class Room {
     return null;
   }
 
+  Map<String, dynamic> _decorate(Map<String, dynamic> view) => view
+    ..['code'] = code
+    ..['started'] = started
+    ..['public'] = public
+    ..['spectators'] = spectators.length
+    ..['players'] = [
+      for (final p in seats)
+        {
+          'name': p.name,
+          'bot': p.isBot,
+          'online': p.connected,
+          'away': p.away,
+          'voice': p.voice && p.connected,
+          'muted': p.voice && p.voiceMuted,
+          'avatar': p.isBot ? null : p.avatar,
+        }
+    ];
+
   void broadcast() {
     for (var i = 0; i < 4; i++) {
       final s = seats[i];
       if (s.isHuman && s.connected) {
-        final view = engine.viewFor(i)
-          ..['code'] = code
-          ..['started'] = started
-          ..['players'] = [
-            for (final p in seats)
-              {
-                'name': p.name,
-                'bot': p.isBot,
-                'online': p.connected,
-                'away': p.away,
-                'voice': p.voice && p.connected,
-                'muted': p.voice && p.voiceMuted
-              }
-          ];
+        final view = _decorate(engine.viewFor(i));
         s.socket!.add(jsonEncode({'t': 'state', 'you': i, 'view': view}));
       }
+    }
+    // spectateurs : vue d'un siège vide (-1) — aucune main, atout caché
+    spectators.removeWhere((w) => w.readyState != WebSocket.open);
+    if (spectators.isNotEmpty) {
+      final out = jsonEncode({
+        't': 'state',
+        'you': -1,
+        'spectator': true,
+        'view': _decorate(engine.viewFor(-1)),
+      });
+      for (final w in spectators) {
+        w.add(out);
+      }
+    }
+  }
+
+  /// Message de chat : à tous les joueurs connectés et aux spectateurs.
+  void sendAll(String out) {
+    for (final s in seats) {
+      if (s.connected) s.socket!.add(out);
+    }
+    for (final w in spectators) {
+      if (w.readyState == WebSocket.open) w.add(out);
     }
   }
 
@@ -206,8 +262,10 @@ class Room {
           // récapitulatif de la donne affiché chez les joueurs
           await Future.delayed(const Duration(milliseconds: 6000));
           if (engine.tokens['NS']! <= 0 || engine.tokens['EW']! <= 0) {
-            // partie terminée : on stoppe (l'hôte relancera)
-            return;
+            // partie terminée : on stoppe (l'hôte relancera) ; table
+            // publique : nouvelle partie automatique s'il reste quelqu'un
+            if (!public || humansOnline == 0) return;
+            engine.tokens = {'NS': 11, 'EW': 11};
           }
           engine.newHand();
           continue;
@@ -396,6 +454,7 @@ class Room {
     seats[seat]
       ..isBot = true
       ..name = 'Bot ${seat + 1}'
+      ..avatar = null
       ..token = null
       ..socket = null
       ..voice = false
@@ -412,6 +471,29 @@ class Room {
 
 // ---------------------------------------------------------------------------
 
+/// Nouvelle table (code libre).
+Room newRoom({bool public = false}) {
+  var code = genCode();
+  while (rooms.containsKey(code)) {
+    code = genCode();
+  }
+  return rooms[code] = Room(code, public: public);
+}
+
+/// Assoit un humain au siège [seat] (prénom et avatar nettoyés).
+void sit(Room room, int seat, WebSocket ws, Map msg) {
+  room.seats[seat]
+    ..isBot = false
+    ..name = cleanName(msg['name'])
+    ..avatar = cleanAvatar(msg['avatar'])
+    ..socket = ws
+    ..offlineSince = null
+    ..voice = false
+    ..token = '${room.code}:$seat:${_rng.nextInt(1 << 31)}';
+  ws.add(
+      joinedMsg(room.code, seat, room.seats[seat].token, public: room.public));
+}
+
 void handleMessage(WebSocket ws, String data) {
   Map msg;
   try {
@@ -423,16 +505,49 @@ void handleMessage(WebSocket ws, String data) {
   final t = msg['t'];
 
   if (t == 'create') {
-    final code = genCode();
-    final room = Room(code);
-    rooms[code] = room;
-    const seat = 0;
-    room.seats[seat]
-      ..isBot = false
-      ..name = (msg['name'] as String?) ?? 'Joueur'
-      ..socket = ws
-      ..token = '$code:$seat:${_rng.nextInt(1 << 31)}';
-    ws.add(joinedMsg(code, seat, room.seats[seat].token));
+    final room = newRoom();
+    sit(room, 0, ws, msg);
+    room.broadcast();
+    return;
+  }
+
+  if (t == 'quick') {
+    // « Jouer en ligne » : une table publique avec une place libre et au
+    // moins un joueur connecté (la plus remplie d'abord), sinon une nouvelle
+    final open = rooms.values
+        .where((r) =>
+            r.public &&
+            r.freeSeat() != null &&
+            r.humansOnline > 0 &&
+            !r.gameOver)
+        .toList()
+      ..sort((a, b) => b.humansOnline - a.humansOnline);
+    if (open.isNotEmpty) {
+      final room = open.first;
+      sit(room, room.freeSeat()!, ws, msg);
+      room.broadcast();
+      room.loop(); // si la partie attendait ce siège
+    } else {
+      final room = newRoom(public: true);
+      sit(room, 0, ws, msg);
+      room.begin(); // les bots tiennent les places libres en attendant
+    }
+    return;
+  }
+
+  if (t == 'watch') {
+    final code = (msg['code'] as String?)?.toUpperCase();
+    final room = rooms[code];
+    if (room == null) {
+      ws.add(jsonEncode(err('tableNotFound', 'Table introuvable')));
+      return;
+    }
+    if (room.spectators.length >= maxSpectators) {
+      ws.add(jsonEncode(err('tableFull', 'Trop de spectateurs')));
+      return;
+    }
+    if (!room.spectators.contains(ws)) room.spectators.add(ws);
+    ws.add(jsonEncode({'t': 'watching', 'code': room.code}));
     room.broadcast();
     return;
   }
@@ -449,13 +564,9 @@ void handleMessage(WebSocket ws, String data) {
       ws.add(jsonEncode(err('tableFull', 'Table complète')));
       return;
     }
-    room.seats[seat]
-      ..isBot = false
-      ..name = (msg['name'] as String?) ?? 'Joueur'
-      ..socket = ws
-      ..token = '$code:$seat:${_rng.nextInt(1 << 31)}';
-    ws.add(joinedMsg(code!, seat, room.seats[seat].token));
+    sit(room, seat, ws, msg);
     room.broadcast();
+    if (room.started) room.loop(); // partie en cours : elle reprend
     return;
   }
 
@@ -468,7 +579,7 @@ void handleMessage(WebSocket ws, String data) {
             ..socket = ws
             ..voice = false // le client renvoie `voice` s'il parlait
             ..offlineSince = null; // de retour : il rejoue lui-même
-          ws.add(joinedMsg(room.code, i, token));
+          ws.add(joinedMsg(room.code, i, token, public: room.public));
           room.broadcast();
           if (room.started) room.loop(); // reprend si la table attendait
           return;
@@ -477,6 +588,17 @@ void handleMessage(WebSocket ws, String data) {
     }
     ws.add(jsonEncode(err('sessionExpired', 'Token inconnu')));
     return;
+  }
+
+  // spectateur : il ne peut que partir
+  for (final r in rooms.values) {
+    if (r.spectators.contains(ws)) {
+      if (t == 'leave') {
+        r.spectators.remove(ws);
+        r.broadcast();
+      }
+      return;
+    }
   }
 
   // à partir d'ici il faut être assis quelque part
@@ -542,9 +664,7 @@ void handleMessage(WebSocket ws, String data) {
       'name': room.seats[seat].name,
       'text': text.length > 200 ? text.substring(0, 200) : text,
     });
-    for (final s in room.seats) {
-      if (s.connected) s.socket!.add(out);
-    }
+    room.sendAll(out);
     return;
   }
 }
@@ -565,6 +685,7 @@ Future<void> main() async {
           for (final r in rooms.values) {
             final s = r.seatOfSocket(ws);
             if (s != null) r.onDisconnect(s);
+            if (r.spectators.remove(ws)) r.broadcast();
           }
         },
         onError: (_) {},

@@ -18,6 +18,7 @@ import 'recap.dart';
 import 'caps.dart';
 import 'leave.dart';
 import 'invite.dart';
+import 'replay.dart';
 
 const String kServerUrl = String.fromEnvironment('SERVER_URL',
     defaultValue: 'ws://localhost:8080/ws');
@@ -56,13 +57,18 @@ String serverErrorText(AppLocalizations l, Map m) {
 class OnlineLobbyScreen extends StatefulWidget {
   /// Code reçu par un lien d'invitation (?table=ABCD), pré-rempli.
   final String? initialCode;
-  const OnlineLobbyScreen({super.key, this.initialCode});
+
+  /// Ouvert depuis « Table publique » de l'accueil : on cherche une table
+  /// tout de suite (prénom du profil).
+  final bool autoQuick;
+  const OnlineLobbyScreen(
+      {super.key, this.initialCode, this.autoQuick = false});
   @override
   State<OnlineLobbyScreen> createState() => _OnlineLobbyScreenState();
 }
 
 class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
-  final _name = TextEditingController();
+  late final _name = TextEditingController(text: playerName.value);
   final _code = TextEditingController();
   StreamSubscription<Map>? _sub;
   bool _slow =
@@ -75,6 +81,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   void initState() {
     super.initState();
     if (widget.initialCode != null) _code.text = widget.initialCode!;
+    if (widget.autoQuick) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _quick();
+      });
+    }
     loadSavedTable().then((t) {
       if (mounted) setState(() => _saved = t);
     });
@@ -90,6 +101,17 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   String? _error;
   bool _busy = false;
 
+  /// Prénom tapé ici : mémorisé dans le profil (pré-rempli la prochaine fois).
+  String get _playerName {
+    final n = cleanName(_name.text);
+    if (n.isNotEmpty && n != playerName.value) setProfile(n, avatar.value);
+    return n.isEmpty ? AppLocalizations.of(context)!.defaultPlayer : n;
+  }
+
+  void _quick() => _connect((c) => c
+    ..connect()
+    ..quick(_playerName, avatar: avatar.value));
+
   void _connect(void Function(GameClient c) then) {
     setState(() {
       _busy = true;
@@ -102,7 +124,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final c = GameClient(serverUrl);
     _sub = c.events.listen((m) {
       if (!mounted) return;
-      if (m['t'] == 'joined' || m['t'] == 'reconnected') {
+      if (m['t'] == 'joined' ||
+          m['t'] == 'reconnected' ||
+          m['t'] == 'watching') {
         _sub?.cancel();
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => OnlineGameScreen(client: c)));
@@ -133,10 +157,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final name =
-        _name.text.trim().isEmpty ? l.defaultPlayer : _name.text.trim();
     return Scaffold(
-      appBar: AppBar(title: Text(l.privateTable)),
+      appBar: AppBar(title: Text(l.playOnline)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -159,9 +181,24 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             ],
             TextField(
               controller: _name,
+              maxLength: kMaxName,
               decoration: InputDecoration(
                   labelText: l.yourName, hintText: l.defaultPlayer),
             ),
+            const SizedBox(height: 8),
+            // table publique : d'autres joueurs, sans code
+            FilledButton.icon(
+              key: const ValueKey('quick'),
+              onPressed: _busy ? null : _quick,
+              icon: const Icon(Icons.public),
+              label: Text(l.publicTable),
+            ),
+            const SizedBox(height: 6),
+            Text(l.publicInfo,
+                style: const TextStyle(color: _dim, fontSize: 12)),
+            const SizedBox(height: 12),
+            Text(l.privateTable,
+                style: const TextStyle(color: _gold, fontSize: 15)),
             if (_saved != null) ...[
               const SizedBox(height: 20),
               FilledButton.tonalIcon(
@@ -179,7 +216,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   ? null
                   : () => _connect((c) => c
                     ..connect()
-                    ..create(name)),
+                    ..create(_playerName, avatar: avatar.value)),
               child: Text(l.createTable),
             ),
             const SizedBox(height: 28),
@@ -190,14 +227,33 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(labelText: l.tableCodeLabel),
             ),
-            OutlinedButton(
-              onPressed: _busy || _code.text.trim().length != 4
-                  ? null
-                  : () => _connect((c) => c
-                    ..connect()
-                    ..join(_code.text.trim().toUpperCase(), name)),
-              child: Text(l.join),
-            ),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _busy || _code.text.trim().length != 4
+                      ? null
+                      : () => _connect((c) => c
+                        ..connect()
+                        ..join(_code.text.trim().toUpperCase(), _playerName,
+                            avatar: avatar.value)),
+                  child: Text(l.join),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // regarder la partie sans jouer
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey('watch'),
+                  onPressed: _busy || _code.text.trim().length != 4
+                      ? null
+                      : () => _connect((c) => c
+                        ..connect()
+                        ..watch(_code.text.trim().toUpperCase())),
+                  icon: const Icon(Icons.visibility),
+                  label: Text(l.watch),
+                ),
+              ),
+            ]),
             if (_busy) ...[
               const SizedBox(height: 20),
               const Center(child: CircularProgressIndicator()),
@@ -239,6 +295,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   GameView? v;
   Map<String, int>? _tokensBefore;
+
+  /// Dernière donne terminée (envoyée par le serveur) : « Revoir la donne ».
+  DealReplay? _replay;
   bool _waiting = false; // action envoyée, réponse du serveur attendue
   Timer? _unlock;
   bool _offline = false; // connexion perdue, reconnexion automatique en cours
@@ -258,6 +317,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   late final VoiceChat _voice = VoiceChat(c);
 
   GameClient get c => widget.client;
+
+  /// Spectateur : il voit la table depuis le siège de Sud, sans main.
+  bool get _spec => v?.spectating ?? false;
+
+  /// Siège affiché en bas de l'écran (le mien ; Sud pour un spectateur).
+  int get _me => _spec || v == null ? 0 : v!.you;
   AppLocalizations get l => AppLocalizations.of(context)!;
 
   @override
@@ -281,6 +346,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       }
       // jetons avant la donne (les jetons ne changent qu'en phase scored)
       if (view.phase != 'scored') _tokensBefore = Map.of(view.tokens);
+      final rp = DealReplay.fromJson(view.replay);
+      if (rp != null) _replay = rp;
       if (mounted) {
         setState(() {
           v = view;
@@ -340,7 +407,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     _voice.dispose(); // micro fermé, liaisons audio coupées
     c.leave(); // siège rendu à un bot pour les autres joueurs
     c.dispose();
-    clearSavedTable(); // quitter la table : plus rien à reprendre
+    // quitter la table : plus rien à reprendre (pas pour un spectateur, qui
+    // n'a pas de place à lui)
+    if (!_spec) clearSavedTable();
     super.dispose();
   }
 
@@ -410,8 +479,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         label = l.voiceConnecting;
       }
     }
-    return Icon(
-        seat == g.you && _voice.muted.value ? Icons.mic_off : Icons.mic,
+    return Icon(seat == g.you && _voice.muted.value ? Icons.mic_off : Icons.mic,
         key: ValueKey('voice-$seat'),
         size: 14,
         color: color,
@@ -425,7 +493,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     if (now.phase == 'scored' && old?.phase != 'scored') {
       final sc = now.lastScore;
       if (sc != null) {
-        final us = now.you % 2 == 0 ? 'NS' : 'EW';
+        final us = (now.spectating ? 0 : now.you) % 2 == 0 ? 'NS' : 'EW';
         final ok = sc['success'] == true;
         playSfx((ok ? sc['tmTeam'] == us : sc['tmTeam'] != us)
             ? Sfx.win
@@ -452,14 +520,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         messages: _chat,
         you: v?.you,
         nameOf: _playerName,
-        onSend: c.chat,
+        onSend: _spec ? null : c.chat,
       ),
     );
     if (mounted) setState(() => _chatOpen = false);
   }
 
   // siège réel -> position à l'écran (0 bas, 1 droite, 2 haut, 3 gauche)
-  int _rel(int seat) => (seat - v!.you + 4) % 4;
+  int _rel(int seat) => (seat - _me + 4) % 4;
 
   String _playerName(int seat) {
     final p = v!.players.length > seat ? v!.players[seat] : null;
@@ -469,7 +537,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     return p['away'] == true ? '${p['name']} (${l.mAI})' : '${p['name']}';
   }
 
-  List<Card> get _myCards => v!.hands[v!.you].cards ?? const [];
+  void _openReplay() {
+    final rp = _replay;
+    if (rp == null) return;
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ReplayScreen(
+            replay: rp,
+            names: [for (var s = 0; s < 4; s++) _playerName(s)],
+            you: _me)));
+  }
+
+  List<Card> get _myCards =>
+      _spec ? const [] : v!.hands[v!.you].cards ?? const [];
 
   bool get _choosingTrump =>
       v!.yourTurn &&
@@ -527,6 +606,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   String _prompt() {
     final g = v!;
+    if (g.spectating) return l.spectatingInfo;
     if (!g.started) {
       return g.you == 0 ? l.shareCode(g.code ?? '') : l.waitingHost;
     }
@@ -558,7 +638,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   List<Widget> _actions() {
     final g = v!;
-    if (_waiting) return const [];
+    if (_waiting || g.spectating) return const [];
     if (!g.started) {
       return [
         if (g.you == 0)
@@ -692,6 +772,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         border: Border.all(color: active ? _gold : const Color(0xFF5A3D2E)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
+        // avatar choisi par le joueur (pas pour les bots)
+        if (seat < g.players.length &&
+            g.players[seat]['bot'] != true &&
+            g.players[seat]['avatar'] is int) ...[
+          avatarIcon(g.players[seat]['avatar'] as int, size: 18),
+          const SizedBox(width: 4),
+        ],
         if (_voiceBadge(seat) case final badge?) ...[
           badge,
           const SizedBox(width: 3),
@@ -728,7 +815,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   /// équipe — même présentation que le dialogue de fin de donne en solo.
   Widget _scoreCard(GameView g) {
     final sc = g.lastScore!;
-    final us = g.you % 2 == 0 ? 'NS' : 'EW';
+    final us = _me % 2 == 0 ? 'NS' : 'EW';
     final them = us == 'NS' ? 'EW' : 'NS';
     final success = sc['success'] == true;
     final weWon = success ? sc['tmTeam'] == us : sc['tmTeam'] != us;
@@ -757,6 +844,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             textAlign: TextAlign.center, style: const TextStyle(color: _dim)),
         const SizedBox(height: 6),
         const SizedBox(height: 10),
+        if (_replay != null)
+          TextButton.icon(
+            key: const ValueKey('open-replay'),
+            onPressed: _openReplay,
+            icon: const Icon(Icons.history),
+            label: Text(l.replayTitle),
+          ),
         DealRecap(
           tricks: us == 'NS'
               ? (g.trickWinsNS, g.trickWinsEW)
@@ -784,14 +878,24 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final trump = g.trumpSuit;
-    final us = g.you % 2 == 0 ? 'NS' : 'EW';
+    final us = _me % 2 == 0 ? 'NS' : 'EW';
     final them = us == 'NS' ? 'EW' : 'NS';
     return LeaveGuard(
         child: Scaffold(
       backgroundColor: const Color(0xFF160A06),
       appBar: AppBar(
         // le code de table reste toujours lisible (il se partage)
-        title: Text(l.tableTitle(g.code ?? '')),
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          Flexible(child: Text(l.tableTitle(g.code ?? ''))),
+          if (g.spectators > 0) ...[
+            const SizedBox(width: 8),
+            Icon(Icons.visibility,
+                size: 16, semanticLabel: l.spectators(g.spectators)),
+            Text(' ${g.spectators}',
+                key: const ValueKey('spectators'),
+                style: const TextStyle(fontSize: 14)),
+          ],
+        ]),
         actions: [
           IconButton(
             key: const ValueKey('share-table'),
@@ -799,41 +903,51 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             onPressed: () => shareInvite(context, g.code ?? ''),
             icon: const Icon(Icons.share),
           ),
+          // revoir la dernière donne terminée
+          if (_replay != null)
+            IconButton(
+              key: const ValueKey('replay-last-deal'),
+              tooltip: l.replayTitle,
+              onPressed: _openReplay,
+              icon: const Icon(Icons.history),
+            ),
           // réactions rapides : 2 touchers, sans clavier
-          PopupMenuButton<String>(
-            key: const ValueKey('react'),
-            tooltip: l.reactions,
-            icon: const Icon(Icons.add_reaction_outlined),
-            onSelected: (k) => c.chat(reactionCode(k)),
-            itemBuilder: (_) => [
-              for (final k in kReactions)
-                PopupMenuItem(
-                    key: ValueKey('react-$k'),
-                    value: k,
-                    child: Text(chatText(l, reactionCode(k)))),
-            ],
-          ),
+          if (!g.spectating)
+            PopupMenuButton<String>(
+              key: const ValueKey('react'),
+              tooltip: l.reactions,
+              icon: const Icon(Icons.add_reaction_outlined),
+              onSelected: (k) => c.chat(reactionCode(k)),
+              itemBuilder: (_) => [
+                for (final k in kReactions)
+                  PopupMenuItem(
+                      key: ValueKey('react-$k'),
+                      value: k,
+                      child: Text(chatText(l, reactionCode(k)))),
+              ],
+            ),
           // chat vocal : toucher = micro (rejoindre, couper, rétablir),
           // appui long = quitter le vocal
-          GestureDetector(
-            onLongPress: _leaveVoice,
-            child: IconButton(
-              key: const ValueKey('voice'),
-              tooltip: !_voice.joined.value
-                  ? l.voiceJoin
-                  : (_voice.muted.value ? l.voiceUnmute : l.voiceMute),
-              onPressed: _tapVoice,
-              icon: Icon(
-                  !_voice.joined.value
-                      ? Icons.mic_none
-                      : (_voice.muted.value ? Icons.mic_off : Icons.mic),
-                  color: !_voice.joined.value
-                      ? null
-                      : (_voice.muted.value
-                          ? Colors.redAccent
-                          : Colors.greenAccent)),
+          if (!g.spectating)
+            GestureDetector(
+              onLongPress: _leaveVoice,
+              child: IconButton(
+                key: const ValueKey('voice'),
+                tooltip: !_voice.joined.value
+                    ? l.voiceJoin
+                    : (_voice.muted.value ? l.voiceUnmute : l.voiceMute),
+                onPressed: _tapVoice,
+                icon: Icon(
+                    !_voice.joined.value
+                        ? Icons.mic_none
+                        : (_voice.muted.value ? Icons.mic_off : Icons.mic),
+                    color: !_voice.joined.value
+                        ? null
+                        : (_voice.muted.value
+                            ? Colors.redAccent
+                            : Colors.greenAccent)),
+              ),
             ),
-          ),
           IconButton(
             key: const ValueKey('chat-open'),
             tooltip: l.chat,
@@ -887,12 +1001,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                   Align(
                     // côtés : au-dessus de la ligne du pli (sinon recouverts
                     // par les cartes d'Est/Ouest sur écran étroit)
-                    alignment: _rel((g.you + s) % 4) == 2
+                    alignment: _rel((_me + s) % 4) == 2
                         ? Alignment.topCenter
-                        : Alignment(_rel((g.you + s) % 4) == 1 ? 1 : -1, -0.55),
+                        : Alignment(_rel((_me + s) % 4) == 1 ? 1 : -1, -0.55),
                     child: Padding(
                         padding: const EdgeInsets.all(8),
-                        child: _seatLabel((g.you + s) % 4)),
+                        child: _seatLabel((_me + s) % 4)),
                   ),
                 Center(
                   child: SizedBox(
@@ -928,7 +1042,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                     alignment: Alignment.bottomLeft,
                     child: Padding(
                         padding: const EdgeInsets.all(8),
-                        child: _seatLabel(g.you))),
+                        child: _seatLabel(_me))),
                 if (g.phase == 'scored' && g.lastScore != null)
                   Center(child: _scoreCard(g)),
               ]),
@@ -950,23 +1064,30 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             padding: const EdgeInsets.all(8),
             color: const Color(0xFF1C0F09),
             // les 8 cartes tiennent sur la largeur (pas de défilement)
-            child: LayoutBuilder(builder: (context, cons) {
-              final w = ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0 * _k);
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (final (i, card) in _myCards.indexed)
-                    Padding(
-                      key: ValueKey('deal-${card.key}'),
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: DealIn(
-                          index: i,
-                          child:
-                              _card(card, playable: _playable(card), width: w)),
-                    ),
-                ],
-              );
-            }),
+            child: g.spectating
+                ? Center(
+                    child: Text(l.spectatingInfo,
+                        key: const ValueKey('spectating'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: _dim)))
+                : LayoutBuilder(builder: (context, cons) {
+                    final w =
+                        ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0 * _k);
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (final (i, card) in _myCards.indexed)
+                          Padding(
+                            key: ValueKey('deal-${card.key}'),
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            child: DealIn(
+                                index: i,
+                                child: _card(card,
+                                    playable: _playable(card), width: w)),
+                          ),
+                      ],
+                    );
+                  }),
           ),
         ]),
       ),
@@ -985,7 +1106,7 @@ class _ChatSheet extends StatefulWidget {
   final ValueNotifier<List<(int, String, String)>> messages;
   final int? you;
   final String Function(int seat) nameOf;
-  final void Function(String text) onSend;
+  final void Function(String text)? onSend; // null : lecture seule
 
   @override
   State<_ChatSheet> createState() => _ChatSheetState();
@@ -1003,7 +1124,7 @@ class _ChatSheetState extends State<_ChatSheet> {
   void _send() {
     final t = _input.text.trim();
     if (t.isEmpty) return;
-    widget.onSend(t);
+    widget.onSend?.call(t);
     _input.clear();
   }
 
@@ -1048,23 +1169,24 @@ class _ChatSheetState extends State<_ChatSheet> {
             ),
           ),
         ),
-        Row(children: [
-          Expanded(
-            child: TextField(
-              key: const ValueKey('chat-input'),
-              controller: _input,
-              maxLength: 200,
-              decoration:
-                  InputDecoration(hintText: l.chatHint, counterText: ''),
-              onSubmitted: (_) => _send(),
+        if (widget.onSend != null)
+          Row(children: [
+            Expanded(
+              child: TextField(
+                key: const ValueKey('chat-input'),
+                controller: _input,
+                maxLength: 200,
+                decoration:
+                    InputDecoration(hintText: l.chatHint, counterText: ''),
+                onSubmitted: (_) => _send(),
+              ),
             ),
-          ),
-          IconButton(
-              key: const ValueKey('chat-send'),
-              tooltip: l.send,
-              onPressed: _send,
-              icon: const Icon(Icons.send)),
-        ]),
+            IconButton(
+                key: const ValueKey('chat-send'),
+                tooltip: l.send,
+                onPressed: _send,
+                icon: const Icon(Icons.send)),
+          ]),
       ]),
     );
   }

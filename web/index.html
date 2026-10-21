@@ -41,6 +41,34 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    // Installer l'appli (Chrome, Edge, Android) : l'invitation du navigateur
+    // est gardée pour le bouton « Installer » de l'accueil (lib/pwa_web.dart).
+    window.__pwa = { prompt: null };
+    addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__pwa.prompt = e;
+    });
+    addEventListener('appinstalled', function () { window.__pwa.prompt = null; });
+    window.pwaCanInstall = function () { return !!window.__pwa.prompt; };
+    window.pwaInstall = function () {
+      var p = window.__pwa.prompt;
+      if (!p) return Promise.resolve(false);
+      window.__pwa.prompt = null;
+      p.prompt();
+      return p.userChoice.then(function (r) { return r.outcome === 'accepted'; });
+    };
+    window.pwaStandalone = function () {
+      return matchMedia('(display-mode: standalone)').matches ||
+        navigator.standalone === true;
+    };
+    // jouable sans internet (partie solo) : web/sw.js
+    if ('serviceWorker' in navigator) {
+      addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

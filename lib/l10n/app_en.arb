@@ -389,13 +389,175 @@
   "openInApp": "Open in the 304 app",
   "callCaps": "Call Caps",
   "capsCalledBy": "{p} calls Caps!",
-  "@capsCalledBy": {"placeholders": {"p": {"type": "String"}}},
+  "@capsCalledBy": {
+    "placeholders": {
+      "p": {
+        "type": "String"
+      }
+    }
+  },
   "hintCaps": "You are sure to win every trick: call Caps before you lead!",
   "wrongCapsUs": "Wrong Caps: −{n} tokens for us",
-  "@wrongCapsUs": {"placeholders": {"n": {"type": "int"}}},
+  "@wrongCapsUs": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "wrongCapsThem": "Wrong Caps: −{n} tokens for them",
-  "@wrongCapsThem": {"placeholders": {"n": {"type": "int"}}},
+  "@wrongCapsThem": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "capsConfirm": "Call Caps? You must be sure to win every remaining trick — otherwise Wrong Caps: −{n} tokens.",
-  "@capsConfirm": {"placeholders": {"n": {"type": "int"}}},
-  "cancel": "Cancel"
+  "@capsConfirm": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "levelHard": "Hard",
+  "whyCapsRun": "Caps called: play your trumps from highest to lowest, then the rest.",
+  "whyDrawTrumps": "You hold the highest trump: draw your opponents' trumps.",
+  "whyCashMaster": "This card can no longer be beaten and is worth points: cash it.",
+  "whyLeadLow": "Nothing safe to cash: lead low and keep your strong cards.",
+  "whyLoadPartner": "Your partner is sure to win this trick: give them points.",
+  "whyPartnerLow": "Your partner is winning the trick, but it is not safe: play low.",
+  "whyCantWin": "You cannot win this trick: play your lowest card.",
+  "whyLastSmallWin": "You play last: the lowest winning card is enough.",
+  "whySureWin": "Nobody can beat this card: the trick is yours.",
+  "whyWorthTaking": "The trick is worth points: take it.",
+  "whyNotWorth": "The trick is worth little: keep your strong cards.",
+  "whyRuff": "You cannot follow suit and the trick is worth points: trump it.",
+  "whyDiscard": "No need to waste a strong card: discard a low one.",
+  "whyRuffSmall": "The trick is worth points: trump it with a low trump.",
+  "whyCutIndicator": "The trick is worth many points: cut with the face-down trump.",
+  "whyGuessRuff": "The trick is worth it: play your shortest suit, it may be trumps.",
+  "hintEst": "Your hand is worth about {n} points for your team.",
+  "@hintEst": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "hintBid2Why": "The 2nd round is risky: you need at least 5 cards of one suit with the jack and the 9.",
+  "hintBid2Strong": "You have at least 5 cards of one suit with the jack and the 9.",
+  "hintPccWhy": "7 trumps including the jack and the 9: you can take all 8 tricks alone.",
+  "replayTitle": "Replay the deal",
+  "replayStart": "Hands at the start of play",
+  "replayTrick": "Trick {n}/8: {p} wins ({pts} pts)",
+  "@replayTrick": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "p": {
+        "type": "String"
+      },
+      "pts": {
+        "type": "int"
+      }
+    }
+  },
+  "replayIndicator": "Face-down trump",
+  "replayHidden": "face down",
+  "replayPrev": "Previous trick",
+  "replayNext": "Next trick",
+  "replayEnd": "Last trick",
+  "dailyDeal": "Deal of the day",
+  "dailyNew": "The same deal for everyone today",
+  "dailyDone": "Your score today: {s}",
+  "@dailyDone": {
+    "placeholders": {
+      "s": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyScore": "{d} tokens · {n} points",
+  "@dailyScore": {
+    "placeholders": {
+      "d": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyOfficial": "Today's score saved: compare it with your friends!",
+  "dailyPractice": "Practice: only your first try of the day counts.",
+  "dailyStreak": "Streak: {n} days in a row",
+  "@dailyStreak": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyShareBtn": "Share",
+  "dailyShareText": "304 · Deal of the day ({day}): {s}. Play the same deal and compare: {link}",
+  "@dailyShareText": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "s": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreCopied": "Score copied: paste it into WhatsApp or a text message.",
+  "profileSet": "Choose my name and avatar",
+  "profileTitle": "My profile",
+  "profileAvatar": "Avatar",
+  "save": "Save",
+  "backEmerald": "Emerald",
+  "backRuby": "Ruby",
+  "backPeacock": "Peacock",
+  "feltCrimson": "Crimson",
+  "feltMidnight": "Midnight",
+  "feltSand": "Sand",
+  "unlockHint": "Win {n} solo games to unlock it.",
+  "@unlockHint": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "unlocked": "Unlocked: {item}!",
+  "@unlocked": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "playOnline": "Play online",
+  "publicTable": "Public table: play with other players",
+  "publicInfo": "You join an open table, no code needed. Empty seats are played by bots: the game starts right away.",
+  "watch": "Watch",
+  "spectatingInfo": "You are watching: the players' hands stay hidden.",
+  "spectators": "{n} spectator(s)",
+  "@spectators": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "installApp": "Install the app (plays offline)",
+  "installInfo": "The app opens from your home screen, and games against the bots work offline.",
+  "installIos": "On iPhone: tap Safari's Share button, then “Add to Home Screen”."
 }

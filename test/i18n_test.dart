@@ -74,6 +74,8 @@ void main() {
     testWidgets('tutoriel en $lang : complet, traduit, se referme', (t) async {
       final l = lookupAppLocalizations(Locale(lang));
       await t.pumpWidget(Game304App(locale: Locale(lang)));
+      await t.ensureVisible(find.text(l.learn304)); // accueil qui défile
+      await t.pumpAndSettle();
       await t.tap(find.text(l.learn304));
       await t.pumpAndSettle();
       expect(t.takeException(), isNull);
@@ -199,6 +201,9 @@ void main() {
     addTearDown(() => appLocale.value = null);
     await t.pumpWidget(const Game304App());
     for (final lang in ['ta', 'si', 'fr', 'en']) {
+      // l'accueil défile : le sélecteur est sous les boutons de jeu
+      await t.ensureVisible(find.byKey(ValueKey('lang-$lang')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(ValueKey('lang-$lang')));
       await t.pumpAndSettle();
       expect(find.text(lookupAppLocalizations(Locale(lang)).quickPlay),

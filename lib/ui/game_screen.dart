@@ -3,13 +3,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' hide Card;
 import '../engine/engine.dart';
 import '../ai/bots.dart';
+import '../ai/hard.dart';
 import '../l10n/app_localizations.dart';
+import '../daily.dart';
 import '../settings.dart';
 import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
 import 'caps.dart';
 import 'leave.dart';
+import 'replay.dart';
+import 'invite.dart' show shareDaily;
 
 // Palette « table royale » (miroir du prototype web validé).
 const _gold = Color(0xFFE3C565);
@@ -26,10 +30,14 @@ const _dim = Color(0xFFC9B48A);
 /// logique de règles reste dans Engine. Prévu pour basculer plus tard sur
 /// lib/net/client.dart (multijoueur).
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, this.resume = false});
+  const GameScreen({super.key, this.resume = false, this.daily = false});
 
   /// Reprendre la partie mémorisée (`soloSave`) au lieu d'en commencer une.
   final bool resume;
+
+  /// Donne du jour : une seule donne, la même pour tout le monde
+  /// (lib/daily.dart), adversaires au niveau normal.
+  final bool daily;
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -39,7 +47,14 @@ class _GameScreenState extends State<GameScreen> {
   /// sur grand écran.
   double get _k => cardScale * autoCardScale(MediaQuery.sizeOf(context));
 
-  final Engine e = Engine();
+  late final Engine e =
+      widget.daily ? Engine(rng: DailyRandom(dailySeed(_day))) : Engine();
+
+  /// Jour de la donne du jour (fixé à l'ouverture de l'écran).
+  final String _day = dayKey();
+
+  /// Cet essai de la donne du jour compte-t-il ? (1er essai du jour)
+  bool _official = false;
   String _msg = '';
   String get msg => _msg;
 
@@ -74,7 +89,11 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     e.onLog = (_) {};
     final saved = soloSave.value;
-    if (widget.resume && saved != null) {
+    if (widget.daily) {
+      _official = daily.value.officialNow();
+      // noté après l'affichage (l'accueil, qui l'affiche, est encore construit)
+      WidgetsBinding.instance.addPostFrameCallback((_) => startDaily());
+    } else if (widget.resume && saved != null) {
       e.tokens = {'NS': saved.ns, 'EW': saved.ew};
       e.dealer = saved.dealer;
     }
@@ -99,7 +118,8 @@ class _GameScreenState extends State<GameScreen> {
   void _startHand() {
     _lastTrick = null;
     _tokensAtStart = Map.of(e.tokens);
-    saveSolo(e.tokens['NS']!, e.tokens['EW']!, e.dealer);
+    // la donne du jour ne touche pas à la partie solo mémorisée
+    if (!widget.daily) saveSolo(e.tokens['NS']!, e.tokens['EW']!, e.dealer);
     e.newHand();
     _handleRedeal(0);
   }
@@ -172,7 +192,10 @@ class _GameScreenState extends State<GameScreen> {
           }),
           _btn(_hintLabel, () {
             final v = botBid(e, human);
-            setState(() => tip = v != null ? l.hintBid('$v') : l.hintPass);
+            // estimation de la main (même modèle que l'IA), arrondie à 5
+            final est = (est4(e.hands[human]) / 5).round() * 5;
+            setState(() => tip =
+                '${v != null ? l.hintBid('$v') : l.hintPass} ${l.hintEst(est)}');
           }),
         ];
       });
@@ -261,8 +284,10 @@ class _GameScreenState extends State<GameScreen> {
           _btn(_hintLabel, () {
             final v = botBid2(e, human);
             setState(() => tip = v == null
-                ? l.hintPass
-                : l.hintBid(v == 'PCC' ? 'Partner Close Caps' : '$v'));
+                ? '${l.hintPass} ${l.hintBid2Why}'
+                : v == 'PCC'
+                    ? '${l.hintBid('Partner Close Caps')} ${l.hintPccWhy}'
+                    : '${l.hintBid('$v')} ${l.hintBid2Strong}');
           }),
         ];
       });
@@ -399,13 +424,16 @@ class _GameScreenState extends State<GameScreen> {
       if (botCallCaps(e, seat)) {
         e.callCaps(seat); // le bot annonce Caps avant d'entamer
         // bandeau : reste visible pendant les plis suivants
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l.capsCalledBy(_seat(seat)))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.capsCalledBy(_seat(seat)))));
       }
       _bots(() {
-        // niveau « facile » : seuls les adversaires (Est/Ouest) se trompent
-        final c = botPlayLevel(e, seat,
-            easy: botLevel.value == 'easy' && teamOf(seat) != teamOf(human));
+        // niveaux : seuls les adversaires (Est/Ouest) changent — « facile » :
+        // erreurs au hasard ; « difficile » : IA Monte-Carlo (lib/ai/hard.dart)
+        final opp = teamOf(seat) != teamOf(human) && !widget.daily;
+        final c = botLevel.value == 'hard' && opp
+            ? botPlayHard(e, seat)
+            : botPlayLevel(e, seat, easy: botLevel.value == 'easy' && opp);
         final r = c is PlayIndicator
             ? e.playIndicatorToCut(seat)
             : e.playCard(seat, c as Card);
@@ -443,16 +471,20 @@ class _GameScreenState extends State<GameScreen> {
   /// 💡 Conseil pendant le jeu : la carte que jouerait l'IA (comme le prototype).
   void _showPlayHint() {
     if (e.phase != 'play' || e.turn != human || e.hands[human].isEmpty) return;
-    final ch = botPlay(e, human);
+    final r = botPlayWhy(e, human);
+    final ch = r.choice;
     setState(() {
       if (ch is PlayIndicator) {
-        tip = e.canCutWithIndicator(human) ? l.hintCut : l.hintDiscard;
+        tip = e.canCutWithIndicator(human)
+            ? '${l.hintCut} ${whyText(l, PlayWhy.cutIndicator)}'
+            : l.hintDiscard;
       } else if (e.capsCertain(human)) {
         _hinted = (ch as Card).key;
         tip = l.hintCaps;
       } else {
         _hinted = (ch as Card).key;
-        tip = l.hintPlay;
+        // la carte, et pourquoi
+        tip = '${l.hintPlay} ${whyText(l, r.why)}';
       }
     });
   }
@@ -568,17 +600,31 @@ class _GameScreenState extends State<GameScreen> {
     final over = r['gameOver'] == true;
     // score mémorisé dès le résultat (l'app peut être fermée sur la fenêtre) ;
     // partie finie : rien à reprendre
-    if (over) {
+    if (widget.daily) {
+      if (_official) {
+        finishDaily(e.tokens['NS']! - 11, e.pointsNS);
+      }
+    } else if (over) {
       clearSolo();
     } else {
       saveSolo(e.tokens['NS']!, e.tokens['EW']!, e.dealer);
     }
+    final wonBefore = stats.value.gamesWon;
     recordDeal(
         won: nsWon,
         score: s,
         takerIsMe: e.trumpMaker == human,
-        gameWinner: over ? r['gameWinner'] as String? : null);
+        gameWinner: over && !widget.daily ? r['gameWinner'] as String? : null);
+    // partie gagnée : dos de cartes / tapis débloqués
+    final unlocked = newlyUnlocked(wonBefore, stats.value.gamesWon)
+        .map((k) => l.unlocked(_unlockName(k)))
+        .join('\n');
+    if (widget.daily) {
+      _showDailyResult(nsWon, s, replay: DealReplay.fromJson(e.replayJson()));
+      return;
+    }
     playSfx(nsWon ? Sfx.win : Sfx.lose);
+    final replay = DealReplay.fromJson(e.replayJson());
     // bandeau sous la fenêtre : le résultat, plus « Nord joue… »
     setState(() {
       msg = nsWon ? l.dealWon : l.dealLost;
@@ -588,6 +634,7 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
+        scrollable: true, // petit écran : le contenu défile
         backgroundColor: const Color(0xFF211208),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -599,6 +646,13 @@ class _GameScreenState extends State<GameScreen> {
             '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}${s['wrongCaps'] != null ? '\n${s['wrongCaps'] == 'NS' ? l.wrongCapsUs(kWrongCapsPenalty) : l.wrongCapsThem(kWrongCapsPenalty)}' : ''}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
             style: const TextStyle(color: _dim),
           ),
+          if (unlocked.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(unlocked,
+                key: const ValueKey('unlocked'),
+                style:
+                    const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+          ],
           const SizedBox(height: 12),
           DealRecap(
             tricks: (e.trickWinsNS, e.trickWinsEW),
@@ -608,6 +662,19 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ]),
         actions: [
+          if (replay != null)
+            TextButton.icon(
+              key: const ValueKey('open-replay'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ReplayScreen(replay: replay, names: [
+                        l.seatYou,
+                        l.seatEast,
+                        l.seatNorth,
+                        l.seatWest
+                      ]))),
+              icon: const Icon(Icons.history),
+              label: Text(l.replayTitle),
+            ),
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -620,6 +687,94 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
+
+  /// Fin de la donne du jour : score (jetons ±, points), partage, retour.
+  void _showDailyResult(bool nsWon, Map<String, dynamic> s,
+      {DealReplay? replay}) {
+    final delta = e.tokens['NS']! - 11;
+    final score = l.dailyScore(delta > 0 ? '+$delta' : '$delta', e.pointsNS);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('daily-result'),
+        scrollable: true,
+        backgroundColor: const Color(0xFF211208),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: _goldD)),
+        title: Text('${l.dailyDeal} — ${nsWon ? l.dealWon : l.dealLost}',
+            style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+            '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)}'} — ${s['success'] == true ? l.succeeded : l.failedBid}',
+            style: const TextStyle(color: _dim),
+          ),
+          const SizedBox(height: 10),
+          Text(score,
+              key: const ValueKey('daily-score'),
+              style: const TextStyle(
+                  color: _gold, fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(_official ? l.dailyOfficial : l.dailyPractice,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _dim, fontSize: 12)),
+          if (_official && daily.value.streak > 1) ...[
+            const SizedBox(height: 4),
+            Text(l.dailyStreak(daily.value.streak),
+                style: const TextStyle(color: _dim, fontSize: 12)),
+          ],
+          const SizedBox(height: 12),
+          DealRecap(
+            tricks: (e.trickWinsNS, e.trickWinsEW),
+            points: (e.pointsNS, e.pointsEW),
+            tokens: (e.tokens['NS']!, e.tokens['EW']!),
+            delta: delta,
+          ),
+        ]),
+        actions: [
+          if (replay != null)
+            TextButton.icon(
+              key: const ValueKey('open-replay'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ReplayScreen(replay: replay, names: [
+                        l.seatYou,
+                        l.seatEast,
+                        l.seatNorth,
+                        l.seatWest
+                      ]))),
+              icon: const Icon(Icons.history),
+              label: Text(l.replayTitle),
+            ),
+          TextButton.icon(
+            key: const ValueKey('daily-share'),
+            onPressed: () => shareDaily(context, _day, score),
+            icon: const Icon(Icons.share),
+            label: Text(l.dailyShareBtn),
+          ),
+          FilledButton(
+            key: const ValueKey('daily-home'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
+            },
+            child: Text(l.backHome),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Nom d'un dos de cartes / tapis débloqué ('back:emerald'…).
+  String _unlockName(String k) => switch (k) {
+        'back:emerald' => '${l.cardBack} · ${l.backEmerald}',
+        'back:ruby' => '${l.cardBack} · ${l.backRuby}',
+        'back:peacock' => '${l.cardBack} · ${l.backPeacock}',
+        'felt:crimson' => '${l.tableFelt} · ${l.feltCrimson}',
+        'felt:midnight' => '${l.tableFelt} · ${l.feltMidnight}',
+        'felt:sand' => '${l.tableFelt} · ${l.feltSand}',
+        _ => k,
+      };
 
   // ============================ widgets ============================
   Widget _btn(String label, VoidCallback onTap,
@@ -708,7 +863,10 @@ class _GameScreenState extends State<GameScreen> {
   Widget _pod(int seat, {bool compact = false}) {
     final active = _isActive(seat);
     final muted = e.soloMode && e.mutedSeat == seat;
-    final base = [l.seatYou, l.seatEast, l.seatNorth, l.seatWest][seat];
+    // le joueur : son prénom (s'il en a choisi un) et son avatar
+    final base = seat == 0 && playerName.value.isNotEmpty
+        ? playerName.value
+        : [l.seatYou, l.seatEast, l.seatNorth, l.seatWest][seat];
     var meta = seat == 0
         ? l.mSud
         : seat == 2
@@ -744,9 +902,14 @@ class _GameScreenState extends State<GameScreen> {
                       : _goldD,
                   width: compact && e.trumpMaker == seat ? 3 : 2),
             ),
-            child: Text(base.characters.first,
-                style: const TextStyle(
-                    color: _gold, fontWeight: FontWeight.bold, fontSize: 14)),
+            child: seat == 0
+                ? Icon(kAvatars[avatar.value].$1,
+                    size: 17, color: kAvatars[avatar.value].$2)
+                : Text(base.characters.first,
+                    style: const TextStyle(
+                        color: _gold,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14)),
           ),
           if (!compact) const SizedBox(width: 6),
           if (!compact)
@@ -1062,6 +1225,10 @@ class _GameScreenState extends State<GameScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (widget.daily)
+            Text('${l.dailyDeal} · $_day',
+                key: const ValueKey('daily-label'),
+                style: const TextStyle(color: _gold, fontSize: 11)),
           Text(msg, style: const TextStyle(color: _txt, fontSize: 13)),
           if (tip.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -1092,3 +1259,23 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
+
+/// Raison d'un conseil de jeu, dans la langue du joueur.
+String whyText(AppLocalizations l, PlayWhy w) => switch (w) {
+      PlayWhy.capsRun => l.whyCapsRun,
+      PlayWhy.drawTrumps => l.whyDrawTrumps,
+      PlayWhy.cashMaster => l.whyCashMaster,
+      PlayWhy.leadLow => l.whyLeadLow,
+      PlayWhy.loadPartner => l.whyLoadPartner,
+      PlayWhy.partnerLow => l.whyPartnerLow,
+      PlayWhy.cantWin => l.whyCantWin,
+      PlayWhy.lastSmallWin => l.whyLastSmallWin,
+      PlayWhy.sureWin => l.whySureWin,
+      PlayWhy.worthTaking => l.whyWorthTaking,
+      PlayWhy.notWorth => l.whyNotWorth,
+      PlayWhy.ruff => l.whyRuff,
+      PlayWhy.discard => l.whyDiscard,
+      PlayWhy.ruffSmall => l.whyRuffSmall,
+      PlayWhy.cutIndicator => l.whyCutIndicator,
+      PlayWhy.guessRuff => l.whyGuessRuff,
+    };

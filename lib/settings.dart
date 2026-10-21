@@ -154,8 +154,9 @@ Future<void> setDeckColors(String v) async {
   await _savePref('deck304', v);
 }
 
-/// Niveau des adversaires en solo : 'normal' (IA complète) ou 'easy'
-/// (Est/Ouest font des erreurs, voir `kEasySlip`). Clé `level304`.
+/// Niveau des adversaires en solo : 'normal' (IA complète), 'easy'
+/// (Est/Ouest font des erreurs, voir `kEasySlip`) ou 'hard' (Est/Ouest jouent
+/// avec l'IA Monte-Carlo, lib/ai/hard.dart). Clé `level304`.
 final ValueNotifier<String> botLevel = ValueNotifier<String>('normal');
 
 Future<void> setBotLevel(String v) async {
@@ -171,14 +172,41 @@ Future<void> setVibrate(String v) async {
 /// Apparence (comme `back304` / `felt304` du prototype).
 final ValueNotifier<String> cardBack = ValueNotifier<String>('royal');
 final ValueNotifier<String> felt = ValueNotifier<String>('green');
-const kBacks = ['royal', 'classic', 'dark'];
-const kFelts = ['green', 'blue', 'violet'];
+const kBacks = ['royal', 'classic', 'dark', 'emerald', 'ruby', 'peacock'];
+const kFelts = ['green', 'blue', 'violet', 'crimson', 'midnight', 'sand'];
+
+/// Dos de cartes et tapis à débloquer : nombre de parties solo gagnées
+/// nécessaires (`stats.gamesWon`). Les autres sont disponibles d'emblée.
+const kUnlockWins = <String, int>{
+  'back:emerald': 1,
+  'felt:crimson': 2,
+  'back:ruby': 3,
+  'felt:midnight': 5,
+  'back:peacock': 8,
+  'felt:sand': 12,
+};
+
+/// Parties gagnées encore nécessaires pour [kind]:[id] (0 = disponible).
+int winsToUnlock(String kind, String id, [int? won]) {
+  final need = kUnlockWins['$kind:$id'] ?? 0;
+  final have = won ?? stats.value.gamesWon;
+  return need > have ? need - have : 0;
+}
+
+/// Objets débloqués en passant de [before] à [after] parties gagnées.
+List<String> newlyUnlocked(int before, int after) => [
+      for (final e in kUnlockWins.entries)
+        if (e.value > before && e.value <= after) e.key
+    ];
 
 /// Couleurs du tapis (centre, bord), reprises du CSS du prototype.
 const kFeltColors = <String, (Color, Color)>{
   'green': (Color(0xFF0F5A3C), Color(0xFF063421)),
   'blue': (Color(0xFF155A7A), Color(0xFF082A3D)),
   'violet': (Color(0xFF4A2A6A), Color(0xFF241338)),
+  'crimson': (Color(0xFF6A1F2B), Color(0xFF3A0D15)),
+  'midnight': (Color(0xFF1B2440), Color(0xFF0B1020)),
+  'sand': (Color(0xFF8A7448), Color(0xFF4E3F22)),
 };
 
 (Color, Color) get feltColors =>
@@ -221,6 +249,41 @@ BoxDecoration cardBackDecoration({double radius = 7}) {
           stops: [0, 0.5, 0.5, 1],
           tileMode: TileMode.repeated,
         ),
+      );
+    case 'emerald':
+      return BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: const Color(0xFFE3C565), width: 1.5),
+        gradient: const RadialGradient(
+            colors: [Color(0xFF14855C), Color(0xFF07402B)]),
+      );
+    case 'ruby':
+      return BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: const Color(0xFFE3C565)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment(-0.7, -0.7),
+          colors: [
+            Color(0xFF9B1B30),
+            Color(0xFF9B1B30),
+            Color(0xFF6A0F20),
+            Color(0xFF6A0F20)
+          ],
+          stops: [0, 0.5, 0.5, 1],
+          tileMode: TileMode.repeated,
+        ),
+      );
+    case 'peacock':
+      return BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: const Color(0xFFE3C565), width: 1.5),
+        gradient: const SweepGradient(colors: [
+          Color(0xFF0B5E7E),
+          Color(0xFF1E8C6E),
+          Color(0xFF3A2C7A),
+          Color(0xFF0B5E7E)
+        ]),
       );
     default:
       return BoxDecoration(
@@ -266,19 +329,28 @@ Future<void> loadSettings() async {
     if (prefs.getString('size304') == 'large') cardSize.value = 'large';
     if (prefs.getString('deck304') == 'four') deckColors.value = 'four';
     if (prefs.getString('vibe304') == 'off') vibrate.value = 'off';
-    if (prefs.getString('level304') == 'easy') botLevel.value = 'easy';
+    final lv = prefs.getString('level304');
+    if (lv == 'easy' || lv == 'hard') botLevel.value = lv!;
     final b = prefs.getString('back304');
     if (b != null && kBacks.contains(b)) cardBack.value = b;
     final f = prefs.getString('felt304');
     if (f != null && kFelts.contains(f)) felt.value = f;
+    playerName.value = cleanName(prefs.getString('name304') ?? '');
+    final av = prefs.getInt('avatar304');
+    if (av != null && av >= 0 && av < kAvatars.length) avatar.value = av;
     final v = prefs.getDouble(_kSpeedPref);
     if (v != null && kSpeeds.contains(v)) botSpeed.value = v;
     final raw = prefs.getString(_kStatsPref);
     if (raw != null) {
       stats.value = Stats.fromJson(jsonDecode(raw) as Map);
     }
+    // dos / tapis encore verrouillés (préférences d'une autre version)
+    if (winsToUnlock('back', cardBack.value) > 0) cardBack.value = 'royal';
+    if (winsToUnlock('felt', felt.value) > 0) felt.value = 'green';
     final solo = prefs.getString(_kSoloPref);
-    if (solo != null) soloSave.value = SoloSave.fromJson(jsonDecode(solo) as Map);
+    if (solo != null) {
+      soloSave.value = SoloSave.fromJson(jsonDecode(solo) as Map);
+    }
   } catch (_) {
     // préférences indisponibles : vitesse normale
   }
@@ -395,4 +467,63 @@ Future<void> clearSolo() async {
   try {
     await (await SharedPreferences.getInstance()).remove(_kSoloPref);
   } catch (_) {}
+}
+
+/// Profil du joueur : prénom (affiché aux autres en ligne, « Vous » en solo
+/// s'il est vide) et avatar (icône + couleur, pas d'emoji : rendu fiable sur
+/// le web). Clés `name304` et `avatar304`.
+final ValueNotifier<String> playerName = ValueNotifier<String>('');
+final ValueNotifier<int> avatar = ValueNotifier<int>(0);
+
+const kAvatars = <(IconData, Color)>[
+  (Icons.person, Color(0xFF2F81F7)),
+  (Icons.face, Color(0xFFD4A72C)),
+  (Icons.star, Color(0xFFE06666)),
+  (Icons.pets, Color(0xFF6AA84F)),
+  (Icons.local_florist, Color(0xFFC27BA0)),
+  (Icons.sports_cricket, Color(0xFF45818E)),
+  (Icons.waves, Color(0xFF3D85C6)),
+  (Icons.wb_sunny, Color(0xFFF1A33C)),
+  (Icons.music_note, Color(0xFF8E7CC3)),
+  (Icons.rocket_launch, Color(0xFFCC4125)),
+  (Icons.eco, Color(0xFF38A169)),
+  (Icons.diamond, Color(0xFF4FC3F7)),
+];
+
+/// Longueur maximale d'un prénom (même règle que le serveur).
+const kMaxName = 16;
+
+/// Prénom nettoyé : une ligne, espaces réduits, [kMaxName] caractères au plus.
+String cleanName(String s) {
+  final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  final c = t.characters;
+  return c.length > kMaxName ? c.take(kMaxName).toString() : t;
+}
+
+Future<void> setProfile(String name, int av) async {
+  playerName.value = cleanName(name);
+  avatar.value = av.clamp(0, kAvatars.length - 1);
+  try {
+    final p = await SharedPreferences.getInstance();
+    await p.setString('name304', playerName.value);
+    await p.setInt('avatar304', avatar.value);
+  } catch (_) {}
+}
+
+/// Pastille ronde de l'avatar [index] (repli : icône neutre).
+Widget avatarIcon(int? index, {double size = 30}) {
+  final a = index != null && index >= 0 && index < kAvatars.length
+      ? kAvatars[index]
+      : (Icons.person, const Color(0xFF5A6B80));
+  return Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: a.$2.withValues(alpha: 0.25),
+      border: Border.all(color: a.$2, width: 2),
+    ),
+    alignment: Alignment.center,
+    child: Icon(a.$1, size: size * 0.6, color: a.$2),
+  );
 }

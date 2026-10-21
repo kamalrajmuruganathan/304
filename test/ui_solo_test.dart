@@ -85,6 +85,27 @@ Future<int> playSolo(WidgetTester tester,
     if (next.evaluate().isNotEmpty || again.evaluate().isNotEmpty) {
       // récapitulatif (plis, points, jetons) dans le résultat de la donne
       expect(find.byKey(const ValueKey('deal-recap')), findsOneWidget);
+      // « Revoir la donne » (1re donne) : les 8 plis, puis retour au résultat
+      if (hands == 0) {
+        await tester.tap(find.byKey(const ValueKey('open-replay')));
+        await tester.pumpAndSettle();
+        expect(find.text(l.replayStart), findsWidgets);
+        var steps = 0;
+        while (tester
+                .widget<IconButton>(find.byKey(const ValueKey('replay-next')))
+                .onPressed !=
+            null) {
+          await tester.tap(find.byKey(const ValueKey('replay-next')));
+          await tester.pump();
+          expect(tester.takeException(), isNull);
+          steps++;
+        }
+        expect(steps, 8, reason: '8 plis à revoir');
+        expect(find.textContaining('8/8'), findsOneWidget);
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        seen.add('revoir la donne');
+      }
       await tester.tap(next.evaluate().isNotEmpty ? next : again);
       await tester.pumpAndSettle();
       hands++;
@@ -198,6 +219,15 @@ void main() {
     expect(seen, contains('fermé/ouvert'));
   });
 
+  testWidgets('solo, niveau difficile : 4 donnes via l\'interface',
+      (tester) async {
+    botLevel.value = 'hard'; // Est/Ouest : IA Monte-Carlo (lib/ai/hard.dart)
+    addTearDown(() => botLevel.value = 'normal');
+    expect(
+        await playSolo(tester, size: const Size(360, 640), deals: 4, seed: 21),
+        4);
+  });
+
   testWidgets('solo : boutons Conseil et Dernier pli', (tester) async {
     tester.view.physicalSize = const Size(390, 844) * 3;
     tester.view.devicePixelRatio = 3;
@@ -227,9 +257,11 @@ void main() {
         await tester.tap(hint.first); // enchères
         await tester.pump();
         expect(
-            find.text(l.hintPass).evaluate().isNotEmpty ||
+            find.textContaining(l.hintPass).evaluate().isNotEmpty ||
                 find.textContaining('Conseil : annoncer').evaluate().isNotEmpty,
             isTrue);
+        // avec l'estimation de la main
+        expect(find.textContaining('Votre main vaut environ'), findsOneWidget);
         bidHint = true;
         continue;
       }
@@ -238,10 +270,20 @@ void main() {
           !playHint) {
         await tester.tap(hint.first); // jeu
         await tester.pump();
-        expect(
-            find.text(l.hintPlay).evaluate().isNotEmpty ||
-                find.text(l.hintDiscard).evaluate().isNotEmpty,
-            isTrue);
+        // la carte conseillée, et pourquoi (une des raisons traduites)
+        final tips = [
+          for (final e in find.byType(Text).evaluate())
+            (e.widget as Text).data ?? ''
+        ].where((t) =>
+            t.startsWith(l.hintPlay) ||
+            t.startsWith(l.hintCut) ||
+            t == l.hintDiscard ||
+            t == l.hintCaps);
+        expect(tips, isNotEmpty);
+        if (tips.first.startsWith(l.hintPlay)) {
+          expect(tips.first.length, greaterThan(l.hintPlay.length + 10),
+              reason: 'raison du conseil : ${tips.first}');
+        }
         playHint = true;
         continue;
       }

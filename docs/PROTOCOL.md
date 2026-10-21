@@ -96,3 +96,23 @@ table) ; le serveur ne relaie que la signalisation et n'entend rien.
   `{ice:{candidate, sdpMid, sdpMLineIndex}}`.
 - Dans chaque paire, seul le **plus petit siège** envoie l'offre (`callsFirst`, `lib/net/voice.dart`).
 
+
+## Tables publiques, spectateurs, profil (21/10/2026)
+- `create` / `join` / `quick` acceptent `avatar` (entier 0 à 11, sinon ignoré) ; le prénom est
+  nettoyé par le serveur (une ligne, 24 caractères au plus, « Joueur » s'il est vide). La vue
+  indique `players[i].avatar` (null pour un bot).
+- Client → serveur `{"t":"quick","name","avatar"}` : « Table publique ». Le serveur place le
+  joueur à une table **publique** qui a une place libre et au moins un joueur connecté (la plus
+  remplie d'abord), sinon il en crée une et la **lance tout de suite** (bots aux places libres ;
+  un nouvel arrivant prend la place d'un bot, même en cours de donne). Une table publique repart
+  seule pour une nouvelle partie après la fin d'une partie. Une table privée n'est jamais proposée.
+  `joined` et la vue contiennent `public: true|false`.
+- `join` sur une partie déjà commencée : la partie reprend avec le nouvel arrivant.
+- Client → serveur `{"t":"watch","code"}` : regarder une table en **spectateur** (20 au plus,
+  sinon `tableFull` ; code inconnu → `tableNotFound`). Réponse `{"t":"watching","code"}`, puis des
+  `state` avec `you: -1`, `spectator: true` et la vue d'un siège vide (`engine.viewFor(-1)` :
+  aucune main, atout fermé caché, cartes face cachée masquées). Le spectateur reçoit le chat
+  mais ne peut rien envoyer d'autre que `leave` (le reste est ignoré). La vue de tous indique
+  `spectators` (nombre).
+- Vue en phase `scored` : `replay` = toute la donne dévoilée (mains au début du jeu, atout posé,
+  plis dans l'ordre : `Engine.replayJson()`), pour « Revoir la donne ». Absente avant la fin.
