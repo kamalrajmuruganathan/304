@@ -39,7 +39,7 @@ Textes et visuels : `docs/STORE_LISTING.md` et `docs/store/`.
 | Règles de confidentialité | `https://kamalrajmuruganathan.github.io/304/privacy.html` |
 | Accès à l'application | **Toutes les fonctionnalités sont accessibles sans restriction** (aucun compte). Préciser : « Le mode en ligne utilise un serveur gratuit qui peut mettre 30 à 60 s à se réveiller. » |
 | Annonces | **Non, mon application ne contient pas d'annonces** |
-| Classification du contenu (IARC) | catégorie **Jeu** (« Jeux de cartes / plateau / casse-tête » selon l'écran) ; violence, sexe, langage, drogues : **Non** ; **jeux d'argent simulés : Non** (jeu de plis, les jetons sont un score, aucune mise) ; **les utilisateurs peuvent-ils interagir ou échanger du contenu : Oui** (chat texte et vocal des tables privées) ; partage de position : Non ; achats numériques : Non |
+| Classification du contenu (IARC) | catégorie **Jeu** (« Jeux de cartes / plateau / casse-tête » selon l'écran) ; violence, sexe, langage, drogues : **Non** ; **jeux d'argent simulés : Non** (jeu de plis, les jetons sont un score, aucune mise) ; **les utilisateurs peuvent-ils interagir ou échanger du contenu : Oui** (chat texte et vocal des tables privées entre amis rejointes par code ; aux tables publiques, entre inconnus, seulement des réactions prédéfinies traduites, ni texte libre ni vocal — imposé par le serveur) ; partage de position : Non ; achats numériques : Non |
 | Public cible | **13 ans et plus** (13–15, 16–17, 18+). Ne pas cocher les tranches d'âge enfants (le chat les exclut des règles « Familles ») |
 | Application d'actualités | Non |
 | Applications gouvernementales / finance / santé | Non |

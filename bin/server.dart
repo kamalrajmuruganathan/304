@@ -98,6 +98,12 @@ String cleanName(Object? raw) {
 int? cleanAvatar(Object? raw) =>
     raw is int && raw >= 0 && raw < 12 ? raw : null;
 
+/// Réactions rapides (« :r:clé », traduites par l'app) : seul « chat » permis
+/// aux tables publiques, entre inconnus (pas de texte libre ni de vocal :
+/// règles des stores sur les échanges entre inconnus).
+final RegExp reactionText =
+    RegExp(r'^:r:(wellPlayed|comeOn|oops|thanks|hurry|goodGame)$');
+
 /// Spectateurs au plus par table.
 const int maxSpectators = 20;
 
@@ -634,6 +640,8 @@ void handleMessage(WebSocket ws, String data) {
     return;
   }
   if (t == 'voice') {
+    // table publique (inconnus) : pas de vocal
+    if (room.public) return;
     // rejoindre / quitter le chat vocal : les autres le voient (players[].voice)
     room.seats[seat]
       ..voice = msg['on'] == true
@@ -658,6 +666,8 @@ void handleMessage(WebSocket ws, String data) {
     // texte nettoyé : une ligne, 200 caractères au plus, jamais vide
     final text = '${msg['text'] ?? ''}'.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (text.isEmpty) return;
+    // table publique (inconnus) : réactions rapides seulement
+    if (room.public && !reactionText.hasMatch(text)) return;
     final out = jsonEncode({
       't': 'chat',
       'seat': seat,

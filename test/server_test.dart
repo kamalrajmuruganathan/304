@@ -240,6 +240,27 @@ void main() {
     }
   });
 
+  test('table publique : réactions seulement, ni texte libre ni vocal',
+      () async {
+    final a = await C.open();
+    a.send({'t': 'quick', 'name': 'a'});
+    final code = (await a.next('joined'))['code'];
+    final b = await C.open();
+    b.send({'t': 'quick', 'name': 'b'});
+    expect((await b.next('joined'))['code'], code);
+    a.send({'t': 'chat', 'text': 'mon numéro : 06…'}); // texte libre : ignoré
+    a.send({'t': 'voice', 'on': true}); // vocal : ignoré
+    a.send({'t': 'chat', 'text': ':r:wellPlayed'});
+    final m = await b.next('chat');
+    expect(m['text'], ':r:wellPlayed',
+        reason: 'le texte libre n\'est pas relayé');
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final p = b.lastView!['players'] as List;
+    expect((p[0] as Map)['voice'], isFalse);
+    await a.ws.close();
+    await b.ws.close();
+  });
+
   test('table publique sans joueur connecté : pas proposée', () async {
     final a = await C.open();
     a.send({'t': 'quick', 'name': 'a'});

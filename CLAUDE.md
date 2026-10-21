@@ -251,6 +251,8 @@ l'annonce d'un bot s'affiche en bandeau (solo et en ligne).
   fin d'une partie. `watch` → spectateur (`viewFor(-1)` : aucune main, atout fermé caché ; 20 au plus ;
   reçoit le chat, ne peut rien envoyer d'autre que `leave`). Prénom nettoyé par le serveur (24 car.),
   `avatar` 0–11. Vue `replay` en phase `scored`. Voir `docs/PROTOCOL.md`.
+  Table publique = inconnus : le serveur n'y relaie que les **réactions rapides** (pas de texte libre ni de
+  vocal ; règles des stores sur les échanges entre inconnus, sinon signalement/blocage obligatoires).
 - **Lien d'invitation → appli Android** (15/10/2026) : l'APK déclare `game304://table/CODE` (lu par
   `app_links` au démarrage et pendant l'exécution ; `flutter_deeplinking_enabled=false`) et le lien
   https `…/304/app` (non vérifié : il faudrait `assetlinks.json` à la racine du domaine, MISE_EN_LIGNE

@@ -27,11 +27,15 @@ Retrouvez le **304**, le grand jeu de plis par équipes de Jaffna et du sud de l
 
 • **Règles officielles complètes** : double tour d'enchères, atout caché ou ouvert, révélation de l'atout, Partner Close Caps, redistribution, atouts épuisés et atout gâché.
 • **Des adversaires qui savent jouer** : les bots mémorisent les cartes tombées, enchérissent selon la force réelle de leur main et coupent au bon moment.
-• **Tables privées** : créez une table, partagez le code à 4 lettres, jouez avec votre famille où qu'elle soit. Les places libres sont tenues par des bots. Chat écrit et **vocal**, lien d'invitation, reconnexion automatique.
+• **Tables privées** : créez une table, partagez le code à 4 lettres, jouez avec votre famille où qu'elle soit. Les places libres sont tenues par des bots. Chat écrit et **vocal**, lien d'invitation, reconnexion automatique, spectateurs.
+• **Tables publiques** : un toucher pour jouer avec d'autres joueurs, sans code (réactions rapides, sans chat libre).
+• **Donne du jour** : la même donne pour tout le monde chaque jour ; comparez votre score avec vos amis.
+• **Trois niveaux** : Facile, Normal et **Difficile** (une IA qui anticipe les cartes cachées).
 • **En 4 langues** : தமிழ், සිංහල, English, français.
-• **Pour apprendre** : tutoriel intégré, bouton Conseil, revue du dernier pli, récapitulatif de chaque donne.
+• **Pour apprendre** : tutoriel intégré, **Conseil expliqué** (la carte et pourquoi), revue du dernier pli, **revoir toute la donne** mains dévoilées, récapitulatif de chaque donne.
 • **Statistiques** : réussite de vos prises par niveau d'enchère, Caps, séries.
-• **Confort** : grandes cartes, jeu 4 couleurs, sons, plusieurs dos de cartes et tapis.
+• **Confort** : grandes cartes, jeu 4 couleurs, sons, prénom et avatar, dos de cartes et tapis à débloquer en gagnant.
+• Version web installable, jouable **sans internet** contre les bots.
 • Android, iPhone et navigateur web.
 
 Jeu gratuit, **sans argent réel** : aucun pari, aucun dépôt, aucun gain monétaire.
@@ -41,11 +45,15 @@ Play **304**, the classic team trick-taking game of Jaffna and South India.
 
 • **Complete official rules**: two bidding rounds, hidden or open trump, trump reveal, Partner Close Caps, redeal, exhausted and spoilt trumps.
 • **Opponents that know the game**: bots remember played cards, bid on their hand's real strength and cut at the right moment.
-• **Private tables**: create a table, share the 4-letter code and play with family anywhere. Empty seats are filled by bots. Text and **voice** chat, invite link, automatic reconnection.
+• **Private tables**: create a table, share the 4-letter code and play with family anywhere. Empty seats are filled by bots. Text and **voice** chat, invite link, automatic reconnection, spectators.
+• **Public tables**: one tap to play with other players, no code (quick reactions, no free chat).
+• **Deal of the day**: the same deal for everyone each day; compare your score with friends.
+• **Three levels**: Easy, Normal and **Hard** (an AI that anticipates the hidden cards).
 • **In 4 languages**: தமிழ், සිංහල, English, français.
-• **Easy to learn**: built-in tutorial, Hint button, last-trick review, summary of every deal.
+• **Easy to learn**: built-in tutorial, **explained Hints** (the card and why), last-trick review, **replay the whole deal** with all hands shown, summary of every deal.
 • **Statistics**: success of your bids by level, Caps, winning streaks.
-• **Comfort**: large cards, four-colour deck, sounds, several card backs and table felts.
+• **Comfort**: large cards, four-colour deck, sounds, name and avatar, card backs and felts to unlock by winning.
+• Installable web version that plays **offline** against the bots.
 • Android, iPhone and web browser.
 
 Free to play, **no real money**: no betting, no deposits, no cash prizes.
@@ -56,8 +64,11 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 • **முழுமையான விதிகள்**: இரண்டு சுற்று ஏலம், மறைந்த அல்லது திறந்த துருப்பு, துருப்பு வெளிப்படுத்தல், Partner Close Caps, மீண்டும் பகிர்தல்.
 • **திறமையான எதிரிகள்**: விழுந்த சீட்டுகளை நினைவில் கொண்டு, கையின் உண்மையான பலத்திற்கு ஏற்ப ஏலம் கேட்டு, சரியான நேரத்தில் வெட்டும் கணினி வீரர்கள்.
 • **தனிப்பட்ட மேசைகள்**: மேசையை உருவாக்கி 4 எழுத்து குறியீட்டைப் பகிர்ந்து, குடும்பத்துடன் எங்கிருந்தும் விளையாடுங்கள். காலியான இடங்களில் கணினி வீரர்கள். மேசை அரட்டை, தானியங்கி மீள் இணைப்பு.
+• **பொது மேசைகள்**: ஒரே தொடுதலில் மற்ற வீரர்களுடன் விளையாடுங்கள் (விரைவு எதிர்வினைகள் மட்டும்).
+• **இன்றைய பகிர்வு**: தினமும் எல்லோருக்கும் ஒரே பகிர்வு; நண்பர்களுடன் மதிப்பெண்ணை ஒப்பிடுங்கள்.
+• **மூன்று நிலைகள்**: எளிது, சாதாரண, **கடினம்**.
 • **4 மொழிகள்**: தமிழ், සිංහල, English, français.
-• **கற்க எளிது**: பயிற்சி வழிகாட்டி, குறிப்பு பொத்தான், கடைசி கை, ஒவ்வொரு பகிர்வின் சுருக்கம்.
+• **கற்க எளிது**: பயிற்சி வழிகாட்டி, காரணத்துடன் குறிப்பு, கடைசி கை, முழுப் பகிர்வையும் மீண்டும் பார்த்தல், ஒவ்வொரு பகிர்வின் சுருக்கம்.
 • **புள்ளிவிவரங்கள்** மற்றும் **வசதி**: பெரிய சீட்டுகள், 4 நிற சீட்டுக்கட்டு, ஒலிகள்.
 
 இலவச விளையாட்டு, **உண்மையான பணம் இல்லை**: பந்தயம் இல்லை, வைப்பு இல்லை, பணப் பரிசு இல்லை.
@@ -68,8 +79,11 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 • **සම්පූර්ණ නීති**: ලංසු වට දෙකක්, සැඟවුණු හෝ විවෘත තුරුම්පුව, තුරුම්පුව හෙළි කිරීම, Partner Close Caps, නැවත බෙදීම.
 • **දක්ෂ ප්‍රතිවාදීන්**: වැටුණු කාඩ්පත් මතක තබාගෙන, අතේ සැබෑ ශක්තියට අනුව ලංසු තබා, නිවැරදි මොහොතේ කපන පරිගණක ක්‍රීඩකයන්.
 • **පෞද්ගලික මේස**: මේසයක් සාදා අකුරු 4 ක කේතය බෙදාගෙන, ඕනෑම තැනක සිට පවුලේ අය සමඟ ක්‍රීඩා කරන්න. හිස් ආසනවල පරිගණක ක්‍රීඩකයන්. මේස කතාබහ, ස්වයංක්‍රීය නැවත සම්බන්ධ වීම.
+• **පොදු මේස**: එක් ස්පර්ශයකින් වෙනත් ක්‍රීඩකයන් සමඟ ක්‍රීඩා කරන්න (ඉක්මන් ප්‍රතිචාර පමණි).
+• **අද දවසේ බෙදීම**: දිනපතා සැමට එකම බෙදීම; මිතුරන් සමඟ ලකුණු සසඳන්න.
+• **මට්ටම් තුනක්**: පහසු, සාමාන්‍ය, **අමාරු**.
 • **භාෂා 4**: தமிழ், සිංහල, English, français.
-• **ඉගෙනීමට පහසුයි**: පුහුණු මාර්ගෝපදේශය, ඉඟි බොත්තම, අවසන් අත, සෑම බෙදීමකම සාරාංශය.
+• **ඉගෙනීමට පහසුයි**: පුහුණු මාර්ගෝපදේශය, හේතුව සමඟ ඉඟි, අවසන් අත, සම්පූර්ණ බෙදීම නැවත බැලීම, සෑම බෙදීමකම සාරාංශය.
 • **සංඛ්‍යාලේඛන** සහ **පහසුව**: විශාල කාඩ්පත්, වර්ණ 4 ක කට්ටලය, ශබ්ද.
 
 නොමිලේ ක්‍රීඩාව, **සැබෑ මුදල් නැත**: ඔට්ටු නැත, තැන්පතු නැත, මුදල් ත්‍යාග නැත.
@@ -88,7 +102,7 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 | Achats intégrés | Non |
 | Publicité | Non |
 | Données collectées (Play « Sécurité des données » / Apple « Confidentialité ») | Voir `docs/PLAY_CONSOLE.md` §5 : déclaration prudente du pseudonyme, des messages de chat et de l'audio du chat vocal (traités de façon éphémère, non partagés, non conservés) ; aucune autre donnée |
-| Chat entre joueurs | **Oui** : chat texte et **vocal** (WebRTC, en direct, non enregistré) entre joueurs d'une même table privée (rejointe par code), non modéré, non conservé. Play « Contenu généré par les utilisateurs / interactions » et IARC : répondre **Oui, les utilisateurs peuvent communiquer** (table privée uniquement) |
+| Chat entre joueurs | **Oui** : chat texte et **vocal** (WebRTC, en direct, non enregistré) entre joueurs d'une même table privée (rejointe par code), non modéré, non conservé ; aux **tables publiques** (inconnus), seulement des **réactions prédéfinies** traduites (pas de texte libre, pas de vocal : imposé par le serveur). Play « Contenu généré par les utilisateurs / interactions » et IARC : répondre **Oui, les utilisateurs peuvent communiquer** (texte libre et vocal : tables privées uniquement) |
 | Public cible | 13 ans et plus conseillé |
 | URL de confidentialité | `https://kamalrajmuruganathan.github.io/304/privacy.html` |
 

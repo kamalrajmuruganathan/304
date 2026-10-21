@@ -106,6 +106,8 @@ table) ; le serveur ne relaie que la signalisation et n'entend rien.
   remplie d'abord), sinon il en crée une et la **lance tout de suite** (bots aux places libres ;
   un nouvel arrivant prend la place d'un bot, même en cours de donne). Une table publique repart
   seule pour une nouvelle partie après la fin d'une partie. Une table privée n'est jamais proposée.
+  À une table publique (inconnus), le serveur ne relaie que les réactions `:r:<clé>` (texte libre
+  ignoré) et ignore `voice` (pas de vocal).
   `joined` et la vue contiennent `public: true|false`.
 - `join` sur une partie déjà commencée : la partie reprend avec le nouvel arrivant.
 - Client → serveur `{"t":"watch","code"}` : regarder une table en **spectateur** (20 au plus,

@@ -248,11 +248,12 @@
   "unlocked": "Débloqué : {item} !",
   "playOnline": "Jouer en ligne",
   "publicTable": "Table publique : jouer avec d'autres joueurs",
-  "publicInfo": "Vous rejoignez une table ouverte, sans code. Les places libres sont tenues par des bots : la partie commence tout de suite.",
+  "publicInfo": "Vous rejoignez une table ouverte, sans code. Les places libres sont tenues par des bots : la partie commence tout de suite. Entre inconnus : réactions rapides seulement, sans chat écrit ni vocal.",
   "watch": "Regarder",
   "spectatingInfo": "Vous regardez la partie : les mains des joueurs restent cachées.",
   "spectators": "{n} spectateur(s)",
   "installApp": "Installer l'appli (jouable sans internet)",
   "installInfo": "L'appli s'ouvre depuis l'écran d'accueil, et la partie contre les bots marche sans internet.",
-  "installIos": "Sur iPhone : touchez le bouton Partager de Safari, puis « Sur l'écran d'accueil »."
+  "installIos": "Sur iPhone : touchez le bouton Partager de Safari, puis « Sur l'écran d'accueil ».",
+  "publicChatInfo": "Table publique : pour jouer en sécurité entre inconnus, seules les réactions rapides (menu en haut) sont permises. Le chat écrit et le vocal sont réservés aux tables privées entre amis."
 }

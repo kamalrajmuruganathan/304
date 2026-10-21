@@ -546,7 +546,7 @@
   },
   "playOnline": "Play online",
   "publicTable": "Public table: play with other players",
-  "publicInfo": "You join an open table, no code needed. Empty seats are played by bots: the game starts right away.",
+  "publicInfo": "You join an open table, no code needed. Empty seats are played by bots: the game starts right away. With strangers: quick reactions only, no text or voice chat.",
   "watch": "Watch",
   "spectatingInfo": "You are watching: the players' hands stay hidden.",
   "spectators": "{n} spectator(s)",
@@ -559,5 +559,6 @@
   },
   "installApp": "Install the app (plays offline)",
   "installInfo": "The app opens from your home screen, and games against the bots work offline.",
-  "installIos": "On iPhone: tap Safari's Share button, then “Add to Home Screen”."
+  "installIos": "On iPhone: tap Safari's Share button, then “Add to Home Screen”.",
+  "publicChatInfo": "Public table: to play safely with strangers, only quick reactions (top menu) are allowed. Text and voice chat are for private tables with friends."
 }
