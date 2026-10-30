@@ -8,14 +8,14 @@ import 'package:flutter/material.dart' hide Card;
 import '../engine/engine.dart';
 import '../l10n/app_localizations.dart';
 import '../settings.dart';
+import 'skin.dart';
 
-const _gold = Color(0xFFE3C565);
-const _goldD = Color(0xFFA5822F);
+Color get _gold => sk.accent;
 const _cream = Color(0xFFF6F1E2);
 const _ink = Color(0xFF1A160F);
 const _red = Color(0xFFB12B2B);
-const _txt = Color(0xFFF3EAD6);
-const _dim = Color(0xFFC9B48A);
+Color get _txt => sk.text;
+Color get _dim => sk.dim;
 
 class ReplayPlay {
   final int seat;
@@ -156,7 +156,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
         '${muted ? ' · ${l.mOut}' : ''}',
         key: ValueKey('replay-name-$seat'),
         textAlign: TextAlign.center,
-        style: const TextStyle(color: _txt, fontSize: 11));
+        style: TextStyle(color: _txt, fontSize: 11));
     final row = Wrap(
       alignment: WrapAlignment.center,
       direction: Axis.horizontal,
@@ -189,7 +189,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
         child: Center(
             child: Text(l.replayStart,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: _dim, fontSize: 12))),
+                style: TextStyle(color: _dim, fontSize: 12))),
       );
     }
     final t = r.tricks[step - 1];
@@ -210,7 +210,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
               _card(p.card, w: 34, gold: p.seat == t.winner),
               if (p.faceDown)
                 Text(l.replayHidden,
-                    style: const TextStyle(color: _dim, fontSize: 9)),
+                    style: TextStyle(color: _dim, fontSize: 9)),
             ]),
           ),
       ]),
@@ -239,14 +239,14 @@ class _ReplayScreenState extends State<ReplayScreen> {
             r.tricks[step - 1].points);
     final trump = r.trumpSuit == null ? '—' : kSuitSym[r.trumpSuit]!;
     return Scaffold(
-      backgroundColor: const Color(0xFF160A06),
+      backgroundColor: sk.bg,
       appBar: AppBar(title: Text(l.replayTitle)),
       body: SafeArea(
         child: Column(children: [
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(6),
-            color: const Color(0xFF123524),
+            color: sk.bar.$1,
             child: Text(
               '${r.pcc ? 'Partner Close Caps' : '${l.bid} ${r.bid ?? '—'}'} · '
               '${l.trump} $trump · ${l.tricks} '
@@ -254,7 +254,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
               '${l.pointsN(usNS ? pNS : pEW)}–${usNS ? pEW : pNS}',
               key: const ValueKey('replay-score'),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _txt),
+              style: TextStyle(color: _txt),
             ),
           ),
           Padding(
@@ -262,17 +262,24 @@ class _ReplayScreenState extends State<ReplayScreen> {
             child: Text(title,
                 key: const ValueKey('replay-title'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: _gold, fontSize: 15)),
+                style: TextStyle(color: _gold, fontSize: 15)),
           ),
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8),
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                gradient:
-                    RadialGradient(colors: [feltColors.$1, feltColors.$2]),
+                gradient: RadialGradient(
+                    colors: [sk.tableColors.$1, sk.tableColors.$2]),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _goldD, width: 2),
+                border: Border.all(color: sk.tableBorder, width: 2),
+                boxShadow: sk.glow == null
+                    ? null
+                    : [
+                        BoxShadow(
+                            color: sk.glow!.withValues(alpha: 0.3),
+                            blurRadius: 26)
+                      ],
               ),
               child: SingleChildScrollView(
                 child: Column(children: [
@@ -307,7 +314,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
                     tooltip: l.replayPrev,
                     onPressed: step > 0 ? () => setState(() => step--) : null,
                     icon: const Icon(Icons.chevron_left)),
-                Text('$step / $last', style: const TextStyle(color: _txt)),
+                Text('$step / $last', style: TextStyle(color: _txt)),
                 IconButton(
                     key: const ValueKey('replay-next'),
                     tooltip: l.replayNext,
