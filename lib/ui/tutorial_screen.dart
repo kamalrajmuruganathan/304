@@ -6,6 +6,7 @@
 // ============================================================================
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import 'skin.dart';
 
 /// Sections (titre, texte) par langue.
 const kTutorial = <String, List<(String, String)>>{
@@ -203,8 +204,8 @@ class TutorialScreen extends StatelessWidget {
           children: [
             for (final (title, body) in sections) ...[
               Text(title,
-                  style: const TextStyle(
-                      color: Color(0xFFD4A72C),
+                  style: TextStyle(
+                      color: sk.accent,
                       fontSize: 17,
                       fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),

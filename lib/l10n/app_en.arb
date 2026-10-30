@@ -562,5 +562,11 @@
   "installIos": "On iPhone: tap Safari's Share button, then “Add to Home Screen”.",
   "publicChatInfo": "Public table: to play safely with strangers, only quick reactions (top menu) are allowed. Text and voice chat are for private tables with friends.",
   "hintBid2Points": "Your suit is good, but you also need at least 150 points in hand to aim for 250.",
-  "hintBid2High": "The bid is already above 250, or your partner already holds it: no need to raise."
+  "hintBid2High": "The bid is already above 250, or your partner already holds it: no need to raise.",
+  "appearance": "Appearance",
+  "options": "Options",
+  "themeCristal": "Crystal",
+  "themeTemple": "Temple",
+  "themeNuit": "Night",
+  "themeBois": "Wood"
 }

@@ -7,6 +7,7 @@ import '../ai/hard.dart';
 import '../l10n/app_localizations.dart';
 import '../daily.dart';
 import '../settings.dart';
+import 'skin.dart';
 import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
@@ -16,14 +17,14 @@ import 'replay.dart';
 import 'invite.dart' show shareDaily;
 
 // Palette « table royale » (miroir du prototype web validé).
-const _gold = Color(0xFFE3C565);
-const _goldD = Color(0xFFA5822F);
-const _woodB = Color(0xFF160A06);
+Color get _gold => sk.accent;
+Color get _goldD => sk.accentDim;
+Color get _woodB => sk.bg;
 const _cream = Color(0xFFF6F1E2);
 const _ink = Color(0xFF1A160F);
 const _red = Color(0xFFB12B2B);
-const _txt = Color(0xFFF3EAD6);
-const _dim = Color(0xFFC9B48A);
+Color get _txt => sk.text;
+Color get _dim => sk.dim;
 
 /// Écran de jeu : table royale câblée au moteur (solo vs 3 bots).
 /// La logique de flux reflète le contrôleur du prototype validé ; toute la
@@ -506,15 +507,14 @@ class _GameScreenState extends State<GameScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF211208),
+        backgroundColor: sk.dialog,
         title: Text(
             l.lastTrickTitle(t['points'] as int, names[t['winner'] as int]),
-            style: const TextStyle(color: _gold, fontSize: 16)),
+            style: TextStyle(color: _gold, fontSize: 16)),
         content: Wrap(spacing: 10, runSpacing: 10, children: [
           for (final p in t['cards'] as List<TrickPlay>)
             Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(names[p.seat],
-                  style: const TextStyle(color: _dim, fontSize: 11)),
+              Text(names[p.seat], style: TextStyle(color: _dim, fontSize: 11)),
               const SizedBox(height: 4),
               Container(
                 decoration: p.seat == t['winner']
@@ -644,23 +644,22 @@ class _GameScreenState extends State<GameScreen> {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         scrollable: true, // petit écran : le contenu défile
-        backgroundColor: const Color(0xFF211208),
+        backgroundColor: sk.dialog,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: _goldD)),
+            side: BorderSide(color: _goldD)),
         title: Text(nsWon ? l.dealWon : l.dealLost,
-            style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: _gold, fontWeight: FontWeight.bold)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(
             '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}${s['wrongCaps'] != null ? '\n${s['wrongCaps'] == 'NS' ? l.wrongCapsUs(kWrongCapsPenalty) : l.wrongCapsThem(kWrongCapsPenalty)}' : ''}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
-            style: const TextStyle(color: _dim),
+            style: TextStyle(color: _dim),
           ),
           if (unlocked.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(unlocked,
                 key: const ValueKey('unlocked'),
-                style:
-                    const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: _gold, fontWeight: FontWeight.bold)),
           ],
           const SizedBox(height: 12),
           DealRecap(
@@ -708,30 +707,30 @@ class _GameScreenState extends State<GameScreen> {
       builder: (ctx) => AlertDialog(
         key: const ValueKey('daily-result'),
         scrollable: true,
-        backgroundColor: const Color(0xFF211208),
+        backgroundColor: sk.dialog,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: _goldD)),
+            side: BorderSide(color: _goldD)),
         title: Text('${l.dailyDeal} — ${nsWon ? l.dealWon : l.dealLost}',
-            style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: _gold, fontWeight: FontWeight.bold)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(
             '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)}'} — ${s['success'] == true ? l.succeeded : l.failedBid}',
-            style: const TextStyle(color: _dim),
+            style: TextStyle(color: _dim),
           ),
           const SizedBox(height: 10),
           Text(score,
               key: const ValueKey('daily-score'),
-              style: const TextStyle(
+              style: TextStyle(
                   color: _gold, fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text(_official ? l.dailyOfficial : l.dailyPractice,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _dim, fontSize: 12)),
+              style: TextStyle(color: _dim, fontSize: 12)),
           if (_official && daily.value.streak > 1) ...[
             const SizedBox(height: 4),
             Text(l.dailyStreak(daily.value.streak),
-                style: const TextStyle(color: _dim, fontSize: 12)),
+                style: TextStyle(color: _dim, fontSize: 12)),
           ],
           const SizedBox(height: 12),
           DealRecap(
@@ -799,7 +798,7 @@ class _GameScreenState extends State<GameScreen> {
           key: key,
           onPressed: onTap,
           style: FilledButton.styleFrom(
-              backgroundColor: _gold, foregroundColor: const Color(0xFF2A1C06)),
+              backgroundColor: _gold, foregroundColor: sk.onAccent),
           child: Text(label));
     }
     if (primary) {
@@ -889,11 +888,10 @@ class _GameScreenState extends State<GameScreen> {
       child: Container(
         padding: EdgeInsets.fromLTRB(3, 3, compact ? 3 : 10, 3),
         decoration: BoxDecoration(
-          color: const Color(0x52000000),
+          color: sk.pod,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-              color: active ? _gold : const Color(0xFF5A3D2E),
-              width: active ? 2 : 1),
+              color: active ? _gold : sk.line, width: active ? 2 : 1),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Container(
@@ -902,8 +900,7 @@ class _GameScreenState extends State<GameScreen> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const RadialGradient(
-                  colors: [Color(0xFF2A3A52), Color(0xFF141B28)]),
+              gradient: RadialGradient(colors: [sk.surface, sk.bg]),
               // avatar seul : bordure dorée épaisse = preneur
               border: Border.all(
                   color: active || (compact && e.trumpMaker == seat)
@@ -915,7 +912,7 @@ class _GameScreenState extends State<GameScreen> {
                 ? Icon(kAvatars[avatar.value].$1,
                     size: 17, color: kAvatars[avatar.value].$2)
                 : Text(base.characters.first,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _gold,
                         fontWeight: FontWeight.bold,
                         fontSize: 14)),
@@ -926,7 +923,7 @@ class _GameScreenState extends State<GameScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(base, style: const TextStyle(color: _txt, fontSize: 12)),
+                  Text(base, style: TextStyle(color: _txt, fontSize: 12)),
                   Text(meta.toUpperCase(),
                       style: TextStyle(
                           color: e.trumpMaker == seat ? _gold : _dim,
@@ -1030,23 +1027,24 @@ class _GameScreenState extends State<GameScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0x66000000),
+        color: sk.pod,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _goldD),
       ),
-      child: Text(txt, style: const TextStyle(color: _txt, fontSize: 12)),
+      child: Text(txt, style: TextStyle(color: _txt, fontSize: 12)),
     );
   }
 
-  Widget _stat(String k, String v, {Color color = _txt}) => Padding(
+  Widget _stat(String k, String v, {Color? color}) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 7),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(k.toUpperCase(),
-              style: const TextStyle(
-                  color: _dim, fontSize: 9, letterSpacing: 0.6)),
+              style: TextStyle(color: _dim, fontSize: 9, letterSpacing: 0.6)),
           Text(v,
               style: TextStyle(
-                  color: color, fontWeight: FontWeight.w800, fontSize: 17)),
+                  color: color ?? _txt,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17)),
         ]),
       );
 
@@ -1054,12 +1052,12 @@ class _GameScreenState extends State<GameScreen> {
         width: 84,
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
         decoration: BoxDecoration(
-          color: const Color(0x40000000),
+          color: sk.pod,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF5A3D2E)),
+          border: Border.all(color: sk.line),
         ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(label, style: const TextStyle(color: _dim, fontSize: 11)),
+          Text(label, style: TextStyle(color: _dim, fontSize: 11)),
           Text('$tok',
               style: TextStyle(
                   color: c,
@@ -1072,8 +1070,8 @@ class _GameScreenState extends State<GameScreen> {
             child: LinearProgressIndicator(
               value: tok / 22,
               minHeight: 5,
-              backgroundColor: const Color(0x22FFFFFF),
-              valueColor: const AlwaysStoppedAnimation<Color>(_gold),
+              backgroundColor: sk.line,
+              valueColor: AlwaysStoppedAnimation<Color>(_gold),
             ),
           ),
         ]),
@@ -1104,11 +1102,11 @@ class _GameScreenState extends State<GameScreen> {
     }
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF241009), Color(0xFF160A06)]),
+            colors: [sk.bar.$1, sk.bar.$2]),
       ),
       child: Column(children: [
         Row(children: [
@@ -1119,7 +1117,7 @@ class _GameScreenState extends State<GameScreen> {
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            icon: const Icon(Icons.arrow_back, color: _dim, size: 20),
+            icon: Icon(Icons.arrow_back, color: _dim, size: 20),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           _teamPanel(l.us, e.tokens['NS']!, _gold),
@@ -1134,21 +1132,21 @@ class _GameScreenState extends State<GameScreen> {
               ]),
             ),
           ),
-          _teamPanel(l.them, e.tokens['EW']!, const Color(0xFFE0C07A)),
+          _teamPanel(l.them, e.tokens['EW']!, sk.accent2),
         ]),
         const SizedBox(height: 4),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Flexible(
             child: Text('${l.tgtUs} $tgtUs',
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: _dim, fontSize: 11)),
+                style: TextStyle(color: _dim, fontSize: 11)),
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Text('${l.tgtThem} $tgtThem',
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.right,
-                style: const TextStyle(color: _dim, fontSize: 11)),
+                style: TextStyle(color: _dim, fontSize: 11)),
           ),
         ]),
       ]),
@@ -1163,12 +1161,19 @@ class _GameScreenState extends State<GameScreen> {
           gradient: RadialGradient(
               center: const Alignment(0, -0.1),
               radius: 0.95,
-              colors: [feltColors.$1, feltColors.$2]), // tapis choisi
+              colors: [
+                sk.tableColors.$1,
+                sk.tableColors.$2
+              ]), // thème (Bois : tapis choisi)
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _goldD, width: 2),
-          boxShadow: const [
-            BoxShadow(
-                color: Colors.black54, blurRadius: 16, offset: Offset(0, 8))
+          border: Border.all(color: sk.tableBorder, width: 2),
+          boxShadow: [
+            const BoxShadow(
+                color: Colors.black54, blurRadius: 16, offset: Offset(0, 8)),
+            // Cristal / Nuit : liseré lumineux autour de la table
+            if (sk.glow != null)
+              BoxShadow(
+                  color: sk.glow!.withValues(alpha: 0.35), blurRadius: 30),
           ],
         ),
         child: LayoutBuilder(builder: (context, cons) {
@@ -1224,11 +1229,11 @@ class _GameScreenState extends State<GameScreen> {
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
           12, 10, 12, 10 + MediaQuery.of(context).padding.bottom),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1C0F09), Color(0xFF140A06)]),
+            colors: [sk.panel.$1, sk.panel.$2]),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1237,11 +1242,11 @@ class _GameScreenState extends State<GameScreen> {
           if (widget.daily)
             Text('${l.dailyDeal} · $_day',
                 key: const ValueKey('daily-label'),
-                style: const TextStyle(color: _gold, fontSize: 11)),
-          Text(msg, style: const TextStyle(color: _txt, fontSize: 13)),
+                style: TextStyle(color: _gold, fontSize: 11)),
+          Text(msg, style: TextStyle(color: _txt, fontSize: 13)),
           if (tip.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(tip, style: const TextStyle(color: _dim, fontSize: 11.5)),
+            Text(tip, style: TextStyle(color: _dim, fontSize: 11.5)),
           ],
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: actions),

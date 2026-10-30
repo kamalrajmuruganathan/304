@@ -12,6 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../net/client.dart';
 import '../net/voice.dart';
 import '../settings.dart';
+import 'skin.dart';
 import '../sound.dart';
 import 'anim.dart';
 import 'recap.dart';
@@ -27,13 +28,13 @@ const String kServerUrl = String.fromEnvironment('SERVER_URL',
 /// serveur sur un port libre).
 String serverUrl = kServerUrl;
 
-const _gold = Color(0xFFE3C565);
-const _goldD = Color(0xFFA5822F);
+Color get _gold => sk.accent;
+Color get _goldD => sk.accentDim;
 const _cream = Color(0xFFF6F1E2);
 const _ink = Color(0xFF1A160F);
 const _red = Color(0xFFB12B2B);
-const _txt = Color(0xFFF3EAD6);
-const _dim = Color(0xFFC9B48A);
+Color get _txt => sk.text;
+Color get _dim => sk.dim;
 
 /// Message d'erreur du serveur dans la langue du joueur (`code` stable envoyé
 /// par bin/server.dart ; `msg` en repli pour un code inconnu).
@@ -166,7 +167,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             if (widget.initialCode != null) ...[
               Text(l.invitedTo(widget.initialCode!),
                   key: const ValueKey('invited'),
-                  style: const TextStyle(color: _gold, fontSize: 15)),
+                  style: TextStyle(color: _gold, fontSize: 15)),
               const SizedBox(height: 12),
               // page web ouverte sur Android : rejoindre dans l'appli installée
               if (offerAndroidApp) ...[
@@ -194,11 +195,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               label: Text(l.publicTable),
             ),
             const SizedBox(height: 6),
-            Text(l.publicInfo,
-                style: const TextStyle(color: _dim, fontSize: 12)),
+            Text(l.publicInfo, style: TextStyle(color: _dim, fontSize: 12)),
             const SizedBox(height: 12),
-            Text(l.privateTable,
-                style: const TextStyle(color: _gold, fontSize: 15)),
+            Text(l.privateTable, style: TextStyle(color: _gold, fontSize: 15)),
             if (_saved != null) ...[
               const SizedBox(height: 20),
               FilledButton.tonalIcon(
@@ -261,7 +260,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 const SizedBox(height: 12),
                 Text(l.serverWaking,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: _dim, fontSize: 12)),
+                    style: TextStyle(color: _dim, fontSize: 12)),
               ],
             ],
             if (_error != null) ...[
@@ -271,7 +270,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             const SizedBox(height: 24),
             Text(
               l.lobbyInfo,
-              style: const TextStyle(color: _dim, fontSize: 12),
+              style: TextStyle(color: _dim, fontSize: 12),
             ),
           ],
         ),
@@ -515,7 +514,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1C0F09),
+      backgroundColor: sk.dialog,
       builder: (ctx) => _ChatSheet(
         messages: _chat,
         you: v?.you,
@@ -692,8 +691,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           if (g.canPCC)
             FilledButton(
                 style: FilledButton.styleFrom(
-                    backgroundColor: _gold,
-                    foregroundColor: const Color(0xFF2A1C06)),
+                    backgroundColor: _gold, foregroundColor: sk.onAccent),
                 onPressed: () => _send(c.partnerCloseCaps),
                 child: const Text('Partner Close Caps')),
           OutlinedButton(
@@ -706,8 +704,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             FilledButton(
                 key: const ValueKey('call-caps'),
                 style: FilledButton.styleFrom(
-                    backgroundColor: _gold,
-                    foregroundColor: const Color(0xFF2A1C06)),
+                    backgroundColor: _gold, foregroundColor: sk.onAccent),
                 onPressed: () async {
                   if (await confirmCaps(context)) _send(c.callCaps);
                 },
@@ -777,9 +774,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final label = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0x55000000),
+        color: sk.pod,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: active ? _gold : const Color(0xFF5A3D2E)),
+        border: Border.all(color: active ? _gold : sk.line),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         // avatar choisi par le joueur (pas pour les bots)
@@ -797,7 +794,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           child: Text(
               '${_playerName(seat)}${g.trumpMaker == seat ? ' · ${l.mMaker}' : ''}  ($cnt)',
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: _txt, fontSize: 12)),
+              style: TextStyle(color: _txt, fontSize: 12)),
         ),
       ]),
     );
@@ -841,17 +838,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xEE211208),
+        color: sk.dialog,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _goldD),
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(weWon ? l.dealWon : l.dealLost,
-            style: const TextStyle(
+            style: TextStyle(
                 color: _gold, fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Text(detail,
-            textAlign: TextAlign.center, style: const TextStyle(color: _dim)),
+            textAlign: TextAlign.center, style: TextStyle(color: _dim)),
         const SizedBox(height: 6),
         const SizedBox(height: 10),
         if (_replay != null)
@@ -892,7 +889,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     final them = us == 'NS' ? 'EW' : 'NS';
     return LeaveGuard(
         child: Scaffold(
-      backgroundColor: const Color(0xFF160A06),
+      backgroundColor: sk.bg,
       appBar: AppBar(
         // le code de table reste toujours lisible (il se partage)
         title: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -986,7 +983,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(6),
-            color: const Color(0xFF123524),
+            color: sk.bar.$1,
             child: Text(
               // tout est vu de MON équipe (je peux être Est/Ouest)
               '${l.us} ${g.tokens[us]} · ${l.them} ${g.tokens[them]}\n'
@@ -995,17 +992,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               '${l.tricks} ${us == 'NS' ? g.trickWinsNS : g.trickWinsEW}–'
               '${us == 'NS' ? g.trickWinsEW : g.trickWinsNS}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _txt),
+              style: TextStyle(color: _txt),
             ),
           ),
           Expanded(
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: RadialGradient(
-                    colors: [feltColors.$1, feltColors.$2]), // tapis choisi
+                gradient: RadialGradient(colors: [
+                  sk.tableColors.$1,
+                  sk.tableColors.$2
+                ]), // thème (Bois : tapis choisi)
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _goldD, width: 2),
+                border: Border.all(color: sk.tableBorder, width: 2),
+                boxShadow: sk.glow == null
+                    ? null
+                    : [
+                        BoxShadow(
+                            color: sk.glow!.withValues(alpha: 0.3),
+                            blurRadius: 26)
+                      ],
               ),
               child: Stack(children: [
                 for (final s in [1, 2, 3])
@@ -1064,7 +1070,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_prompt(), style: const TextStyle(color: _txt)),
+                Text(_prompt(), style: TextStyle(color: _txt)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, runSpacing: 8, children: _actions()),
               ],
@@ -1073,14 +1079,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           Container(
             height: 96 * _k,
             padding: const EdgeInsets.all(8),
-            color: const Color(0xFF1C0F09),
+            color: sk.panel.$2,
             // les 8 cartes tiennent sur la largeur (pas de défilement)
             child: g.spectating
                 ? Center(
                     child: Text(l.spectatingInfo,
                         key: const ValueKey('spectating'),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: _dim)))
+                        style: TextStyle(color: _dim)))
                 : LayoutBuilder(builder: (context, cons) {
                     final w =
                         ((cons.maxWidth - 8 * 4) / 8).clamp(30.0, 50.0 * _k);
@@ -1152,7 +1158,7 @@ class _ChatSheetState extends State<_ChatSheet> {
           bottom: 12 + MediaQuery.of(context).viewInsets.bottom),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(l.chat,
-            style: const TextStyle(
+            style: TextStyle(
                 color: _gold, fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         ConstrainedBox(
@@ -1175,7 +1181,7 @@ class _ChatSheetState extends State<_ChatSheet> {
                               fontWeight: FontWeight.bold)),
                       TextSpan(
                           text: chatText(AppLocalizations.of(context)!, text),
-                          style: const TextStyle(color: _txt)),
+                          style: TextStyle(color: _txt)),
                     ])),
                   ),
               ],
@@ -1187,7 +1193,7 @@ class _ChatSheetState extends State<_ChatSheet> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(widget.note!,
                 key: const ValueKey('chat-note'),
-                style: const TextStyle(color: _dim, fontSize: 12)),
+                style: TextStyle(color: _dim, fontSize: 12)),
           ),
         if (widget.onSend != null)
           Row(children: [

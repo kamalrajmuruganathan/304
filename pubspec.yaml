@@ -43,6 +43,12 @@ flutter:
     # libellés « தமிழ் » et « සිංහල » du sélecteur de langue (sous-ensembles de
     # Noto Sans Tamil / Sinhala, OFL) : lisibles même avant le téléchargement
     # des polices tamoule/cingalaise sur le web
+    # titres et chiffres des thèmes (comme Thaayam) : Saira SemiBold, OFL
+    # (assets/fonts/OFL-Saira.txt)
+    - family: Saira
+      fonts:
+        - asset: assets/fonts/Saira-SemiBold.ttf
+          weight: 600
     - family: LangTamil
       fonts:
         - asset: assets/fonts/LangTamil.ttf

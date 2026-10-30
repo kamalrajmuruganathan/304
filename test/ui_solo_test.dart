@@ -451,7 +451,11 @@ void main() {
     final l = lookupAppLocalizations(const Locale('fr'));
     addTearDown(() => botLevel.value = 'normal');
     await tester.pumpWidget(const Game304App(locale: Locale('fr')));
-    expect(find.text(l.botLevel), findsOneWidget);
+    // titre de carte (en majuscules dans les thèmes Cristal et Nuit)
+    expect(
+        find.text(l.botLevel).evaluate().length +
+            find.text(l.botLevel.toUpperCase()).evaluate().length,
+        1);
     await tester.ensureVisible(find.byKey(const ValueKey('level-easy')));
     await tester.tap(find.byKey(const ValueKey('level-easy')));
     await tester.pump();

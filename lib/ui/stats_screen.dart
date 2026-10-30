@@ -4,8 +4,9 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../settings.dart';
+import 'skin.dart';
 
-const _gold = Color(0xFFD4A72C);
+Color get _gold => sk.accent;
 
 class StatsScreen extends StatelessWidget {
   const StatsScreen({super.key});
@@ -44,7 +45,7 @@ class StatsScreen extends StatelessWidget {
                 Text(l.streaks(st.streak, st.bestStreak)),
                 const SizedBox(height: 24),
                 Text(l.yourBids,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _gold,
                         fontSize: 17,
                         fontWeight: FontWeight.bold)),

@@ -14,6 +14,7 @@ import 'package:game304/main.dart';
 import 'package:game304/settings.dart';
 import 'package:game304/ui/tutorial_screen.dart';
 import 'package:game304/ui/invite.dart';
+import 'package:game304/ui/skin.dart';
 
 import 'ui_solo_test.dart' show playSolo;
 
@@ -104,10 +105,16 @@ void main() {
     addTearDown(() {
       cardBack.value = 'royal';
       felt.value = 'green';
+      skinCode.value = kDefaultSkin;
     });
     await t.pumpWidget(const Game304App(locale: Locale('fr')));
     await t.ensureVisible(find.byKey(const ValueKey('back-dark')));
     await t.tap(find.byKey(const ValueKey('back-dark')));
+    // le tapis se choisit dans le thème Bois (les autres ont leur table)
+    expect(find.byKey(const ValueKey('felt-violet')), findsNothing);
+    await t.ensureVisible(find.byKey(const ValueKey('skin-bois')));
+    await t.tap(find.byKey(const ValueKey('skin-bois')));
+    await t.pumpAndSettle();
     await t.ensureVisible(find.byKey(const ValueKey('felt-violet')));
     await t.tap(find.byKey(const ValueKey('felt-violet')));
     await t.pumpAndSettle();

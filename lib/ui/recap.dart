@@ -5,6 +5,7 @@
 // ============================================================================
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import 'skin.dart';
 
 class DealRecap extends StatelessWidget {
   const DealRecap({
@@ -13,8 +14,8 @@ class DealRecap extends StatelessWidget {
     required this.points,
     required this.tokens,
     required this.delta,
-    this.color = const Color(0xFFF3E9D2),
-    this.dim = const Color(0xFFB9A98A),
+    this.color,
+    this.dim,
   });
 
   /// (nous, eux) pour chaque ligne.
@@ -22,7 +23,9 @@ class DealRecap extends StatelessWidget {
 
   /// Variation des jetons de notre équipe pendant la donne.
   final int delta;
-  final Color color, dim;
+
+  /// Couleurs du texte (par défaut : celles du thème).
+  final Color? color, dim;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +33,7 @@ class DealRecap extends StatelessWidget {
     String signed(int n) => n > 0 ? '+$n' : '$n';
     TableRow row(String label, String us, String them, {bool head = false}) {
       final st = TextStyle(
-          color: head ? dim : color,
+          color: head ? (dim ?? sk.dim) : (color ?? sk.text),
           fontWeight: head ? FontWeight.normal : FontWeight.bold,
           fontSize: head ? 12 : 15);
       Widget cell(String s, TextAlign a) => Padding(
