@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>304 — three-nought-four</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Playfair+Display:wght@600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Playfair+Display:wght@600&family=Saira:wght@600&display=swap');
 :root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -15,6 +15,10 @@
   --gold:#e3c565; --gold-d:#a5822f;
   --cream:#f6f1e2; --ink:#1a160f; --red:#b12b2b;
   --txt:#f3ead6; --dim:#c9b48a; --line:#5a3d2e;
+  /* fonds des barres, panneaux et fenêtres : changent avec le thème */
+  --bar-a:#241009; --bar-b:#160a06; --panel-a:#1c0f09; --panel-b:#140a06;
+  --modal-a:#241309; --modal-b:#170c06; --ring:#0a3a26; --pod:rgba(0,0,0,.32);
+  --chip:rgba(0,0,0,.4); --primary-a:#2f8f5e; --primary-b:#1f6e46; --glow:transparent;
   --serif:'Playfair Display',Georgia,serif;
   --display:'Cinzel',Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
@@ -29,7 +33,7 @@ body{
 /* ---------- tableau de score ---------- */
 #scorebar{
   display:flex; align-items:stretch; gap:8px; padding:8px 10px;
-  background:linear-gradient(180deg,#241009,#160a06);
+  background:linear-gradient(180deg,var(--bar-a),var(--bar-b));
   border-bottom:1px solid var(--line); flex-shrink:0;
 }
 .team{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:2px;
@@ -44,24 +48,24 @@ body{
 .center .k{font-family:var(--serif); font-size:9px; letter-spacing:.6px; color:var(--dim); text-transform:uppercase}
 .center .v{font-family:var(--display); font-weight:800; font-size:17px; color:var(--txt); line-height:1.1}
 #targets{display:flex; justify-content:space-between; padding:4px 14px; font-size:11px; color:var(--dim);
-  background:#160a06; border-bottom:1px solid var(--line); flex-shrink:0}
+  background:var(--bar-b); border-bottom:1px solid var(--line); flex-shrink:0}
 #targets b{color:var(--gold); font-family:var(--display)}
 /* ---------- table ---------- */
 #table{
   position:relative; flex:1; min-height:0; margin:8px; border-radius:20px;
   background:radial-gradient(ellipse 120% 90% at 50% 45%,var(--felt-a),var(--felt-b) 78%);
-  box-shadow:inset 0 0 0 3px var(--gold-d), inset 0 0 0 10px #0a3a26, inset 0 0 40px rgba(0,0,0,.55),
-             0 8px 24px rgba(0,0,0,.5);
+  box-shadow:inset 0 0 0 3px var(--gold-d), inset 0 0 0 10px var(--ring), inset 0 0 40px rgba(0,0,0,.55),
+             0 8px 24px rgba(0,0,0,.5), 0 0 30px var(--glow);
   overflow:hidden;
 }
 #table::before{content:""; position:absolute; inset:16px; border-radius:50%/40%;
   border:1px solid rgba(227,197,101,.18); pointer-events:none}
 #trumpBadge{position:absolute; top:10px; left:12px; z-index:6; font-size:12px; color:var(--txt);
-  background:rgba(0,0,0,.4); border:1px solid var(--gold-d); border-radius:20px; padding:4px 10px; font-family:var(--serif)}
+  background:var(--chip); border:1px solid var(--gold-d); border-radius:20px; padding:4px 10px; font-family:var(--serif)}
 #trumpBadge .hidden{color:var(--dim)}
 /* ---------- pods joueurs ---------- */
 .seat{position:absolute; display:flex; flex-direction:column; align-items:center; gap:4px; transition:opacity .2s}
-.pod{display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.32); border:1px solid var(--line);
+.pod{display:flex; align-items:center; gap:6px; background:var(--pod); border:1px solid var(--line);
   border-radius:22px; padding:3px 9px 3px 3px}
 .avatar{width:30px; height:30px; border-radius:50%; flex-shrink:0;
   background:radial-gradient(circle at 35% 30%,#2a3a52,#141b28); border:2px solid var(--gold-d);
@@ -112,7 +116,7 @@ body{
 #trick .slot.E{right:0; top:50%; transform:translateY(-50%)}
 #trick .slot.W{left:0; top:50%; transform:translateY(-50%)}
 /* ---------- panneau bas ---------- */
-#panel{background:linear-gradient(180deg,#1c0f09,#140a06); border-top:1px solid var(--line);
+#panel{background:linear-gradient(180deg,var(--panel-a),var(--panel-b)); border-top:1px solid var(--line);
   padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); flex-shrink:0; max-height:40vh; overflow-y:auto}
 #msg{font-size:13px; color:var(--dim); margin-bottom:8px; min-height:18px; line-height:1.45}
 #msg b{color:var(--txt)}
@@ -120,7 +124,7 @@ body{
 button{font-family:var(--sans); font-size:14px; font-weight:600; border-radius:9px; padding:9px 15px;
   border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--txt); cursor:pointer; transition:.12s}
 button:hover{border-color:var(--gold-d)}
-button.primary{background:linear-gradient(180deg,#2f8f5e,#1f6e46); border-color:#2f8f5e; color:#fff}
+button.primary{background:linear-gradient(180deg,var(--primary-a),var(--primary-b)); border-color:var(--primary-a); color:#fff}
 button.gold{background:linear-gradient(180deg,var(--gold),var(--gold-d)); border-color:var(--gold); color:#2a1c06; font-weight:800}
 button.pass{background:transparent}
 button:disabled{opacity:.4; cursor:default}
@@ -128,7 +132,7 @@ button:disabled{opacity:.4; cursor:default}
 #log{margin-top:8px; font-size:11px; color:#9a8a6a; max-height:64px; overflow-y:auto; line-height:1.5}
 /* ---------- modale ---------- */
 .overlay{position:absolute; inset:0; background:rgba(0,0,0,.74); display:flex; align-items:center; justify-content:center; z-index:30; padding:20px}
-.modal{background:linear-gradient(180deg,#241309,#170c06); border:1px solid var(--gold-d); border-radius:16px; padding:24px; max-width:340px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.modal{background:linear-gradient(180deg,var(--modal-a),var(--modal-b)); border:1px solid var(--gold-d); border-radius:16px; padding:24px; max-width:340px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.6)}
 .modal h2{margin:0 0 8px; font-family:var(--display); font-size:22px; color:var(--gold)}
 .modal p{color:var(--dim); font-size:14px; line-height:1.55; margin:6px 0 16px}
 .modal .score{font-size:15px; margin:10px 0; font-weight:600; color:var(--txt)}
@@ -147,10 +151,32 @@ body[data-back="classic"] .card.back{background:repeating-linear-gradient(45deg,
 body[data-back="dark"] .card.back{background:repeating-linear-gradient(45deg,#2b2b33,#2b2b33 5px,#17171c 5px,#17171c 10px);border:1px solid #000;box-shadow:inset 0 0 0 3px rgba(227,197,101,.25),0 2px 5px rgba(0,0,0,.4)}
 body[data-felt="blue"]{--felt-a:#155a7a;--felt-b:#082a3d}
 body[data-felt="violet"]{--felt-a:#4a2a6a;--felt-b:#241338}
+/* ---------- thèmes (comme le jeu Thaayam et l'appli) : Cristal, Temple, Nuit ; Bois = style d'origine.
+   Placés après les tapis : hors Bois, le thème choisit aussi la table. ---------- */
+body[data-skin="cristal"]{--wood-a:#06101a;--wood-b:#04070b;--felt-a:#123a52;--felt-b:#081018;
+  --gold:#7fdcff;--gold-d:#2c6f93;--txt:#e9f3fb;--dim:#8ea7b9;--line:rgba(95,212,255,.28);
+  --bar-a:#0a141e;--bar-b:#05090e;--panel-a:#081018;--panel-b:#04070b;--modal-a:#0b1620;--modal-b:#05090e;
+  --ring:#081018;--pod:rgba(14,24,34,.7);--chip:rgba(14,24,34,.75);--primary-a:#8fdcff;--primary-b:#2f9fd6;
+  --glow:rgba(95,212,255,.35);--display:'Saira','Rajdhani',var(--sans)}
+body[data-skin="nuit"]{--wood-a:#120822;--wood-b:#06020d;--felt-a:#2a0f45;--felt-b:#0c0618;
+  --gold:#ff4fd8;--gold-d:#7a3cff;--txt:#f6e9ff;--dim:#b49ccc;--line:rgba(122,60,255,.4);
+  --bar-a:#140a26;--bar-b:#07030f;--panel-a:#120822;--panel-b:#06020d;--modal-a:#140a26;--modal-b:#07030f;
+  --ring:#0c0618;--pod:rgba(22,10,42,.7);--chip:rgba(22,10,42,.75);--primary-a:#ff4fd8;--primary-b:#7a3cff;
+  --glow:rgba(255,79,216,.35);--display:'Saira','Rajdhani',var(--sans)}
+body[data-skin="temple"]{--wood-a:#efe6d3;--wood-b:#e2d5ba;--felt-a:#b39468;--felt-b:#8d7556;
+  --gold:#9a6a12;--gold-d:#d9a520;--txt:#2a2118;--dim:#6f5f48;--line:#c9b48e;
+  --bar-a:#f6efe1;--bar-b:#e6dac3;--panel-a:#f3e9d6;--panel-b:#e6dac3;--modal-a:#f6efe1;--modal-b:#e9dfcb;
+  --ring:#8d7556;--pod:rgba(246,239,225,.85);--chip:rgba(246,239,225,.85);--primary-a:#d9a520;--primary-b:#9a6a12}
+body[data-skin="temple"] .team{background:rgba(255,255,255,.55)}
+body[data-skin="temple"] button:not(.primary):not(.gold){background:rgba(255,255,255,.55)}
+body[data-skin="temple"] button.primary,body[data-skin="temple"] button.gold{color:#fff8e6}
+body[data-skin="cristal"] button.primary{color:#03121c}
+body[data-skin="cristal"] .seat.active .avatar,body[data-skin="nuit"] .seat.active .avatar{box-shadow:0 0 0 2px var(--gold),0 0 16px var(--glow);animation:none}
+body[data-skin="cristal"] .team .tcount,body[data-skin="nuit"] .team .tcount{text-shadow:0 0 12px var(--glow)}
 #btnMenu{position:absolute;top:8px;right:10px;z-index:7;width:34px;height:34px;border-radius:50%;
   background:rgba(0,0,0,.4);border:1px solid var(--gold-d);color:var(--gold);font-size:16px;cursor:pointer;padding:0}
 .fs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:50;padding:18px}
-.sheet{background:linear-gradient(180deg,#241309,#160b06);border:1px solid var(--gold-d);border-radius:16px;
+.sheet{background:linear-gradient(180deg,var(--modal-a),var(--modal-b));border:1px solid var(--gold-d);border-radius:16px;
   padding:20px;max-width:360px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.6)}
 .sheet h2{font-family:var(--display);color:var(--gold);margin:0 0 12px;font-size:20px}
 .sheet h3{font-family:var(--serif);color:var(--txt);margin:16px 0 6px;font-size:14px}
@@ -272,7 +298,7 @@ const I18N = {
       callCaps:'Annoncer Caps', capsCalledBy:'{p} annonce Caps !', hintCaps:'Vous êtes sûr de faire tous les plis : annoncez Caps avant d\'entamer !', wrongCapsUs:'Wrong Caps : −{n} jetons pour nous', wrongCapsThem:'Wrong Caps : −{n} jetons pour eux',
       cutIndicator:'Couper avec l\'atout posé', hintCut:'Conseil : coupez avec l\'atout posé.',
       lastTrickBtn:'Dernier pli', lastTrickTitle:'Dernier pli — remporté par {p} (+{n})',
-      language:'Langue', cardBack:'Dos de cartes', table:'Table', royal:'Royal', classic:'Classique', dark:'Sombre',
+      language:'Langue', skin:'Apparence', skinCristal:'Cristal', skinTemple:'Temple', skinNuit:'Nuit', skinBois:'Bois', cardBack:'Dos de cartes', table:'Table', royal:'Royal', classic:'Classique', dark:'Sombre',
       green:'Verte', blue:'Bleue', violet:'Violette', learn:'Apprendre le 304', close:'Fermer',
       sound:'Son', on:'Activé', off:'Coupé', speed:'Vitesse des bots', slow:'Lente', normal:'Normale', fast:'Rapide'},
   en:{us:'Us',them:'Them',bid:'Bid',trump:'Trump',tricks:'Tricks',tgtUs:'Our target',tgtThem:'Opponent target',
@@ -318,7 +344,7 @@ const I18N = {
       callCaps:'Call Caps', capsCalledBy:'{p} calls Caps!', hintCaps:'You are sure to win every trick: call Caps before you lead!', wrongCapsUs:'Wrong Caps: −{n} tokens for us', wrongCapsThem:'Wrong Caps: −{n} tokens for them',
       cutIndicator:'Cut with the face-down trump', hintCut:'Hint: cut with the face-down trump.',
       lastTrickBtn:'Last trick', lastTrickTitle:'Last trick — won by {p} (+{n})',
-      language:'Language', cardBack:'Card back', table:'Table', royal:'Royal', classic:'Classic', dark:'Dark',
+      language:'Language', skin:'Appearance', skinCristal:'Crystal', skinTemple:'Temple', skinNuit:'Night', skinBois:'Wood', cardBack:'Card back', table:'Table', royal:'Royal', classic:'Classic', dark:'Dark',
       green:'Green', blue:'Blue', violet:'Purple', learn:'Learn 304', close:'Close',
       sound:'Sound', on:'On', off:'Off', speed:'Bot speed', slow:'Slow', normal:'Normal', fast:'Fast'},
   // தமிழ் — traduction machine validée (repères/balises) ; relecture native bienvenue
@@ -414,6 +440,11 @@ const I18N = {
       lastTrickBtn:'கடைசிக் கை',
       lastTrickTitle:'கடைசிக் கை — வென்றவர் {p} (+{n})',
       language:'மொழி',
+      skin:'தோற்றம்',
+      skinCristal:'படிகம்',
+      skinTemple:'கோவில்',
+      skinNuit:'இரவு',
+      skinBois:'மரம்',
       cardBack:'சீட்டின் பின்புறம்',
       table:'மேசை',
       royal:'ராயல்',
@@ -524,6 +555,11 @@ const I18N = {
       lastTrickBtn:'අවසාන අත',
       lastTrickTitle:'අවසාන අත — දිනුවේ {p} (+{n})',
       language:'භාෂාව',
+      skin:'පෙනුම',
+      skinCristal:'ස්ඵටික',
+      skinTemple:'පන්සල',
+      skinNuit:'රාත්‍රිය',
+      skinBois:'ලී',
       cardBack:'කාඩ්පතේ පිටුපස',
       table:'මේසය',
       royal:'රාජකීය',
@@ -1542,9 +1578,15 @@ function showHandResult(r){
 
 // ===== Réglages (cosmétiques) & Tutoriel =====
 function setBack(v){ document.body.setAttribute('data-back',v); try{localStorage.setItem('back304',v);}catch(e){} markOpts(); }
+// thème (Cristal par défaut, comme l'appli) ; le tapis ne compte qu'en Bois
+const SKINS=['cristal','temple','nuit','bois'];
+function curSkin(){ try{ const v=localStorage.getItem('theme304'); if(SKINS.includes(v)) return v; }catch(e){} return 'cristal'; }
+function setSkin(v){ document.body.setAttribute('data-skin',v); try{localStorage.setItem('theme304',v);}catch(e){}
+  const ov=document.querySelector('.fs-overlay'); if(ov){ ov.remove(); openSettings(); } else markOpts(); }
 function setFelt(v){ document.body.setAttribute('data-felt',v); try{localStorage.setItem('felt304',v);}catch(e){} markOpts(); }
 function markOpts(){
   document.querySelectorAll('#setBacks button').forEach(b=>b.classList.toggle('on', b.dataset.v===(localStorage.getItem('back304')||'royal')));
+  document.querySelectorAll('#setSkins button').forEach(b=>b.classList.toggle('on', b.dataset.v===curSkin()));
   document.querySelectorAll('#setFelts button').forEach(b=>b.classList.toggle('on', b.dataset.v===(localStorage.getItem('felt304')||'green')));
   document.querySelectorAll('#setLangs button').forEach(b=>b.classList.toggle('on', b.dataset.v===LANG));
   document.querySelectorAll('#setSound button').forEach(b=>b.classList.toggle('on', b.dataset.v===(SOUND?'on':'off')));
@@ -1575,18 +1617,25 @@ function openSettings(){
       <button data-v="1" onclick="setSpeed(1)">${t('normal')}</button>
       <button data-v="0.5" onclick="setSpeed(0.5)">${t('fast')}</button>
     </div>
+    <div class="lbl">${t('skin')}</div>
+    <div class="opt" id="setSkins">
+      <button data-v="cristal" onclick="setSkin('cristal')">${t('skinCristal')}</button>
+      <button data-v="temple" onclick="setSkin('temple')">${t('skinTemple')}</button>
+      <button data-v="nuit" onclick="setSkin('nuit')">${t('skinNuit')}</button>
+      <button data-v="bois" onclick="setSkin('bois')">${t('skinBois')}</button>
+    </div>
     <div class="lbl">${t('cardBack')}</div>
     <div class="opt" id="setBacks">
       <button data-v="royal" onclick="setBack('royal')">${t('royal')}</button>
       <button data-v="classic" onclick="setBack('classic')">${t('classic')}</button>
       <button data-v="dark" onclick="setBack('dark')">${t('dark')}</button>
     </div>
-    <div class="lbl">${t('table')}</div>
+    ${curSkin()==='bois'?`<div class="lbl">${t('table')}</div>
     <div class="opt" id="setFelts">
       <button data-v="green" onclick="setFelt('green')">${t('green')}</button>
       <button data-v="blue" onclick="setFelt('blue')">${t('blue')}</button>
       <button data-v="violet" onclick="setFelt('violet')">${t('violet')}</button>
-    </div>
+    </div>`:''}
     <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="primary" onclick="this.closest('.fs-overlay').remove();openTutorial()">${t('learn')}</button>
       <button onclick="this.closest('.fs-overlay').remove()">${t('close')}</button>
@@ -1669,6 +1718,7 @@ function openTutorial(){
 // init cosmétiques (au chargement)
 try{ document.body.setAttribute('data-back', localStorage.getItem('back304')||'royal');
      document.body.setAttribute('data-felt', localStorage.getItem('felt304')||'green'); }catch(e){}
+document.body.setAttribute('data-skin', curSkin());
 
 // GO
 try{ const sv=localStorage.getItem('lang304'); if(sv&&I18N[sv]) LANG=sv; }catch(e){}

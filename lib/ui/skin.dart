@@ -524,44 +524,48 @@ class SkinPrimaryButton extends StatelessWidget {
         ],
       _ => const [Color(0xFFF0D98A), Color(0xFFE3C565), Color(0xFFA5822F)],
     };
+    // décor (dégradé, lueur) peint hors du Material : sinon, sur le web, la
+    // lueur était découpée en rectangle sombre autour du bouton
     return Semantics(
       button: true,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          onTap: onPressed,
-          child: Ink(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: colors,
-                stops: const [0, 0.45, 1],
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: colors,
+            stops: const [0, 0.45, 1],
+          ),
+          border: Border.all(color: colors.first),
+          boxShadow: s.shadow(blur: 18, opacity: 0.45),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onPressed,
+            child: SizedBox(
+              width: double.infinity,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  if (icon != null) ...[
+                    Icon(icon, color: s.onAccent),
+                    const SizedBox(width: 6),
+                  ],
+                  Flexible(
+                    child: Text(label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: s.onAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16)),
+                  ),
+                ]),
               ),
-              border: Border.all(color: colors.first),
-              boxShadow: s.shadow(blur: 18, opacity: 0.45),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-              child:
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                if (icon != null) ...[
-                  Icon(icon, color: s.onAccent),
-                  const SizedBox(width: 6),
-                ],
-                Flexible(
-                  child: Text(label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: s.onAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
-                ),
-              ]),
             ),
           ),
         ),
