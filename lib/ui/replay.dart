@@ -281,21 +281,29 @@ class _ReplayScreenState extends State<ReplayScreen> {
                             blurRadius: 26)
                       ],
               ),
-              child: SingleChildScrollView(
-                child: Column(children: [
-                  _hand(rel(2), l),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _hand(rel(3), l, vertical: true),
-                      Expanded(child: Center(child: _trick(l))),
-                      _hand(rel(1), l, vertical: true),
-                    ],
+              // centré verticalement sur les grands écrans, défilant sinon
+              child: LayoutBuilder(
+                builder: (context, box) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: box.maxHeight - 12),
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _hand(rel(2), l),
+                          const SizedBox(height: 8),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              _hand(rel(3), l, vertical: true),
+                              Expanded(child: Center(child: _trick(l))),
+                              _hand(rel(1), l, vertical: true),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _hand(rel(0), l),
+                        ]),
                   ),
-                  const SizedBox(height: 8),
-                  _hand(rel(0), l),
-                ]),
+                ),
               ),
             ),
           ),
