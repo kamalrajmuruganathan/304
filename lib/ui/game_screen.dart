@@ -6,6 +6,7 @@ import '../ai/bots.dart';
 import '../ai/hard.dart';
 import '../l10n/app_localizations.dart';
 import '../daily.dart';
+import '../net/ranking.dart';
 import '../settings.dart';
 import 'skin.dart';
 import '../sound.dart';
@@ -611,7 +612,9 @@ class _GameScreenState extends State<GameScreen> {
     // partie finie : rien à reprendre
     if (widget.daily) {
       if (_official) {
-        finishDaily(e.tokens['NS']! - 11, e.pointsNS, day: _day);
+        // puis envoyé au classement entre amis, s'il est activé
+        finishDaily(e.tokens['NS']! - 11, e.pointsNS, day: _day)
+            .then((_) => Ranking.instance.submitDailyQuietly());
       }
     } else if (over) {
       clearSolo();

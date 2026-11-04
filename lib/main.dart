@@ -7,10 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
 import 'daily.dart';
 import 'pwa.dart';
+import 'net/ranking.dart';
 import 'settings.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
 import 'ui/profile.dart';
+import 'ui/ranking_screen.dart';
 import 'ui/skin.dart';
 import 'ui/invite.dart';
 import 'ui/stats_screen.dart';
@@ -44,6 +46,7 @@ Future<void> main() async {
   await loadSettings();
   await loadSkin();
   await loadDaily();
+  await Ranking.load();
   // appli Android ouverte par un lien d'invitation (game304://table/ABCD)
   String? code;
   if (!kIsWeb) {
@@ -285,6 +288,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               horizontal: 24, vertical: 6),
                           child: Text(l.privateTableFriends,
                               textAlign: TextAlign.center),
+                        ),
+                      )),
+                  const SizedBox(height: 12),
+                  // classement entre amis (Supabase, activé à la demande)
+                  SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('home-ranking'),
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const RankingScreen())),
+                        icon: const Icon(Icons.emoji_events_outlined),
+                        label: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Text(l.rankTitle, textAlign: TextAlign.center),
                         ),
                       )),
                   const SizedBox(height: 12),
