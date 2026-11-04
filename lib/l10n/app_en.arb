@@ -568,5 +568,128 @@
   "themeCristal": "Crystal",
   "themeTemple": "Temple",
   "themeNuit": "Night",
-  "themeBois": "Wood"
+  "themeBois": "Wood",
+  "rankTitle": "Friends leaderboard",
+  "rankIntro": "Compare yourself with your friends: daily deal and games won. Your name, avatar and scores are sent to our server; only the friends you add by code can see your name.",
+  "rankJoin": "Turn on the leaderboard",
+  "rankMyCode": "My friend code: {code}",
+  "@rankMyCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "rankShareCode": "Share my code",
+  "rankShareText": "Add me on the 304 leaderboard: my friend code is {code}. {url}",
+  "@rankShareText": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "rankAddHint": "A friend's code",
+  "rankAdd": "Add",
+  "rankAdded": "{name} is now your friend.",
+  "@rankAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rankToday": "Daily deal",
+  "rankGames": "Games won",
+  "rankPosition": "Daily deal: rank {rank} of {total} players",
+  "@rankPosition": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "rankNotPlayed": "not played yet",
+  "rankPlayDaily": "Play the daily deal to get a rank.",
+  "rankNoFriends": "No friends yet: share your code or enter a friend's code.",
+  "rankRemove": "Remove {name} from your friends?",
+  "@rankRemove": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rankRemoveOk": "Remove",
+  "rankWon": "{won} won of {played}",
+  "@rankWon": {
+    "placeholders": {
+      "won": {
+        "type": "int"
+      },
+      "played": {
+        "type": "int"
+      }
+    }
+  },
+  "rankErrNetwork": "Can't reach the leaderboard. Try again later.",
+  "rankErrCode": "Unknown code.",
+  "rankErrSelf": "That's your own code.",
+  "rankErrTooMany": "50 friends at most.",
+  "rankErrOther": "The leaderboard didn't answer. Try again.",
+  "rankRetry": "Try again",
+  "tourTitle": "Tournament vs bots",
+  "tourRules": "3 matches of 6 deals, stronger and stronger opponents",
+  "tourRound0": "Quarter-final",
+  "tourRound1": "Semi-final",
+  "tourRound2": "Final",
+  "tourDeal": "Deal {n} of {total}",
+  "@tourDeal": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "tourExtra": "Tie: deciding deal",
+  "tourMatchWon": "Match won! Next round: {round}.",
+  "@tourMatchWon": {
+    "placeholders": {
+      "round": {
+        "type": "String"
+      }
+    }
+  },
+  "tourChampion": "You win the tournament!",
+  "tourEliminated": "Knocked out: the tournament starts again at the quarter-final.",
+  "tourNextMatch": "Next match",
+  "tourNew": "New tournament",
+  "tourOpponents": "Opponents: {level}",
+  "@tourOpponents": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "tourTitles": "Tournaments won: {n}",
+  "@tourTitles": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "rankDelete": "Delete my leaderboard data",
+  "rankDeleteAsk": "Your name, scores and friends will be erased from the server. Your friends will no longer see you.",
+  "rankDeleteOk": "Delete"
 }

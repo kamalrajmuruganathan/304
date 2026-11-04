@@ -30,6 +30,9 @@ Retrouvez le **304**, le grand jeu de plis par équipes de Jaffna et du sud de l
 • **Tables privées** : créez une table, partagez le code à 4 lettres, jouez avec votre famille où qu'elle soit. Les places libres sont tenues par des bots. Chat écrit et **vocal**, lien d'invitation, reconnexion automatique, spectateurs.
 • **Tables publiques** : un toucher pour jouer avec d'autres joueurs, sans code (réactions rapides, sans chat libre).
 • **Donne du jour** : la même donne pour tout le monde chaque jour ; comparez votre score avec vos amis.
+• **Classement entre amis** (facultatif) : ajoutez vos amis par code et comparez donne du jour et parties gagnées.
+• **Tournoi contre les bots** : quart de finale, demi-finale puis finale contre des adversaires de plus en plus forts.
+• **Quatre thèmes** : Cristal, Nuit (lumières animées), Temple et Bois.
 • **Trois niveaux** : Facile, Normal et **Difficile** (une IA qui anticipe les cartes cachées).
 • **En 4 langues** : தமிழ், සිංහල, English, français.
 • **Pour apprendre** : tutoriel intégré, **Conseil expliqué** (la carte et pourquoi), revue du dernier pli, **revoir toute la donne** mains dévoilées, récapitulatif de chaque donne.
@@ -48,6 +51,9 @@ Play **304**, the classic team trick-taking game of Jaffna and South India.
 • **Private tables**: create a table, share the 4-letter code and play with family anywhere. Empty seats are filled by bots. Text and **voice** chat, invite link, automatic reconnection, spectators.
 • **Public tables**: one tap to play with other players, no code (quick reactions, no free chat).
 • **Deal of the day**: the same deal for everyone each day; compare your score with friends.
+• **Friends leaderboard** (optional): add friends by code and compare the deal of the day and games won.
+• **Tournament vs bots**: quarter-final, semi-final then final against stronger and stronger opponents.
+• **Four themes**: Crystal, Night (animated lights), Temple and Wood.
 • **Three levels**: Easy, Normal and **Hard** (an AI that anticipates the hidden cards).
 • **In 4 languages**: தமிழ், සිංහල, English, français.
 • **Easy to learn**: built-in tutorial, **explained Hints** (the card and why), last-trick review, **replay the whole deal** with all hands shown, summary of every deal.
@@ -66,6 +72,9 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 • **தனிப்பட்ட மேசைகள்**: மேசையை உருவாக்கி 4 எழுத்து குறியீட்டைப் பகிர்ந்து, குடும்பத்துடன் எங்கிருந்தும் விளையாடுங்கள். காலியான இடங்களில் கணினி வீரர்கள். மேசை அரட்டை, தானியங்கி மீள் இணைப்பு.
 • **பொது மேசைகள்**: ஒரே தொடுதலில் மற்ற வீரர்களுடன் விளையாடுங்கள் (விரைவு எதிர்வினைகள் மட்டும்).
 • **இன்றைய பகிர்வு**: தினமும் எல்லோருக்கும் ஒரே பகிர்வு; நண்பர்களுடன் மதிப்பெண்ணை ஒப்பிடுங்கள்.
+• **நண்பர்கள் தரவரிசை** (விருப்பத்தேர்வு): குறியீட்டின் மூலம் நண்பர்களைச் சேர்த்து, இன்றைய பகிர்வையும் வென்ற ஆட்டங்களையும் ஒப்பிடுங்கள்.
+• **கணினி வீரர்களுடன் போட்டித் தொடர்**: கால் இறுதி, அரை இறுதி, பின்னர் இறுதிப் போட்டி — மேலும் மேலும் வலிமையான எதிரிகள்.
+• **நான்கு தோற்றங்கள்**: Cristal, Nuit, Temple, Bois.
 • **மூன்று நிலைகள்**: எளிது, சாதாரண, **கடினம்**.
 • **4 மொழிகள்**: தமிழ், සිංහල, English, français.
 • **கற்க எளிது**: பயிற்சி வழிகாட்டி, காரணத்துடன் குறிப்பு, கடைசி கை, முழுப் பகிர்வையும் மீண்டும் பார்த்தல், ஒவ்வொரு பகிர்வின் சுருக்கம்.
@@ -81,6 +90,9 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 • **පෞද්ගලික මේස**: මේසයක් සාදා අකුරු 4 ක කේතය බෙදාගෙන, ඕනෑම තැනක සිට පවුලේ අය සමඟ ක්‍රීඩා කරන්න. හිස් ආසනවල පරිගණක ක්‍රීඩකයන්. මේස කතාබහ, ස්වයංක්‍රීය නැවත සම්බන්ධ වීම.
 • **පොදු මේස**: එක් ස්පර්ශයකින් වෙනත් ක්‍රීඩකයන් සමඟ ක්‍රීඩා කරන්න (ඉක්මන් ප්‍රතිචාර පමණි).
 • **අද දවසේ බෙදීම**: දිනපතා සැමට එකම බෙදීම; මිතුරන් සමඟ ලකුණු සසඳන්න.
+• **මිතුරන්ගේ ශ්‍රේණිගත කිරීම** (අභිමත): කේතයෙන් මිතුරන් එක් කර, අද දවසේ බෙදීම සහ ජයගත් ක්‍රීඩා සසඳන්න.
+• **බොට්වරුන් සමඟ තරඟාවලිය**: කාර්තු අවසන්, අර්ධ අවසන්, ඉන්පසු අවසන් තරඟය — ක්‍රමයෙන් ශක්තිමත් වන ප්‍රතිවාදීන්.
+• **තේමා හතරක්**: Cristal, Nuit, Temple, Bois.
 • **මට්ටම් තුනක්**: පහසු, සාමාන්‍ය, **අමාරු**.
 • **භාෂා 4**: தமிழ், සිංහල, English, français.
 • **ඉගෙනීමට පහසුයි**: පුහුණු මාර්ගෝපදේශය, හේතුව සමඟ ඉඟි, අවසන් අත, සම්පූර්ණ බෙදීම නැවත බැලීම, සෑම බෙදීමකම සාරාංශය.
@@ -101,7 +113,7 @@ Free to play, **no real money**: no betting, no deposits, no cash prizes.
 | Jeu d'argent réel / pari | **Non** |
 | Achats intégrés | Non |
 | Publicité | Non |
-| Données collectées (Play « Sécurité des données » / Apple « Confidentialité ») | Voir `docs/PLAY_CONSOLE.md` §5 : déclaration prudente du pseudonyme, des messages de chat et de l'audio du chat vocal (traités de façon éphémère, non partagés, non conservés) ; aucune autre donnée |
+| Données collectées (Play « Sécurité des données » / Apple « Confidentialité ») | Voir `docs/PLAY_CONSOLE.md` §5 : déclaration prudente du pseudonyme, des messages de chat et de l'audio du chat vocal (éphémères, non partagés), et du **classement entre amis** facultatif (prénom, avatar, scores, amis : conservés jusqu'à suppression par le joueur dans l'appli) ; aucune autre donnée |
 | Chat entre joueurs | **Oui** : chat texte et **vocal** (WebRTC, en direct, non enregistré) entre joueurs d'une même table privée (rejointe par code), non modéré, non conservé ; aux **tables publiques** (inconnus), seulement des **réactions prédéfinies** traduites (pas de texte libre, pas de vocal : imposé par le serveur). Play « Contenu généré par les utilisateurs / interactions » et IARC : répondre **Oui, les utilisateurs peuvent communiquer** (texte libre et vocal : tables privées uniquement) |
 | Public cible | 13 ans et plus conseillé |
 | URL de confidentialité | `https://kamalrajmuruganathan.github.io/304/privacy.html` |

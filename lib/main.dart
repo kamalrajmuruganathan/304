@@ -7,10 +7,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
 import 'daily.dart';
 import 'pwa.dart';
+import 'net/ranking.dart';
 import 'settings.dart';
+import 'tournament.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
 import 'ui/profile.dart';
+import 'ui/ranking_screen.dart';
 import 'ui/skin.dart';
 import 'ui/invite.dart';
 import 'ui/stats_screen.dart';
@@ -44,6 +47,8 @@ Future<void> main() async {
   await loadSettings();
   await loadSkin();
   await loadDaily();
+  await Ranking.load();
+  await loadTour();
   // appli Android ouverte par un lien d'invitation (game304://table/ABCD)
   String? code;
   if (!kIsWeb) {
@@ -257,6 +262,38 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  // tournoi : 3 matchs, adversaires de plus en plus forts
+                  ValueListenableBuilder(
+                    valueListenable: tour,
+                    builder: (context, t, _) {
+                      final round =
+                          [l.tourRound0, l.tourRound1, l.tourRound2][t.round];
+                      final level = {
+                        'easy': l.levelEasy,
+                        'normal': l.normal,
+                        'hard': l.levelHard
+                      }[t.level]!;
+                      return SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('home-tournament'),
+                            onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const GameScreen(tournament: true))),
+                            icon: const Icon(Icons.emoji_events),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Text(
+                                  t.fresh
+                                      ? '${l.tourTitle}\n${l.tourRules}${t.titles > 0 ? '\n${l.tourTitles(t.titles)}' : ''}'
+                                      : '${l.tourTitle}\n$round · ${l.tourOpponents(level)} · ${l.us} ${t.ns} – ${l.them} ${t.ew}',
+                                  textAlign: TextAlign.center),
+                            ),
+                          ));
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   // table publique : d'autres joueurs, sans code
                   SizedBox(
                       width: double.infinity,
@@ -285,6 +322,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               horizontal: 24, vertical: 6),
                           child: Text(l.privateTableFriends,
                               textAlign: TextAlign.center),
+                        ),
+                      )),
+                  const SizedBox(height: 12),
+                  // classement entre amis (Supabase, activé à la demande)
+                  SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('home-ranking'),
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const RankingScreen())),
+                        icon: const Icon(Icons.emoji_events_outlined),
+                        label: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Text(l.rankTitle, textAlign: TextAlign.center),
                         ),
                       )),
                   const SizedBox(height: 12),
