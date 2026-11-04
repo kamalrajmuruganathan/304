@@ -121,6 +121,9 @@ void main() {
     expect(prefs.getString('tour304'), isNotNull);
     // la partie solo n'est pas touchée
     expect(soloSave.value, isNull);
+    // fin : on quitte l'écran et on laisse finir les délais des bots
+    await t.pumpWidget(const SizedBox());
+    await t.pump(const Duration(seconds: 3));
     tour.value = const TourState();
   });
 
@@ -155,6 +158,9 @@ void main() {
     } else {
       expect(find.textContaining(l.tourExtra), findsOneWidget);
     }
+    // fin : on quitte l'écran et on laisse finir les délais des bots
+    await t.pumpWidget(const SizedBox());
+    await t.pump(const Duration(seconds: 3));
     tour.value = const TourState();
   });
 }

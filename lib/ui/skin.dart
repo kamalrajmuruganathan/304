@@ -259,9 +259,34 @@ ThemeData skinTheme(Skin s) {
 /// Fond d'écran du thème : Cristal / Nuit = halo au plafond, bandeau LED
 /// courbe et sol quadrillé en perspective ; Temple = pierre claire et fines
 /// lignes ; Bois = uni.
-class Ambiance extends StatelessWidget {
+/// Animations de décor (Cristal, Nuit) : coupées dans les tests (sinon
+/// `pumpAndSettle` ne s'arrête jamais) et quand le téléphone demande de
+/// réduire les animations.
+final ValueNotifier<bool> skinMotion = ValueNotifier(true);
+
+/// Les animations de décor sont-elles permises ici ?
+bool motionAllowed(BuildContext context) =>
+    skinMotion.value && !MediaQuery.of(context).disableAnimations;
+
+class Ambiance extends StatefulWidget {
   const Ambiance({super.key, required this.child});
   final Widget child;
+
+  @override
+  State<Ambiance> createState() => _AmbianceState();
+}
+
+class _AmbianceState extends State<Ambiance>
+    with SingleTickerProviderStateMixin {
+  // un tour de décor : point lumineux du bandeau LED, sol qui défile, halo
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(seconds: 7));
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -269,15 +294,24 @@ class Ambiance extends StatelessWidget {
       valueListenable: skinCode,
       builder: (context, code, _) {
         final s = skinOf(code);
+        final animate = s.glow != null && motionAllowed(context);
+        if (animate && !_c.isAnimating) {
+          _c.repeat();
+        } else if (!animate && _c.isAnimating) {
+          _c.stop();
+        }
         return DecoratedBox(
           decoration: BoxDecoration(color: s.bg),
           child: Stack(children: [
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(painter: _AmbiancePainter(s)),
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                      painter: _AmbiancePainter(s, animate ? _c : null)),
+                ),
               ),
             ),
-            child,
+            widget.child,
           ]),
         );
       },
@@ -286,8 +320,9 @@ class Ambiance extends StatelessWidget {
 }
 
 class _AmbiancePainter extends CustomPainter {
-  _AmbiancePainter(this.s);
+  _AmbiancePainter(this.s, this.anim) : super(repaint: anim);
   final Skin s;
+  final Animation<double>? anim;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -313,6 +348,9 @@ class _AmbiancePainter extends CustomPainter {
         s.code == 'nuit' ? const Color(0xFFFF8AE5) : const Color(0xFFA0E6FF);
     final grid =
         s.code == 'nuit' ? const Color(0xFFB678FF) : const Color(0xFF5FD4FF);
+    final t = anim?.value ?? 0; // 0 → 1 en boucle (0 : décor immobile)
+    final breathe =
+        anim == null ? 1.0 : 0.85 + 0.15 * math.sin(2 * math.pi * t);
     // halo au plafond
     canvas.drawRect(
       Rect.fromLTWH(0, 0, w, h * 0.45),
@@ -320,7 +358,10 @@ class _AmbiancePainter extends CustomPainter {
         ..shader = RadialGradient(
           center: Alignment.topCenter,
           radius: 0.9,
-          colors: [halo.withValues(alpha: 0.30), halo.withValues(alpha: 0)],
+          colors: [
+            halo.withValues(alpha: 0.30 * breathe),
+            halo.withValues(alpha: 0)
+          ],
         ).createShader(Rect.fromLTWH(0, -h * 0.2, w, h * 0.65)),
     );
     // bandeau LED courbe
@@ -340,6 +381,25 @@ class _AmbiancePainter extends CustomPainter {
           ..color = led.withValues(alpha: 0.85)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2);
+    if (anim != null) {
+      // point lumineux qui parcourt le bandeau (aller-retour)
+      final u = 0.5 - 0.5 * math.cos(2 * math.pi * t);
+      Offset at(double v) {
+        final a = Offset(w * 0.12, -4), c = Offset(w / 2, 48);
+        final b = Offset(w * 0.88, -4);
+        return a * ((1 - v) * (1 - v)) + c * (2 * v * (1 - v)) + b * (v * v);
+      }
+
+      final p = at(u);
+      canvas.drawCircle(
+          p,
+          14,
+          Paint()
+            ..color = led.withValues(alpha: 0.55)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+      canvas.drawCircle(
+          p, 3, Paint()..color = Colors.white.withValues(alpha: 0.9));
+    }
     // sol brillant quadrillé en perspective
     final floor = h * 0.62;
     final vanish = Offset(w / 2, floor - h * 0.5);
@@ -352,8 +412,9 @@ class _AmbiancePainter extends CustomPainter {
       canvas.drawLine(
           Offset(vanish.dx + (xb - vanish.dx) * t, floor), Offset(xb, h), line);
     }
+    // lignes horizontales : avancent lentement vers le joueur
     for (var i = 1; i <= 9; i++) {
-      final y = floor + (h - floor) * math.pow(i / 9, 1.8);
+      final y = floor + (h - floor) * math.pow((i - 1 + t) / 9, 1.8);
       canvas.drawLine(
           Offset(0, y),
           Offset(w, y),
@@ -373,7 +434,8 @@ class _AmbiancePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_AmbiancePainter old) => old.s.code != s.code;
+  bool shouldRepaint(_AmbiancePainter old) =>
+      old.s.code != s.code || old.anim != anim;
 }
 
 /// Grand titre « 304 » de l'accueil, dans le style du thème.

@@ -1234,72 +1234,95 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _table() {
+    // Cristal / Nuit : la lueur de la table respire quand c'est à vous
+    final myTurn = sk.glow != null &&
+        _doneTrick == null &&
+        ((e.phase == 'play' && e.turn == human) || actions.isNotEmpty);
     return Padding(
       padding: const EdgeInsets.all(8),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-              center: const Alignment(0, -0.1),
-              radius: 0.95,
-              colors: [
-                sk.tableColors.$1,
-                sk.tableColors.$2
-              ]), // thème (Bois : tapis choisi)
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: sk.tableBorder, width: 2),
-          boxShadow: [
-            const BoxShadow(
-                color: Colors.black54, blurRadius: 16, offset: Offset(0, 8)),
-            // Cristal / Nuit : liseré lumineux autour de la table
-            if (sk.glow != null)
-              BoxShadow(
-                  color: sk.glow!.withValues(alpha: 0.35), blurRadius: 30),
-          ],
-        ),
-        child: LayoutBuilder(builder: (context, cons) {
-          // écran étroit : la pastille d'atout passe sous la rangée de Nord et
-          // le pion du joueur se réduit à son avatar (textes longs en ta/si)
-          final narrow = cons.maxWidth < 520;
-          const podH = 46.0; // hauteur d'un pion réduit (avatar)
-          final h = cons.maxHeight;
-          // écran étroit : bande libre entre la pastille d'atout et la main
-          final bandTop = narrow ? 96.0 : 0.0;
-          final youBottom = narrow ? 118 * _k + 4 : 8.0;
-          final bandBottom = h - youBottom;
-          // pion du joueur au-dessus de la main s'il y a la place pour lui ET
-          // pour Est/Ouest au-dessus ; sinon masqué (table basse pendant les
-          // enchères sur petit écran, surtout avec les grandes cartes)
-          final showYou = !narrow || bandBottom - bandTop >= 2 * podH + 10;
-          final sideTop = math.max(
-              0.0,
-              narrow
-                  ? (showYou
-                      ? math.min((h - podH) / 2, bandBottom - 2 * podH - 10)
-                      : (bandTop + bandBottom - podH) / 2)
-                  : (h - podH) / 2);
-          return Stack(
-            children: [
-              Positioned(top: narrow ? 58 : 10, left: 12, child: _trumpChip()),
-              Align(
-                  alignment: Alignment.topCenter,
-                  child: Padding(
-                      padding: const EdgeInsets.only(top: 6), child: _pod(2))),
-              // Est / Ouest : au milieu, mais toujours au-dessus du pion du
-              // joueur (table basse sur petit écran pendant les enchères)
-              Positioned(
-                  right: 6, top: sideTop, child: _pod(1, compact: narrow)),
-              Positioned(
-                  left: 6, top: sideTop, child: _pod(3, compact: narrow)),
-              Align(alignment: Alignment.center, child: _trickArea()),
-              if (showYou)
-                Positioned(
-                    left: 10,
-                    bottom: youBottom, // au-dessus de la main
-                    child: _pod(0, compact: narrow)),
-              Align(alignment: Alignment.bottomCenter, child: _handFan()),
+      child: PulseGlow(
+        key: const ValueKey('table-glow'),
+        active: myTurn,
+        animate: motionAllowed(context),
+        color: sk.glow ?? Colors.transparent,
+        radius: 20,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+                center: const Alignment(0, -0.1),
+                radius: 0.95,
+                colors: [
+                  sk.tableColors.$1,
+                  sk.tableColors.$2
+                ]), // thème (Bois : tapis choisi)
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: sk.tableBorder, width: 2),
+            boxShadow: [
+              const BoxShadow(
+                  color: Colors.black54, blurRadius: 16, offset: Offset(0, 8)),
+              // Cristal / Nuit : liseré lumineux autour de la table
+              if (sk.glow != null)
+                BoxShadow(
+                    color: sk.glow!.withValues(alpha: 0.35), blurRadius: 30),
             ],
-          );
-        }),
+          ),
+          child: LayoutBuilder(builder: (context, cons) {
+            // écran étroit : la pastille d'atout passe sous la rangée de Nord et
+            // le pion du joueur se réduit à son avatar (textes longs en ta/si)
+            final narrow = cons.maxWidth < 520;
+            const podH = 46.0; // hauteur d'un pion réduit (avatar)
+            final h = cons.maxHeight;
+            // écran étroit : bande libre entre la pastille d'atout et la main
+            final bandTop = narrow ? 96.0 : 0.0;
+            final youBottom = narrow ? 118 * _k + 4 : 8.0;
+            final bandBottom = h - youBottom;
+            // pion du joueur au-dessus de la main s'il y a la place pour lui ET
+            // pour Est/Ouest au-dessus ; sinon masqué (table basse pendant les
+            // enchères sur petit écran, surtout avec les grandes cartes)
+            final showYou = !narrow || bandBottom - bandTop >= 2 * podH + 10;
+            final sideTop = math.max(
+                0.0,
+                narrow
+                    ? (showYou
+                        ? math.min((h - podH) / 2, bandBottom - 2 * podH - 10)
+                        : (bandTop + bandBottom - podH) / 2)
+                    : (h - podH) / 2);
+            return Stack(
+              children: [
+                Positioned(
+                    top: narrow ? 58 : 10, left: 12, child: _trumpChip()),
+                Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: _pod(2))),
+                // Est / Ouest : au milieu, mais toujours au-dessus du pion du
+                // joueur (table basse sur petit écran pendant les enchères)
+                Positioned(
+                    right: 6, top: sideTop, child: _pod(1, compact: narrow)),
+                Positioned(
+                    left: 6, top: sideTop, child: _pod(3, compact: narrow)),
+                Align(alignment: Alignment.center, child: _trickArea()),
+                if (showYou)
+                  Positioned(
+                      left: 10,
+                      bottom: youBottom, // au-dessus de la main
+                      child: _pod(0, compact: narrow)),
+                Align(alignment: Alignment.bottomCenter, child: _handFan()),
+                // pli gagné par votre équipe : éclat lumineux (Cristal / Nuit)
+                if (_doneTrick != null &&
+                    sk.glow != null &&
+                    teamOf(_doneWinner) == teamOf(human))
+                  Positioned.fill(
+                    child: GlowBurst(
+                        key: ValueKey('burst-${e.tricks.length}'),
+                        color: sk.glow!,
+                        duration: botDelay(800)),
+                  ),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
