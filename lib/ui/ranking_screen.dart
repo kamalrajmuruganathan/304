@@ -107,6 +107,36 @@ class _RankingScreenState extends State<RankingScreen>
     });
   }
 
+  /// Effacer toutes mes données du classement (serveur + appareil).
+  Future<void> _delete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.rankDelete),
+        content: Text(l.rankDeleteAsk),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l.cancel)),
+          FilledButton(
+              key: const ValueKey('rank-delete-ok'),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l.rankDeleteOk)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _run(() async {
+      await Ranking.instance.deleteMe();
+      if (mounted) {
+        setState(() {
+          _board = null;
+          _info = null;
+        });
+      }
+    });
+  }
+
   Future<void> _share(String code) async {
     final text = l.rankShareText(
         code, 'https://kamalrajmuruganathan.github.io/304/app/');
@@ -123,6 +153,14 @@ class _RankingScreenState extends State<RankingScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(l.rankTitle),
+        actions: [
+          if (joined)
+            IconButton(
+                key: const ValueKey('rank-delete'),
+                tooltip: l.rankDelete,
+                onPressed: _busy ? null : _delete,
+                icon: const Icon(Icons.delete_outline)),
+        ],
         bottom: joined && _board != null
             ? TabBar(controller: _tabs, tabs: [
                 Tab(key: const ValueKey('rank-tab-daily'), text: l.rankToday),

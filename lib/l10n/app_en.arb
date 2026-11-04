@@ -688,5 +688,8 @@
         "type": "int"
       }
     }
-  }
+  },
+  "rankDelete": "Delete my leaderboard data",
+  "rankDeleteAsk": "Your name, scores and friends will be erased from the server. Your friends will no longer see you.",
+  "rankDeleteOk": "Delete"
 }

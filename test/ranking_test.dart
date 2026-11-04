@@ -82,6 +82,16 @@ class FakeServer {
         friends[id]!.add(f.first.key);
         friends[f.first.key]!.add(id);
         return ok({'id': f.first.key, 'pseudo': f.first.value['pseudo']});
+      case 'g304_supprimer':
+        players.remove(id);
+        friends.remove(id);
+        for (final f in friends.values) {
+          f.remove(id);
+        }
+        for (final d in scores.values) {
+          d.remove(id);
+        }
+        return ok(null);
       case 'g304_retirer_ami':
         friends[id]!.remove(a['p_ami']);
         friends[a['p_ami']]?.remove(id);
@@ -269,6 +279,17 @@ void main() {
       await t.pumpAndSettle();
       expect(srv.friends[me.id], isEmpty);
       expect(t.takeException(), isNull);
+
+      // supprimer mes données : effacées du serveur, retour à l'activation
+      await t.tap(find.byKey(const ValueKey('rank-delete')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const ValueKey('rank-delete-ok')));
+      await t.pumpAndSettle();
+      expect(srv.players.containsKey(me.id), isFalse);
+      expect(Ranking.me.value, isNull);
+      expect(find.text(l.rankIntro), findsOneWidget);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('rank304'), isNull);
     });
   }
 

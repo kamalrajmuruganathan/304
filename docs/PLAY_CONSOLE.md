@@ -47,7 +47,10 @@ Textes et visuels : `docs/STORE_LISTING.md` et `docs/store/`.
 
 ## 5. Sécurité des données (déclaration prudente)
 
-L'app n'a ni compte, ni publicité, ni analyse. Le **chat vocal** (facultatif) envoie la voix en direct,
+L'app n'a ni compte, ni publicité, ni analyse. Le **classement entre amis** (facultatif, activé par
+le joueur) enregistre sur Supabase : identifiant aléatoire, code ami, prénom, avatar, nombre de parties
+solo jouées/gagnées, score de la donne du jour, liste d'amis ; **suppression dans l'appli** (icône
+corbeille de l'écran Classement → tout est effacé du serveur). Le **chat vocal** (facultatif) envoie la voix en direct,
 chiffrée, d'un joueur à l'autre (WebRTC) : rien n'est enregistré. Permission Android : `RECORD_AUDIO`,
 demandée seulement au premier toucher du bouton micro. Deux informations transitent par le serveur en
 ligne et y restent **seulement en mémoire** le temps de la table : le **pseudonyme** saisi et
@@ -55,17 +58,24 @@ les **messages du chat**. Déclaration recommandée (prudente, cohérente avec `
 
 - **Votre application collecte-t-elle ou partage-t-elle des données ?** Oui.
 - **Toutes les données sont-elles chiffrées en transit ?** Oui (WebSocket `wss://`).
-- **Moyen de demander la suppression ?** Les données ne sont pas conservées (supprimées à la
-  fin de la table) — répondre selon l'option proposée, sinon indiquer l'URL des issues GitHub.
+- **Moyen de demander la suppression ?** Oui : dans l'appli, écran **Classement entre amis** →
+  icône corbeille « Supprimer mes données du classement » (effacement immédiat). Si la console
+  demande une URL de suppression : `https://kamalrajmuruganathan.github.io/304/privacy.html`
+  (la page explique le bouton). Les données des tables en ligne ne sont pas conservées.
+- **Compte utilisateur** : aucun (l'identifiant du classement est créé sans e-mail ni mot de passe).
 - Types de données :
 
 | Type | Collecté | Partagé | Éphémère | Obligatoire | Finalité |
 |---|---|---|---|---|---|
-| Infos personnelles → **Nom** (pseudonyme libre, peut être inventé) | Oui | Non | Oui | Non (facultatif : un nom par défaut est proposé) | Fonctionnalité de l'application |
+| Infos personnelles → **Nom** (pseudonyme libre, peut être inventé) | Oui | Non | **Non** (gardé pour le classement, si activé) | Non (facultatif : un nom par défaut est proposé) | Fonctionnalité de l'application |
+| Activité dans les applis → **Autres actions** (parties solo jouées/gagnées, score de la donne du jour, amis ajoutés — classement) | Oui | Non | Non | Non (classement facultatif) | Fonctionnalité de l'application |
+| Identifiants de l'appareil ou autres → **Autres identifiants** (identifiant aléatoire du classement, pas celui de l'appareil) | Oui | Non | Non | Non | Fonctionnalité de l'application |
 | Messages → **Autres messages dans l'application** (chat de table) | Oui | Non | Oui | Non | Fonctionnalité de l'application |
 | Audio → **Enregistrements vocaux ou sonores** (chat vocal, transmis en direct, jamais enregistré) | Oui | Non | Oui | Non | Fonctionnalité de l'application |
 
-Tout le reste : **non collecté** (préférences et statistiques restent sur l'appareil).
+Tout le reste : **non collecté** (préférences et statistiques détaillées restent sur l'appareil).
+« Partagé » = Non : Render et Supabase sont des prestataires qui hébergent pour nous (Google ne compte
+pas ces transferts comme un partage).
 
 ## 6. Fiche du Play Store (« Présence sur le Play Store → Fiche principale »)
 
@@ -76,7 +86,7 @@ Tout le reste : **non collecté** (préférences et statistiques restent sur l'a
 | Description longue | `STORE_LISTING.md` (FR, EN, TA, SI) |
 | Icône 512×512 | `docs/store/icon-512.png` |
 | Image de présentation 1024×500 | `docs/store/feature-1024x500.png` |
-| Captures téléphone (2 à 8) | `docs/store/screenshots/fr/1-home.png` … `4-result.png` (et `en/`, `ta/`, `si/` pour chaque traduction) |
+| Captures téléphone (2 à 8) | `docs/store/screenshots/fr/1-home.png` … `4-result.png` (et `en/`, `ta/`, `si/` pour chaque traduction) — refaites le 04/11/2026 avec les thèmes (accueil et enchères Cristal, jeu Nuit, résultat Temple) ; pour les refaire : `node tools/store-shots/run.js phone fr` (voir l'en-tête du script) |
 | Captures tablette 7 pouces | `docs/store/screenshots/tablet7/fr/` (et `en/`) |
 | Captures tablette 10 pouces | `docs/store/screenshots/tablet10/fr/` (et `en/`) |
 | Catégorie | **Jeux → Cartes** |

@@ -163,3 +163,14 @@ revoke all on function g304_nom(text), g304_moi(uuid, uuid) from public, anon, a
 grant execute on function g304_inscrire(text, int), g304_profil(uuid, uuid, text, int, int, int),
   g304_score_jour(uuid, uuid, date, int, int), g304_ajouter_ami(uuid, uuid, text),
   g304_retirer_ami(uuid, uuid, uuid), g304_classement(uuid, uuid, date) to anon, authenticated;
+
+-- suppression de toutes mes données du classement (profil, amis, scores)
+create or replace function g304_supprimer(p_joueur uuid, p_secret uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  perform g304_moi(p_joueur, p_secret);
+  -- amis et scores du jour supprimés en cascade
+  delete from g304_joueurs where id = p_joueur;
+end $$;
+revoke all on function g304_supprimer(uuid, uuid) from public;
+grant execute on function g304_supprimer(uuid, uuid) to anon, authenticated;

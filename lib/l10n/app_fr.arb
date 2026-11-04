@@ -301,5 +301,8 @@
   "tourNextMatch": "Match suivant",
   "tourNew": "Nouveau tournoi",
   "tourOpponents": "Adversaires : {level}",
-  "tourTitles": "Tournois gagnés : {n}"
+  "tourTitles": "Tournois gagnés : {n}",
+  "rankDelete": "Supprimer mes données du classement",
+  "rankDeleteAsk": "Votre prénom, vos scores et vos amis seront effacés du serveur. Vos amis ne vous verront plus.",
+  "rankDeleteOk": "Supprimer"
 }

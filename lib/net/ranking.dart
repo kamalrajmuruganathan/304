@@ -232,6 +232,13 @@ class Ranking {
     return (r['pseudo'] as String?) ?? '';
   }
 
+  /// Efface toutes mes données du serveur, puis l'identité locale.
+  Future<void> deleteMe() async {
+    if (me.value == null) return;
+    await _call('g304_supprimer', _auth());
+    await forget();
+  }
+
   Future<void> removeFriend(String id) =>
       _call('g304_retirer_ami', {..._auth(), 'p_ami': id});
 
