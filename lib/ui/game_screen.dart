@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../daily.dart';
 import '../net/ranking.dart';
 import '../settings.dart';
+import '../tournament.dart';
 import 'skin.dart';
 import '../sound.dart';
 import 'anim.dart';
@@ -32,7 +33,15 @@ Color get _dim => sk.dim;
 /// logique de règles reste dans Engine. Prévu pour basculer plus tard sur
 /// lib/net/client.dart (multijoueur).
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, this.resume = false, this.daily = false});
+  const GameScreen(
+      {super.key,
+      this.resume = false,
+      this.daily = false,
+      this.tournament = false});
+
+  /// Tournoi contre les bots (lib/tournament.dart) : match de 6 donnes,
+  /// niveau des adversaires fixé par le tour.
+  final bool tournament;
 
   /// Reprendre la partie mémorisée (`soloSave`) au lieu d'en commencer une.
   final bool resume;
@@ -96,6 +105,10 @@ class _GameScreenState extends State<GameScreen> {
       // noté après l'affichage (l'accueil, qui l'affiche, est encore construit)
       WidgetsBinding.instance
           .addPostFrameCallback((_) => startDaily(day: _day));
+    } else if (widget.tournament) {
+      final t = tour.value;
+      e.tokens = {'NS': t.ns, 'EW': t.ew};
+      if (!t.fresh) e.dealer = t.dealer;
     } else if (widget.resume && saved != null) {
       e.tokens = {'NS': saved.ns, 'EW': saved.ew};
       e.dealer = saved.dealer;
@@ -122,7 +135,9 @@ class _GameScreenState extends State<GameScreen> {
     _lastTrick = null;
     _tokensAtStart = Map.of(e.tokens);
     // la donne du jour ne touche pas à la partie solo mémorisée
-    if (!widget.daily) saveSolo(e.tokens['NS']!, e.tokens['EW']!, e.dealer);
+    if (!widget.daily && !widget.tournament) {
+      saveSolo(e.tokens['NS']!, e.tokens['EW']!, e.dealer);
+    }
     e.newHand();
     _handleRedeal(0);
   }
@@ -438,9 +453,9 @@ class _GameScreenState extends State<GameScreen> {
         // niveaux : seuls les adversaires (Est/Ouest) changent — « facile » :
         // erreurs au hasard ; « difficile » : IA Monte-Carlo (lib/ai/hard.dart)
         final opp = teamOf(seat) != teamOf(human) && !widget.daily;
-        final c = botLevel.value == 'hard' && opp
+        final c = _level == 'hard' && opp
             ? botPlayHard(e, seat)
-            : botPlayLevel(e, seat, easy: botLevel.value == 'easy' && opp);
+            : botPlayLevel(e, seat, easy: _level == 'easy' && opp);
         final r = c is PlayIndicator
             ? e.playIndicatorToCut(seat)
             : e.playCard(seat, c as Card);
@@ -603,6 +618,11 @@ class _GameScreenState extends State<GameScreen> {
     return e.playableCards(human).any((x) => x.key == c.key);
   }
 
+  /// Niveau des adversaires : celui du tour en tournoi, sinon le réglage.
+  String get _level => widget.tournament ? tour.value.level : botLevel.value;
+
+  String _roundName(int r) => [l.tourRound0, l.tourRound1, l.tourRound2][r];
+
   void _showResult(Map<String, dynamic> r) {
     final s = r['score'] as Map<String, dynamic>;
     final nsWon =
@@ -616,6 +636,9 @@ class _GameScreenState extends State<GameScreen> {
         finishDaily(e.tokens['NS']! - 11, e.pointsNS, day: _day)
             .then((_) => Ranking.instance.submitDailyQuietly());
       }
+    } else if (widget.tournament) {
+      saveTour(
+          tour.value.afterDeal(e.tokens['NS']!, e.tokens['EW']!, e.dealer));
     } else if (over) {
       clearSolo();
     } else {
@@ -626,7 +649,9 @@ class _GameScreenState extends State<GameScreen> {
         won: nsWon,
         score: s,
         takerIsMe: e.trumpMaker == human,
-        gameWinner: over && !widget.daily ? r['gameWinner'] as String? : null);
+        gameWinner: over && !widget.daily && !widget.tournament
+            ? r['gameWinner'] as String?
+            : null);
     // partie gagnée : dos de cartes / tapis débloqués
     final unlocked = newlyUnlocked(wonBefore, stats.value.gamesWon)
         .map((k) => l.unlocked(_unlockName(k)))
@@ -658,6 +683,13 @@ class _GameScreenState extends State<GameScreen> {
             '${s['pcc'] == true ? 'Partner Close Caps · ${s['tricks']}/8 — ${s['success'] == true ? l.succeeded : l.failedPcc}' : '${l.bid} ${s['bid']} · ${l.pointsN(s['tmPoints'] as int)} — ${s['success'] == true ? l.succeeded : l.failedBid}${s['caps'] == true ? ' · ${l.caps}' : ''}'}${s['wrongCaps'] != null ? '\n${s['wrongCaps'] == 'NS' ? l.wrongCapsUs(kWrongCapsPenalty) : l.wrongCapsThem(kWrongCapsPenalty)}' : ''}\n${l.tokens} — ${l.us} ${e.tokens['NS']} · ${l.them} ${e.tokens['EW']}${over ? '\n\n${r['gameWinner'] == 'NS' ? l.gameWon : l.gameLost}' : ''}',
             style: TextStyle(color: _dim),
           ),
+          if (widget.tournament) ...[
+            const SizedBox(height: 8),
+            Text(_tourLine(),
+                key: const ValueKey('tour-status'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+          ],
           if (unlocked.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(unlocked,
@@ -686,16 +718,61 @@ class _GameScreenState extends State<GameScreen> {
               icon: const Icon(Icons.history),
               label: Text(l.replayTitle),
             ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              if (over) e.tokens = {'NS': 11, 'EW': 11};
-              _startHand();
-            },
-            child: Text(over ? l.playAgain : l.nextDeal),
-          ),
+          if (widget.tournament)
+            _tourButton()
+          else
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                if (over) e.tokens = {'NS': 11, 'EW': 11};
+                _startHand();
+              },
+              child: Text(over ? l.playAgain : l.nextDeal),
+            ),
         ],
       ),
+    );
+  }
+
+  /// Tournoi : où en est le match après cette donne.
+  String _tourLine() {
+    final t = tour.value;
+    final head = '${l.tourTitle} · ${_roundName(t.round)}';
+    if (!t.matchOver) {
+      return '$head\n${t.extra ? l.tourExtra : l.tourDeal(t.deal, kTourDeals)}';
+    }
+    if (!t.matchWon) return '$head\n${l.tourEliminated}';
+    return t.round == kTourLevels.length - 1
+        ? '$head\n${l.tourChampion}'
+        : '$head\n${l.tourMatchWon(_roundName(t.round + 1))}';
+  }
+
+  /// Tournoi : donne suivante, match suivant ou nouveau tournoi.
+  Widget _tourButton() {
+    final t = tour.value;
+    final String label;
+    final TourState nextState;
+    if (!t.matchOver) {
+      label = l.nextDeal;
+      nextState = t;
+    } else if (t.matchWon && t.round < kTourLevels.length - 1) {
+      label = l.tourNextMatch;
+      nextState = t.next();
+    } else {
+      label = l.tourNew;
+      nextState = t.matchWon ? t.next() : t.restart();
+    }
+    return FilledButton(
+      key: const ValueKey('tour-continue'),
+      onPressed: () {
+        Navigator.of(context).pop();
+        if (t.matchOver) {
+          saveTour(nextState);
+          e.tokens = {'NS': 11, 'EW': 11};
+        }
+        _startHand();
+      },
+      child: Text(label),
     );
   }
 

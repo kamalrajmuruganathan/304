@@ -287,5 +287,19 @@
   "rankErrSelf": "C'est votre propre code.",
   "rankErrTooMany": "50 amis au maximum.",
   "rankErrOther": "Le classement n'a pas répondu. Réessayez.",
-  "rankRetry": "Réessayer"
+  "rankRetry": "Réessayer",
+  "tourTitle": "Tournoi contre les bots",
+  "tourRules": "3 matchs de 6 donnes, adversaires de plus en plus forts",
+  "tourRound0": "Quart de finale",
+  "tourRound1": "Demi-finale",
+  "tourRound2": "Finale",
+  "tourDeal": "Donne {n} sur {total}",
+  "tourExtra": "Égalité : donne décisive",
+  "tourMatchWon": "Match gagné ! Prochain tour : {round}.",
+  "tourChampion": "Vous remportez le tournoi !",
+  "tourEliminated": "Éliminés : le tournoi recommence au quart de finale.",
+  "tourNextMatch": "Match suivant",
+  "tourNew": "Nouveau tournoi",
+  "tourOpponents": "Adversaires : {level}",
+  "tourTitles": "Tournois gagnés : {n}"
 }

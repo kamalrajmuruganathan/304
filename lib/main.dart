@@ -9,6 +9,7 @@ import 'daily.dart';
 import 'pwa.dart';
 import 'net/ranking.dart';
 import 'settings.dart';
+import 'tournament.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_screen.dart';
 import 'ui/profile.dart';
@@ -47,6 +48,7 @@ Future<void> main() async {
   await loadSkin();
   await loadDaily();
   await Ranking.load();
+  await loadTour();
   // appli Android ouverte par un lien d'invitation (game304://table/ABCD)
   String? code;
   if (!kIsWeb) {
@@ -254,6 +256,38 @@ class _HomeScreenState extends State<HomeScreen> {
                                   today == null
                                       ? '${l.dailyDeal}\n${l.dailyNew}'
                                       : '${l.dailyDeal}\n${l.dailyDone(l.dailyScore(today.delta > 0 ? '+${today.delta}' : '${today.delta}', today.points))}',
+                                  textAlign: TextAlign.center),
+                            ),
+                          ));
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // tournoi : 3 matchs, adversaires de plus en plus forts
+                  ValueListenableBuilder(
+                    valueListenable: tour,
+                    builder: (context, t, _) {
+                      final round =
+                          [l.tourRound0, l.tourRound1, l.tourRound2][t.round];
+                      final level = {
+                        'easy': l.levelEasy,
+                        'normal': l.normal,
+                        'hard': l.levelHard
+                      }[t.level]!;
+                      return SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('home-tournament'),
+                            onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const GameScreen(tournament: true))),
+                            icon: const Icon(Icons.emoji_events),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Text(
+                                  t.fresh
+                                      ? '${l.tourTitle}\n${l.tourRules}${t.titles > 0 ? '\n${l.tourTitles(t.titles)}' : ''}'
+                                      : '${l.tourTitle}\n$round · ${l.tourOpponents(level)} · ${l.us} ${t.ns} – ${l.them} ${t.ew}',
                                   textAlign: TextAlign.center),
                             ),
                           ));

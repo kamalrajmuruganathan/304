@@ -277,11 +277,11 @@ void main() {
     await Ranking.instance.ensure();
     srv.players.clear();
     final l = lookupAppLocalizations(const Locale('fr'));
-    await t.pumpWidget(MaterialApp(
-      locale: const Locale('fr'),
+    await t.pumpWidget(const MaterialApp(
+      locale: Locale('fr'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const RankingScreen(),
+      home: RankingScreen(),
     ));
     await t.pumpAndSettle();
     expect(Ranking.me.value, isNull);
